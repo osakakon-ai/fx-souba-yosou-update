@@ -1,0 +1,40 @@
+name: Publish staged FX APK
+
+on:
+  push:
+    paths:
+      - 'publish-2.224/READY'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild and verify APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat publish-2.224/chunk_*.b64 > /tmp/fx224.b64
+          base64 --decode /tmp/fx224.b64 > FX-Souba-Yosou-2.224.apk
+          test "$(sha256sum FX-Souba-Yosou-2.224.apk | awk '{print $1}')" = "611a85fcb03eb08a16c7c251c41633ca914a1e69a965869879ce535b065e2b52"
+          cp FX-Souba-Yosou-2.224.apk FX-Souba-Yosou.apk
+          cat > latest.json <<'JSON'
+          {
+            "versionCode": 200224,
+            "versionName": "2.224",
+            "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/FX-Souba-Yosou-2.224.apk",
+            "sha256": "611a85fcb03eb08a16c7c251c41633ca914a1e69a965869879ce535b065e2b52"
+          }
+          JSON
+      - name: Commit published APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add FX-Souba-Yosou.apk FX-Souba-Yosou-2.224.apk latest.json
+          git commit -m "Publish FX相場予想 Ver 2.224"
+          git push
