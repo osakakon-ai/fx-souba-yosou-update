@@ -5,76 +5,285 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ギターコード譜</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111;font-family:system-ui,-apple-system,sans-serif}
-.app{max-width:860px;margin:auto;padding:10px 10px 70px}.top,.panel,.measure,.card{background:#fff;border:1px solid #d7dbe0;border-radius:14px}
-.top{position:sticky;top:0;z-index:10;display:flex;gap:8px;align-items:center;padding:10px}.top b{flex:1}
-.panel{padding:10px;margin-top:9px}.row{display:flex;gap:7px;flex-wrap:wrap}button,input,textarea,select{font:inherit}
-button{border:1px solid #bbb;background:#fff;border-radius:10px;padding:9px 12px}.primary{background:#111;color:#fff}
-input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-radius:10px;background:#fff}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:#f3f4f6;color:#111;font-family:system-ui,-apple-system,sans-serif}
+.app{max-width:860px;margin:auto;padding:10px 10px calc(72px + env(safe-area-inset-bottom,0px))}
+.top,.panel,.measure,.card,.settings-card{background:#fff;border:1px solid #d7dbe0;border-radius:14px}
+.top{position:sticky;top:0;z-index:10;display:flex;gap:8px;align-items:center;min-height:58px;padding:10px 12px}
+.top b{flex:1}.panel{padding:10px;margin-top:9px}.row{display:flex;gap:7px;flex-wrap:wrap}
+button,input,textarea,select{font:inherit}button{border:1px solid #bbb;background:#fff;border-radius:10px;padding:9px 12px}
+.primary{background:#111;color:#fff}input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-radius:10px;background:#fff}
+.meta{margin-top:7px;padding:8px 10px;border-radius:10px;background:#f5f6f7;font-size:13px;color:#444}
 .roots{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.roots button{font-weight:800;font-size:17px;padding:10px 4px}
-.quality{display:none;margin-top:8px}.quality.open{display:flex}.measure{margin-top:9px;padding:9px}.chords{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:7px}
+.quality{display:none;margin-top:8px}.quality.open{display:flex}.measure{margin-top:9px;padding:9px}
+.chords{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:7px}
 .card{padding:8px}.name{font-size:21px;font-weight:800}.muted{font-size:12px;color:#666}.detail{display:grid;grid-template-columns:1fr 125px;gap:5px}
 .staff{width:100%;height:125px}.diagram{width:120px;height:150px}
-@media(max-width:560px){.roots{grid-template-columns:repeat(4,1fr)}.detail{grid-template-columns:1fr}}
-@media print{.top,.controls{display:none!important}body{background:#fff}.app{max-width:none}}
+.settings-overlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.42);padding:calc(20px + env(safe-area-inset-top,0px)) 12px calc(20px + env(safe-area-inset-bottom,0px));overflow:auto}
+.settings-overlay.open{display:flex;align-items:flex-start;justify-content:center}
+.settings-card{width:min(620px,100%);padding:16px}.settings-card h2{margin:0 0 12px;font-size:21px}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field label{display:block;margin-bottom:5px;font-size:13px;font-weight:700}.settings-note{margin:10px 0;font-size:12px;color:#666}
+@media(max-width:560px){.roots{grid-template-columns:repeat(4,1fr)}.detail{grid-template-columns:1fr}.settings-grid{grid-template-columns:1fr}}
+@media print{.top,.controls,.settings-overlay{display:none!important}body{background:#fff}.app{max-width:none}}
 </style>
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.1.1</span></b><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.1.2</span></b><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
-  <div class="row" style="margin-top:7px">
-   <select id="tuning"><option value="standard">標準 E A D G B E</option><option value="half">半音下げ Eb Ab Db Gb Bb Eb</option><option value="dropd">Drop D D A D G B E</option></select>
-  </div>
+  <div id="meta" class="meta"></div>
   <textarea id="codeText" rows="2" style="margin-top:7px" placeholder="例: C D Em Am">C D Em Am</textarea>
-  <div class="row controls" style="margin-top:7px"><button class="primary" onclick="applyText()">コードを反映</button><button onclick="addMeasure()">小節追加</button><button onclick="save()">保存</button></div>
+  <div class="row controls" style="margin-top:7px">
+   <button class="primary" onclick="applyText()">コード生成</button>
+   <button onclick="openSettings()">設定</button>
+   <button onclick="save()">保存</button>
+  </div>
  </div>
  <div class="panel controls">
-  <div class="muted">コードを追加</div><div id="roots" class="roots"></div>
+  <div class="muted">コードを追加</div>
+  <div id="roots" class="roots" style="margin-top:7px"></div>
   <div id="quality" class="row quality"></div>
  </div>
  <div class="panel"><textarea id="lyrics" rows="3" placeholder="歌詞"></textarea></div>
  <div id="sheet"></div>
  <div class="panel controls"><div class="row"><button onclick="window.print()">印刷 / PDF</button><button onclick="clearAll()">新規作成</button></div></div>
 </div>
+
+<div id="settingsOverlay" class="settings-overlay" onclick="overlayClose(event)">
+ <div class="settings-card">
+  <h2>譜面設定</h2>
+  <div class="settings-grid">
+   <div class="field">
+    <label for="bpm">BPM</label>
+    <input id="bpm" type="number" min="20" max="300" step="1" value="120">
+   </div>
+   <div class="field">
+    <label for="timeSig">拍子</label>
+    <select id="timeSig">
+     <option>2/4</option><option>3/4</option><option selected>4/4</option><option>5/4</option><option>6/8</option><option>9/8</option><option>12/8</option>
+    </select>
+   </div>
+   <div class="field">
+    <label for="capo">カポ</label>
+    <select id="capo">
+     <option value="0">なし</option>
+     <option value="1">1フレット</option><option value="2">2フレット</option><option value="3">3フレット</option>
+     <option value="4">4フレット</option><option value="5">5フレット</option><option value="6">6フレット</option>
+     <option value="7">7フレット</option><option value="8">8フレット</option><option value="9">9フレット</option>
+     <option value="10">10フレット</option><option value="11">11フレット</option><option value="12">12フレット</option>
+    </select>
+   </div>
+   <div class="field">
+    <label for="tuning">チューニング</label>
+    <select id="tuning">
+     <option value="standard">標準 E A D G B E</option>
+     <option value="half">半音下げ Eb Ab Db Gb Bb Eb</option>
+     <option value="dropd">Drop D D A D G B E</option>
+    </select>
+   </div>
+  </div>
+  <div class="settings-note">棒を入力しない場合は、スペースで区切った各コードを1小節として自動配置します。自分で「|」を入力した場合は、その小節区切りを優先します。</div>
+  <div class="row">
+   <button class="primary" onclick="applySettings()">設定を反映</button>
+   <button onclick="closeSettings()">閉じる</button>
+  </div>
+ </div>
+</div>
+
 <script>
 const ROOTS=['C','C#','Db','D','D#','Eb','E','F','F#','Gb','G','G#','Ab','A','A#','Bb','B'];
 const QUAL=['','m','7','M7','m7','6','m6','sus2','sus4','add9','dim','dim7','aug','9','m9','11'];
 const PC={C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
 const FORM={'':[0,4,7],m:[0,3,7],7:[0,4,7,10],M7:[0,4,7,11],m7:[0,3,7,10],6:[0,4,7,9],m6:[0,3,7,9],sus2:[0,2,7],sus4:[0,5,7],add9:[0,2,4,7],dim:[0,3,6],dim7:[0,3,6,9],aug:[0,4,8],9:[0,2,4,7,10],m9:[0,2,3,7,10],11:[0,2,4,5,7,10]};
 const T={standard:[40,45,50,55,59,64],half:[39,44,49,54,58,63],dropd:[38,45,50,55,59,64]};
+const TLABEL={standard:'標準',half:'半音下げ',dropd:'Drop D'};
 const OPEN={C:[null,3,2,0,1,0],D:[null,null,0,2,3,2],E:[0,2,2,1,0,0],F:[1,3,3,2,1,1],G:[3,2,0,0,0,3],A:[null,0,2,2,2,0],B:[null,2,4,4,4,2],Am:[null,0,2,2,1,0],Dm:[null,null,0,2,3,1],Em:[0,2,2,0,0,0],C7:[null,3,2,3,1,0],D7:[null,null,0,2,1,2],E7:[0,2,0,1,0,0],G7:[3,2,0,0,0,1],A7:[null,0,2,0,2,0],B7:[null,2,1,2,0,2],CM7:[null,3,2,0,0,0],FM7:[null,null,3,2,1,0],Am7:[null,0,2,0,1,0],Dm7:[null,null,0,2,1,1],Em7:[0,2,0,0,0,0],Csus4:[null,3,3,0,1,1],Cadd9:[null,3,2,0,3,0]};
 const N=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-let state={measures:[[{name:'C',beats:4}],[{name:'D',beats:4}],[{name:'Em',beats:4}],[{name:'Am',beats:4}]]},root:'C'};
+
+let state={measures:[[{name:'C',beats:4}],[{name:'D',beats:4}],[{name:'Em',beats:4}],[{name:'Am',beats:4}]],root:'C'};
+let settings={bpm:120,timeSig:'4/4',capo:0};
+
 function parts(n){const r=(n.match(/^[A-G](?:#|b)?/)||['C'])[0];return [r,n.slice(r.length)]}
-function pcs(n){const [r,q]=parts(n),f=FORM[q]||FORM[''];return f.map(x=>(PC[r]+x)%12)}
-function autoShape(n){if(OPEN[n])return OPEN[n];const need=[...new Set(pcs(n))],t=T[document.getElementById('tuning').value];let best=null,score=999;
- for(let base=0;base<=8;base++){let s=[];for(let i=0;i<6;i++){let f=null;for(let x=base;x<=base+4;x++){if(need.includes((t[i]+x)%12)){f=x;break}}s.push(f)}
- const got=[...new Set(s.map((f,i)=>f==null?null:(t[i]+f)%12).filter(x=>x!=null))];if(need.every(x=>got.includes(x))){const sc=s.filter(x=>x==null).length*4+base;if(sc<score){best=s;score=sc}}}
- return best||[null,null,0,0,0,0]}
-function sound(shape){const t=T[document.getElementById('tuning').value];return shape.map((f,i)=>f==null?null:t[i]+f).filter(x=>x!=null)}
-function staff(n,shape){const notes=sound(shape),lines=[36,48,60,72,84].map(y=>'<line x1="18" y1="'+y+'" x2="270" y2="'+y+'" stroke="#222"/>').join('');
- const ys=notes.map(m=>84-((m-60)*3.1));const dots=ys.map((y,i)=>'<ellipse cx="'+(72+i*28)+'" cy="'+y+'" rx="7" ry="5" fill="#111"/><line x1="'+(79+i*28)+'" y1="'+y+'" x2="'+(79+i*28)+'" y2="'+(y-25)+'" stroke="#111"/>').join('');
+function pcs(n){const p=parts(n),r=p[0],q=p[1],f=FORM[q]||FORM[''];return f.map(x=>(PC[r]+x)%12)}
+function beatsPerMeasure(){const n=parseInt(settings.timeSig.split('/')[0],10);return Number.isFinite(n)&&n>0?n:4}
+
+function autoShape(n){
+ if(OPEN[n])return OPEN[n];
+ const need=[...new Set(pcs(n))],t=T[document.getElementById('tuning').value];
+ let best=null,score=999;
+ for(let base=0;base<=8;base++){
+  let s=[];
+  for(let i=0;i<6;i++){
+   let f=null;
+   for(let x=base;x<=base+4;x++){if(need.includes((t[i]+x)%12)){f=x;break}}
+   s.push(f);
+  }
+  const got=[...new Set(s.map((f,i)=>f==null?null:(t[i]+f)%12).filter(x=>x!=null))];
+  if(need.every(x=>got.includes(x))){
+   const sc=s.filter(x=>x==null).length*4+base;
+   if(sc<score){best=s;score=sc}
+  }
+ }
+ return best||[null,null,0,0,0,0];
+}
+
+function sound(shape){
+ const t=T[document.getElementById('tuning').value],capo=Number(settings.capo)||0;
+ return shape.map((f,i)=>f==null?null:t[i]+capo+f).filter(x=>x!=null);
+}
+
+function staff(n,shape){
+ const notes=sound(shape);
+ const lines=[36,48,60,72,84].map(y=>'<line x1="18" y1="'+y+'" x2="270" y2="'+y+'" stroke="#222"/>').join('');
+ const ys=notes.map(m=>84-((m-60)*3.1));
+ const dots=ys.map((y,i)=>'<ellipse cx="'+(72+i*28)+'" cy="'+y+'" rx="7" ry="5" fill="#111"/><line x1="'+(79+i*28)+'" y1="'+y+'" x2="'+(79+i*28)+'" y2="'+(y-25)+'" stroke="#111"/>').join('');
  const labels=notes.map(m=>N[m%12]+(Math.floor(m/12)-1)).join(' ');
- return '<svg class="staff" viewBox="0 0 290 118">'+lines+'<text x="24" y="78" font-size="45">𝄞</text>'+dots+'<text x="18" y="108" font-size="10">'+labels+'</text></svg>'}
-function diagram(shape){let fs=shape.filter(x=>x!=null&&x>0),start=fs.length&&Math.min(...fs)>4?Math.min(...fs):1,s='<svg class="diagram" viewBox="0 0 125 155">';
+ return '<svg class="staff" viewBox="0 0 290 118">'+lines+'<text x="24" y="78" font-size="45">𝄞</text>'+dots+'<text x="18" y="108" font-size="10">'+labels+'</text></svg>';
+}
+
+function diagram(shape){
+ let fs=shape.filter(x=>x!=null&&x>0),start=fs.length&&Math.min(...fs)>4?Math.min(...fs):1,s='<svg class="diagram" viewBox="0 0 125 155">';
  for(let i=0;i<6;i++){let x=20+i*17;s+='<line x1="'+x+'" y1="30" x2="'+x+'" y2="135" stroke="#222"/>'}
  for(let j=0;j<6;j++){let y=30+j*21;s+='<line x1="20" y1="'+y+'" x2="105" y2="'+y+'" stroke="#222"/>'}
- shape.forEach((f,i)=>{let x=20+i*17;if(f==null)s+='<text x="'+(x-4)+'" y="20">×</text>';else if(f===0)s+='<text x="'+(x-4)+'" y="20">○</text>';else{let y=40+(f-start)*21;if(y>=35&&y<=135)s+='<circle cx="'+x+'" cy="'+y+'" r="6" fill="#111"/>'}});
- if(start>1)s+='<text x="1" y="50" font-size="10">'+start+'fr</text>';return s+'</svg>'}
-function render(){let out='';state.measures.forEach((m,mi)=>{out+='<div class="measure"><b>小節 '+(mi+1)+'</b><div class="chords">';m.forEach((c,ci)=>{const sh=autoShape(c.name);out+='<div class="card" onclick="changeShape('+mi+','+ci+')"><div class="name">'+c.name+'</div><div class="muted">'+c.beats+'拍・タップで別フォーム</div><div class="detail">'+staff(c.name,sh)+diagram(sh)+'</div><div class="muted">'+sh.map(x=>x==null?'x':x).join(' ')+'</div></div>'});out+='</div></div>'});document.getElementById('sheet').innerHTML=out}
-function applyText(){const el=document.getElementById('codeText');let src=el.value.trim();if(!src.includes('|')){const tokens=src.split(/\s+/).filter(Boolean);src=tokens.join(' | ');el.value=src}state.measures=src.split('|').map(x=>x.trim()).filter(Boolean).map(part=>{const a=part.split(/\s+/).filter(Boolean),d=4/Math.max(1,a.length);return a.map(v=>{const p=v.split(':');return{name:p[0],beats:p[1]?Number(p[1]):d}})});if(!state.measures.length)state.measures=[[]];render();save()}
-function addMeasure(){state.measures.push([]);render();save()}
-function selectRoot(r){state.root=r;const q=document.getElementById('quality');q.classList.add('open');q.innerHTML=QUAL.map(x=>'<button onclick="addChord(\''+r+x+'\')">'+r+x+'</button>').join('')}
-function addChord(n){if(!state.measures.length)state.measures=[[]];state.measures[state.measures.length-1].push({name:n,beats:1});render();save()}
-function changeShape(mi,ci){const n=state.measures[mi][ci].name,sh=autoShape(n),next=sh.map(x=>x==null?null:(x+12));OPEN[n]=next;render()}
-function save(){const d={title:document.getElementById('title').value,lyrics:document.getElementById('lyrics').value,tuning:document.getElementById('tuning').value,codeText:document.getElementById('codeText').value,state};localStorage.setItem('gcs',JSON.stringify(d))}
-function load(){try{const d=JSON.parse(localStorage.getItem('gcs'));if(!d)return;document.getElementById('title').value=d.title||'';document.getElementById('lyrics').value=d.lyrics||'';document.getElementById('tuning').value=d.tuning||'standard';document.getElementById('codeText').value=d.codeText||'';state=d.state||state}catch(e){}}
-function clearAll(){if(confirm('新しいコード譜を作りますか？')){localStorage.removeItem('gcs');location.reload()}}
-function updateApp(){if(window.AndroidBridge&&AndroidBridge.checkForUpdate)AndroidBridge.checkForUpdate();else alert('APK版で利用できます')}
+ shape.forEach((f,i)=>{
+  let x=20+i*17;
+  if(f==null)s+='<text x="'+(x-4)+'" y="20">×</text>';
+  else if(f===0)s+='<text x="'+(x-4)+'" y="20">○</text>';
+  else{
+   let y=40+(f-start)*21;
+   if(y>=35&&y<=135)s+='<circle cx="'+x+'" cy="'+y+'" r="6" fill="#111"/>';
+  }
+ });
+ if(start>1)s+='<text x="1" y="50" font-size="10">'+start+'fr</text>';
+ return s+'</svg>';
+}
+
+function renderMeta(){
+ const tuning=document.getElementById('tuning').value;
+ const capo=Number(settings.capo)||0;
+ document.getElementById('meta').textContent=
+  'BPM '+settings.bpm+' ・ '+settings.timeSig+' ・ '+(capo?'Capo '+capo:'Capoなし')+' ・ '+(TLABEL[tuning]||tuning);
+}
+
+function render(){
+ renderMeta();
+ let out='';
+ state.measures.forEach((m,mi)=>{
+  out+='<div class="measure"><b>小節 '+(mi+1)+'</b><div class="chords">';
+  m.forEach((c,ci)=>{
+   const sh=autoShape(c.name);
+   out+='<div class="card" onclick="changeShape('+mi+','+ci+')"><div class="name">'+c.name+'</div><div class="muted">'+c.beats+'拍・タップで別フォーム</div><div class="detail">'+staff(c.name,sh)+diagram(sh)+'</div><div class="muted">'+sh.map(x=>x==null?'x':x).join(' ')+'</div></div>';
+  });
+  out+='</div></div>';
+ });
+ document.getElementById('sheet').innerHTML=out;
+}
+
+function applyText(){
+ const el=document.getElementById('codeText');
+ let src=el.value.trim();
+ if(!src){state.measures=[[]];render();save();return}
+ if(!src.includes('|')){
+  const tokens=src.split(/\s+/).filter(Boolean);
+  src=tokens.join(' | ');
+  el.value=src;
+ }
+ const total=beatsPerMeasure();
+ state.measures=src.split('|').map(x=>x.trim()).filter(Boolean).map(part=>{
+  const a=part.split(/\s+/).filter(Boolean),d=total/Math.max(1,a.length);
+  return a.map(v=>{
+   const p=v.split(':');
+   return{name:p[0],beats:p[1]?Number(p[1]):d};
+  });
+ });
+ if(!state.measures.length)state.measures=[[]];
+ render();
+ save();
+}
+
+function selectRoot(r){
+ state.root=r;
+ const q=document.getElementById('quality');
+ q.classList.add('open');
+ q.innerHTML=QUAL.map(x=>'<button onclick="addChord(\''+r+x+'\')">'+r+x+'</button>').join('');
+}
+
+function addChord(n){
+ if(!state.measures.length)state.measures=[[]];
+ state.measures.push([{name:n,beats:beatsPerMeasure()}]);
+ document.getElementById('codeText').value=state.measures.filter(m=>m.length).map(m=>m.map(c=>c.name).join(' ')).join(' | ');
+ render();
+ save();
+}
+
+function changeShape(mi,ci){
+ const n=state.measures[mi][ci].name,sh=autoShape(n),next=sh.map(x=>x==null?null:(x+12));
+ OPEN[n]=next;
+ render();
+}
+
+function openSettings(){
+ document.getElementById('bpm').value=settings.bpm;
+ document.getElementById('timeSig').value=settings.timeSig;
+ document.getElementById('capo').value=String(settings.capo||0);
+ document.getElementById('settingsOverlay').classList.add('open');
+}
+function closeSettings(){document.getElementById('settingsOverlay').classList.remove('open')}
+function overlayClose(e){if(e.target.id==='settingsOverlay')closeSettings()}
+function applySettings(){
+ const bpm=Math.max(20,Math.min(300,Number(document.getElementById('bpm').value)||120));
+ settings.bpm=Math.round(bpm);
+ settings.timeSig=document.getElementById('timeSig').value||'4/4';
+ settings.capo=Number(document.getElementById('capo').value)||0;
+ closeSettings();
+ render();
+ save();
+}
+
+function save(){
+ const d={
+  title:document.getElementById('title').value,
+  lyrics:document.getElementById('lyrics').value,
+  tuning:document.getElementById('tuning').value,
+  codeText:document.getElementById('codeText').value,
+  state:state,
+  settings:settings
+ };
+ localStorage.setItem('gcs',JSON.stringify(d));
+}
+
+function load(){
+ try{
+  const d=JSON.parse(localStorage.getItem('gcs'));
+  if(!d)return;
+  document.getElementById('title').value=d.title||'';
+  document.getElementById('lyrics').value=d.lyrics||'';
+  document.getElementById('tuning').value=d.tuning||'standard';
+  document.getElementById('codeText').value=d.codeText||'';
+  state=d.state||state;
+  settings=Object.assign(settings,d.settings||{});
+ }catch(e){}
+}
+
+function clearAll(){
+ if(confirm('新しいコード譜を作りますか？')){
+  localStorage.removeItem('gcs');
+  location.reload();
+ }
+}
+function updateApp(){
+ if(window.AndroidBridge&&AndroidBridge.checkForUpdate)AndroidBridge.checkForUpdate();
+ else alert('APK版で利用できます');
+}
+
 document.getElementById('roots').innerHTML=ROOTS.map(r=>'<button onclick="selectRoot(\''+r+'\')">'+r+'</button>').join('');
-['title','lyrics'].forEach(id=>document.getElementById(id).addEventListener('input',save));document.getElementById('tuning').addEventListener('change',()=>{render();save()});
-load();render();
+['title','lyrics'].forEach(id=>document.getElementById(id).addEventListener('input',save));
+document.getElementById('tuning').addEventListener('change',()=>{render();save()});
+load();
+render();
 </script>
-</body></html>
+</body>
+</html>
