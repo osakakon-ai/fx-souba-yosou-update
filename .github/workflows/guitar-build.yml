@@ -56,12 +56,12 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
           src = Path("guitar-build/android/app/src/main/assets/index.html").read_text(encoding="utf-8")
-          m = re.search(r"<script>([\\s\\S]*?)</script>", src)
-          if not m:
+          start = src.find("<script>")
+          end = src.find("</script>", start + 8)
+          if start < 0 or end < 0:
               raise SystemExit("script block not found")
-          Path("/tmp/guitar-app.js").write_text(m.group(1), encoding="utf-8")
+          Path("/tmp/guitar-app.js").write_text(src[start + 8:end], encoding="utf-8")
           PY
           node --check /tmp/guitar-app.js
 
