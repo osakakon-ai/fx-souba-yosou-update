@@ -11,7 +11,7 @@ body{margin:0;background:#f3f4f6;color:#111;font-family:system-ui,-apple-system,
 .app{max-width:900px;margin:auto;padding:10px 10px calc(72px + env(safe-area-inset-bottom,0px))}
 .top,.panel,.score-system,.settings-card,.chord-detail-card{background:#fff;border:1px solid #d7dbe0;border-radius:14px}
 .top{position:sticky;top:0;z-index:10;display:flex;gap:8px;align-items:center;min-height:58px;padding:10px 12px}
-.top b{flex:1}.panel{padding:10px;margin-top:9px}.row{display:flex;gap:7px;flex-wrap:wrap}
+.top b{flex:1;min-width:0}.top-follow-stop{display:none;background:#111;color:#fff;border-color:#111;min-width:72px}.top-follow-stop.show{display:block}.panel{padding:10px;margin-top:9px}.row{display:flex;gap:7px;flex-wrap:wrap}
 button,input,textarea,select{font:inherit}
 button{border:1px solid #bbb;background:#fff;border-radius:10px;padding:9px 12px;min-height:44px}
 .primary{background:#111;color:#fff}
@@ -70,7 +70,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.1.8</span></b><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.1.9</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -369,71 +369,92 @@ function beatDurationMs(){
  return 60000/Math.max(20,Number(settings.bpm)||120);
 }
 
-function measureDurationMs(){
- return beatsPerMeasure()*beatDurationMs();
+function buildPlaybackTimeline(){
+ const entries=[];
+ let absoluteBeat=0;
+ state.measures.forEach((m,mi)=>{
+  let localBeat=0;
+  m.forEach((c,ci)=>{
+   const beats=Math.max(.25,Number(c.beats)||1);
+   entries.push({
+    mi:mi,ci:ci,name:c.name,beats:beats,
+    localStart:localBeat,
+    startBeat:absoluteBeat,
+    endBeat:absoluteBeat+beats
+   });
+   localBeat+=beats;
+   absoluteBeat+=beats;
+  });
+ });
+ return {entries:entries,totalBeats:absoluteBeat};
 }
 
-function currentPlaybackPosition(){
- const perMeasure=beatsPerMeasure();
- const beatMs=beatDurationMs();
- const totalBeats=state.measures.reduce((sum,m)=>sum+m.reduce((s,c)=>s+(Number(c.beats)||1),0),0);
- const beatPos=Math.min(totalBeats,scrollState.elapsed/beatMs);
- let remaining=beatPos;
- let measureIndex=0,beatInMeasure=0,chordIndex=0,chordProgress=0;
-
- for(let mi=0;mi<state.measures.length;mi++){
-  const m=state.measures[mi];
-  const measureBeats=m.reduce((s,c)=>s+(Number(c.beats)||1),0);
-  if(remaining < measureBeats || mi===state.measures.length-1){
-   measureIndex=mi;
-   beatInMeasure=Math.max(0,Math.min(measureBeats,remaining));
-   let b=beatInMeasure;
-   for(let ci=0;ci<m.length;ci++){
-    const cb=Math.max(.25,Number(m[ci].beats)||1);
-    if(b < cb || ci===m.length-1){
-     chordIndex=ci;
-     chordProgress=Math.max(0,Math.min(1,b/cb));
-     break;
-    }
-    b-=cb;
-   }
-   break;
-  }
-  remaining-=measureBeats;
- }
- return {measureIndex,beatInMeasure,chordIndex,chordProgress,totalBeats,beatPos,perMeasure};
+function playbackAtElapsed(){
+ const timeline=buildPlaybackTimeline();
+ if(!timeline.entries.length)return {timeline:timeline,index:-1,entry:null,progress:0,beatPos:0};
+ const beatPos=Math.max(0,Math.min(timeline.totalBeats,scrollState.elapsed/beatDurationMs()));
+ let index=timeline.entries.findIndex(e=>beatPos<e.endBeat-0.000001);
+ if(index<0)index=timeline.entries.length-1;
+ const entry=timeline.entries[index];
+ const progress=Math.max(0,Math.min(1,(beatPos-entry.startBeat)/Math.max(.25,entry.beats)));
+ return {timeline:timeline,index:index,entry:entry,progress:progress,beatPos:beatPos};
 }
 
-function updateScrollHighlight(){
- const pos=currentPlaybackPosition();
+function updateScrollHighlight(playback){
+ const p=playback||playbackAtElapsed();
  const measureNodes=[...document.querySelectorAll('.score-measure')];
  const chordNodes=[...document.querySelectorAll('.chord-mini')];
-
- measureNodes.forEach((n,i)=>n.classList.toggle('playing',i===pos.measureIndex));
+ measureNodes.forEach((n,i)=>n.classList.toggle('playing',!!p.entry&&i===p.entry.mi));
  chordNodes.forEach(n=>{
   const mi=Number(n.dataset.measure),ci=Number(n.dataset.chord);
-  n.classList.toggle('playing',mi===pos.measureIndex&&ci===pos.chordIndex);
+  n.classList.toggle('playing',!!p.entry&&mi===p.entry.mi&&ci===p.entry.ci);
  });
+ return {playback:p,measureNodes:measureNodes,chordNodes:chordNodes};
+}
 
- return {measureNodes,chordNodes,pos};
+function stickyTopOffset(){
+ const top=document.querySelector('.top');
+ return (top?top.getBoundingClientRect().height:58)+14;
+}
+
+function chordScrollAnchor(entry,measureNodes){
+ if(!entry||!measureNodes.length)return window.scrollY;
+ const node=measureNodes[Math.min(entry.mi,measureNodes.length-1)];
+ const nextMeasure=measureNodes[Math.min(entry.mi+1,measureNodes.length-1)];
+ const y0=node.getBoundingClientRect().top+window.scrollY;
+ let y1;
+ if(entry.mi+1<measureNodes.length){
+  y1=nextMeasure.getBoundingClientRect().top+window.scrollY;
+ }else{
+  y1=y0+Math.max(node.offsetHeight,180);
+ }
+ const m=state.measures[entry.mi]||[];
+ const measureBeats=Math.max(.25,m.reduce((s,c)=>s+(Number(c.beats)||1),0));
+ const frac=Math.max(0,Math.min(1,entry.localStart/measureBeats));
+ return y0+(y1-y0)*frac-stickyTopOffset();
 }
 
 function scrollForPlayback(info){
- const nodes=info.measureNodes;
- if(!nodes.length)return;
- const pos=info.pos;
- const current=nodes[Math.min(pos.measureIndex,nodes.length-1)];
- const next=nodes[Math.min(pos.measureIndex+1,nodes.length-1)];
-
- const measureBeats=state.measures[pos.measureIndex]
-  ? state.measures[pos.measureIndex].reduce((s,c)=>s+(Number(c.beats)||1),0)
-  : beatsPerMeasure();
- const frac=Math.max(0,Math.min(1,pos.beatInMeasure/Math.max(.25,measureBeats)));
-
- const y0=current.getBoundingClientRect().top+window.scrollY-110;
- const y1=next.getBoundingClientRect().top+window.scrollY-110;
- const y=y0+(y1-y0)*frac;
+ const p=info.playback;
+ if(!p.entry||!info.measureNodes.length)return;
+ const currentY=chordScrollAnchor(p.entry,info.measureNodes);
+ const nextEntry=p.timeline.entries[Math.min(p.index+1,p.timeline.entries.length-1)];
+ let nextY;
+ if(p.index+1<p.timeline.entries.length){
+  nextY=chordScrollAnchor(nextEntry,info.measureNodes);
+ }else{
+  const currentMeasure=info.measureNodes[Math.min(p.entry.mi,info.measureNodes.length-1)];
+  nextY=currentY+Math.max(80,currentMeasure.offsetHeight/Math.max(1,(state.measures[p.entry.mi]||[]).length));
+ }
+ const y=currentY+(nextY-currentY)*p.progress;
  window.scrollTo(0,Math.max(0,y));
+}
+
+function setPlaybackButtons(running){
+ const main=document.getElementById('autoScrollBtn');
+ const follow=document.getElementById('topFollowStop');
+ if(main)main.textContent=running?'停止':'自動スクロール';
+ if(follow)follow.classList.toggle('show',running);
 }
 
 function autoScrollFrame(ts){
@@ -441,10 +462,11 @@ function autoScrollFrame(ts){
  if(!scrollState.startTime)scrollState.startTime=ts-scrollState.elapsed;
  scrollState.elapsed=ts-scrollState.startTime;
 
- const info=updateScrollHighlight();
+ const playback=playbackAtElapsed();
+ const info=updateScrollHighlight(playback);
  scrollForPlayback(info);
 
- const totalMs=info.pos.totalBeats*beatDurationMs();
+ const totalMs=playback.timeline.totalBeats*beatDurationMs();
  if(scrollState.elapsed>=totalMs){
   scrollState.elapsed=totalMs;
   stopAutoScroll(false);
@@ -459,12 +481,14 @@ function toggleAutoScroll(){
   stopAutoScroll(true);
   return;
  }
- const info=currentPlaybackPosition();
- const totalMs=info.totalBeats*beatDurationMs();
+ const playback=playbackAtElapsed();
+ const totalMs=playback.timeline.totalBeats*beatDurationMs();
+ if(totalMs<=0)return;
  if(scrollState.elapsed>=totalMs)scrollState.elapsed=0;
+
  scrollState.running=true;
  scrollState.startTime=0;
- document.getElementById('autoScrollBtn').textContent='停止';
+ setPlaybackButtons(true);
  document.getElementById('autoScrollStatus').textContent='BPM '+settings.bpm+' で再生中';
  scrollState.raf=requestAnimationFrame(autoScrollFrame);
 }
@@ -474,10 +498,9 @@ function stopAutoScroll(keepPosition){
  if(scrollState.raf)cancelAnimationFrame(scrollState.raf);
  scrollState.raf=0;
  scrollState.startTime=0;
- const b=document.getElementById('autoScrollBtn');
- if(b)b.textContent='自動スクロール';
+ setPlaybackButtons(false);
  const s=document.getElementById('autoScrollStatus');
- if(s)s.textContent=keepPosition?'停止中':'停止中';
+ if(s&&s.textContent!=='終了')s.textContent=keepPosition?'停止中':'停止中';
 }
 
 function resetAutoScroll(){
@@ -485,7 +508,7 @@ function resetAutoScroll(){
  scrollState.elapsed=0;
  document.querySelectorAll('.score-measure,.chord-mini').forEach(n=>n.classList.remove('playing'));
  const first=document.querySelector('.score-measure');
- if(first)window.scrollTo({top:Math.max(0,first.getBoundingClientRect().top+window.scrollY-110),behavior:'smooth'});
+ if(first)window.scrollTo({top:Math.max(0,first.getBoundingClientRect().top+window.scrollY-stickyTopOffset()),behavior:'smooth'});
  const s=document.getElementById('autoScrollStatus');if(s)s.textContent='停止中';
 }
 
