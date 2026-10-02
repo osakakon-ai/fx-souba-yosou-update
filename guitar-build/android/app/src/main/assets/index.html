@@ -59,7 +59,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.1.5</span></b><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.1.6</span></b><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -131,6 +131,7 @@ let state={measures:[[{name:'C',beats:1},{name:'D',beats:1},{name:'Em',beats:1},
 let settings={bpm:120,timeSig:'4/4',capo:0};
 let selectedChord=null;
 let scrollState={running:false,startTime:0,elapsed:0,raf:0};
+let codeEditorDirty=false;
 
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function parts(n){const r=(String(n).match(/^[A-G](?:#|b)?/)||['C'])[0];return [r,String(n).slice(r.length)]}
@@ -282,7 +283,7 @@ function applyText(){
   state.measures=packSequential(tokens);
  }
  if(!state.measures.length)state.measures=[[]];
- syncText();render();save();
+ syncText();codeEditorDirty=false;render();save();
 }
 
 function selectRoot(r){
@@ -290,10 +291,31 @@ function selectRoot(r){
  q.innerHTML=QUAL.map(x=>'<button onclick="addChord(\''+r+x+'\')">'+r+x+'</button>').join('');
 }
 
+function syncStateFromEditedCodeText(){
+ if(!codeEditorDirty)return;
+ const src=document.getElementById('codeText').value.trim();
+ if(!src){
+  state.measures=[[]];
+ }else if(src.includes('|')){
+  state.measures=parseExplicitBars(src);
+ }else{
+  state.measures=packSequential(src.split(/\s+/).map(normalizeToken).filter(Boolean));
+ }
+ if(!state.measures.length)state.measures=[[]];
+ codeEditorDirty=false;
+}
+
 function addChord(n){
- const all=[];state.measures.forEach(m=>m.forEach(c=>all.push({name:c.name,beats:c.beats})));
+ // 入力欄を手で削除・変更した場合は、古い内部データを先に捨てる。
+ syncStateFromEditedCodeText();
+ const all=[];
+ state.measures.forEach(m=>m.forEach(c=>all.push({name:c.name,beats:c.beats})));
  all.push({name:n,beats:1});
- state.measures=packSequential(all);syncText();render();save();
+ state.measures=packSequential(all);
+ syncText();
+ codeEditorDirty=false;
+ render();
+ save();
 }
 
 function diagram(shape){
@@ -408,6 +430,7 @@ function updateApp(){if(window.AndroidBridge&&AndroidBridge.checkForUpdate)Andro
 
 document.getElementById('roots').innerHTML=ROOTS.map(r=>'<button onclick="selectRoot(\''+r+'\')">'+r+'</button>').join('');
 document.getElementById('title').addEventListener('input',save);
+document.getElementById('codeText').addEventListener('input',()=>{codeEditorDirty=true;save()});
 document.getElementById('lyrics').addEventListener('input',()=>{render();save()});
 document.getElementById('tuning').addEventListener('change',()=>{render();save()});
 load();render();
