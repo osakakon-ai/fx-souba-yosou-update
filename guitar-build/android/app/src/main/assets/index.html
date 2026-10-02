@@ -17,8 +17,13 @@ button{border:1px solid #bbb;background:#fff;border-radius:10px;padding:9px 12px
 .primary{background:#111;color:#fff}
 input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-radius:10px;background:#fff;font-size:16px}
 .meta{margin-top:7px;padding:8px 10px;border-radius:10px;background:#f5f6f7;font-size:13px;color:#444}
-.roots{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.roots button{font-weight:800;font-size:17px;padding:10px 4px}
-.quality{display:none;margin-top:8px}.quality.open{display:flex}
+.roots{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.roots button{font-weight:800;font-size:15px;padding:5px 2px;min-height:36px;border-radius:8px}
+.quality{display:none;margin-top:7px}
+.quality.open{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.quality button{min-width:0;min-height:34px;padding:4px 2px;border-radius:8px;font-size:13px;white-space:nowrap}
+.main-actions{display:grid;grid-template-columns:1.35fr .8fr .8fr 1.25fr .72fr;gap:5px;margin-top:7px}
+.main-actions button{min-width:0;min-height:40px;padding:6px 3px;font-size:13px;white-space:nowrap}
 #sheet{margin-top:10px}
 .score-system{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;margin-top:9px}
 .score-measure{min-width:0;padding:7px 8px 10px;transition:background .18s ease}
@@ -44,7 +49,12 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .detail-grid{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:start}.diagram{width:145px;height:175px}
 .fingering{font-family:monospace;font-size:15px;margin-top:6px}.detail-notes{font-size:14px;line-height:1.7}
 @media(max-width:560px){
- .roots{grid-template-columns:repeat(4,1fr)}
+ .roots{grid-template-columns:repeat(6,1fr)}
+ .roots button{font-size:14px;min-height:34px}
+ .quality.open{grid-template-columns:repeat(5,minmax(0,1fr))}
+ .quality button{font-size:12px;min-height:32px;padding:3px 1px}
+ .main-actions{grid-template-columns:1.35fr .8fr .8fr 1.2fr .7fr;gap:4px}
+ .main-actions button{font-size:12px;min-height:38px;padding:5px 2px}
  .settings-grid{grid-template-columns:1fr}
  .score-system{grid-template-columns:1fr}
  .score-measure+.score-measure{border-left:0;border-top:1px solid #c7cbd0}
@@ -59,21 +69,19 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.1.6</span></b><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.1.7</span></b><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
   <textarea id="codeText" rows="2" style="margin-top:7px" placeholder="例: C D Em Am">C D Em Am</textarea>
-  <div class="row controls" style="margin-top:7px">
+  <div class="main-actions controls">
    <button class="primary" onclick="applyText()">コード生成</button>
    <button onclick="openSettings()">設定</button>
    <button onclick="save()">保存</button>
-  </div>
-  <div class="row controls" style="margin-top:7px">
-   <button id="autoScrollBtn" onclick="toggleAutoScroll()">▶ 自動スクロール</button>
+   <button id="autoScrollBtn" onclick="toggleAutoScroll()">▶自動</button>
    <button onclick="resetAutoScroll()">先頭</button>
-   <span id="autoScrollStatus" class="autoscroll-status">停止中</span>
   </div>
+  <div id="autoScrollStatus" class="autoscroll-status controls" style="margin-top:4px">停止中</div>
  </div>
  <div class="panel controls">
   <div class="muted">コードを追加</div>
@@ -389,7 +397,7 @@ function autoScrollFrame(ts){
 function toggleAutoScroll(){
  if(scrollState.running){pauseAutoScroll();return}
  scrollState.running=true;scrollState.startTime=0;
- document.getElementById('autoScrollBtn').textContent='⏸ 一時停止';
+ document.getElementById('autoScrollBtn').textContent='⏸停止';
  document.getElementById('autoScrollStatus').textContent='BPM '+settings.bpm+' で追従中';
  scrollState.raf=requestAnimationFrame(autoScrollFrame);
 }
@@ -398,7 +406,7 @@ function pauseAutoScroll(){
  scrollState.running=false;
  if(scrollState.raf)cancelAnimationFrame(scrollState.raf);
  scrollState.raf=0;scrollState.startTime=0;
- const b=document.getElementById('autoScrollBtn');if(b)b.textContent='▶ 自動スクロール';
+ const b=document.getElementById('autoScrollBtn');if(b)b.textContent='▶自動';
  const s=document.getElementById('autoScrollStatus');if(s&&s.textContent!=='終了')s.textContent='一時停止';
 }
 
