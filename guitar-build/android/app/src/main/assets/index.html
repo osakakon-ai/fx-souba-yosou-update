@@ -27,6 +27,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 #sheet{margin-top:10px}
 .score-system{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;margin-top:9px}
 .score-measure{min-width:0;padding:7px 8px 10px;transition:background .18s ease}
+.section-label{margin:-1px 0 5px;padding:4px 7px;border-left:4px solid #111;background:#f3f4f6;border-radius:6px;font-size:13px;font-weight:800;letter-spacing:.02em}
 .score-measure.playing{background:#fff}
 .chord-row{display:flex;align-items:flex-start;gap:2px;margin:4px 0 2px}
 .chord-mini{min-width:0;text-align:center;padding:3px 2px;border-radius:10px;transition:background .12s ease,box-shadow .12s ease}
@@ -70,11 +71,11 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.2.1</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.2.2</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
-  <textarea id="codeText" rows="2" style="margin-top:7px" placeholder="例: C D Em Am">C D Em Am</textarea>
+  <textarea id="codeText" rows="2" style="margin-top:7px" placeholder="例: [Intro] C G Am F | [Verse] C:2 G:2">C D Em Am</textarea>
   <div class="main-actions controls">
    <button class="primary" onclick="applyText()">コード生成</button>
    <button onclick="openSettings()">設定</button>
@@ -102,6 +103,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
    <div class="field"><label for="timeSig">拍子</label><select id="timeSig">
     <option>2/4</option><option>3/4</option><option selected>4/4</option><option>5/4</option><option>6/8</option><option>9/8</option><option>12/8</option>
    </select></div>
+   <div class="field"><label for="keySig">キー</label><select id="keySig"><option value="auto" selected>自動</option><option>C</option><option>Db</option><option>D</option><option>Eb</option><option>E</option><option>F</option><option>Gb</option><option>G</option><option>Ab</option><option>A</option><option>Bb</option><option>B</option></select></div>
    <div class="field"><label for="capo">カポ</label><select id="capo">
     <option value="0">なし</option><option value="1">1フレット</option><option value="2">2フレット</option><option value="3">3フレット</option>
     <option value="4">4フレット</option><option value="5">5フレット</option><option value="6">6フレット</option><option value="7">7フレット</option>
@@ -111,7 +113,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
     <option value="standard">標準 E A D G B E</option><option value="half">半音下げ Eb Ab Db Gb Bb Eb</option><option value="dropd">Drop D D A D G B E</option>
    </select></div>
   </div>
-  <div class="settings-note">通常入力は1コード＝1拍です。4/4なら「C G Am Em」で1小節です。表示順は「コード名 → 個別ダイヤグラム → 五線譜 → 歌詞」。歌詞は改行または「|」で小節ごとに分けられます。</div>
+  <div class="settings-note">「|」は小節区切り、[Intro]・[Verse]・[Chorus]などはセクション見出しです。通常入力は1コード＝1拍、C:2 は2拍、C/E は分数コードとして扱います。明示した小節内で拍数を省略した場合は、その小節をコード数で均等に分けます。表示順は「セクション → コード名 → 個別ダイヤグラム → 五線譜 → 歌詞」です。</div>
   <div class="row"><button class="primary" onclick="applySettings()">設定を反映</button><button onclick="closeSettings()">閉じる</button></div>
  </div>
 </div>
@@ -128,29 +130,40 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 
 <script>
 const ROOTS=['C','C#','Db','D','D#','Eb','E','F','F#','Gb','G','G#','Ab','A','A#','Bb','B'];
-const QUAL=['','m','7','M7','m7','6','m6','sus2','sus4','add9','dim','dim7','aug','9','m9','11'];
+const QUAL=['','m','7','M7','m7','6','m6','sus2','sus4','add9','dim','dim7','aug','9','M9','m9','11'];
 const PC={C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
-const FORM={'':[0,4,7],m:[0,3,7],7:[0,4,7,10],M7:[0,4,7,11],m7:[0,3,7,10],6:[0,4,7,9],m6:[0,3,7,9],sus2:[0,2,7],sus4:[0,5,7],add9:[0,2,4,7],dim:[0,3,6],dim7:[0,3,6,9],aug:[0,4,8],9:[0,2,4,7,10],m9:[0,2,3,7,10],11:[0,2,4,5,7,10]};
+const FORM={'':[0,4,7],m:[0,3,7],7:[0,4,7,10],M7:[0,4,7,11],m7:[0,3,7,10],6:[0,4,7,9],m6:[0,3,7,9],sus2:[0,2,7],sus4:[0,5,7],add9:[0,2,4,7],dim:[0,3,6],dim7:[0,3,6,9],aug:[0,4,8],9:[0,2,4,7,10],M9:[0,2,4,7,11],m9:[0,2,3,7,10],11:[0,2,4,5,7,10]};
 const T={standard:[40,45,50,55,59,64],half:[39,44,49,54,58,63],dropd:[38,45,50,55,59,64]};
 const TLABEL={standard:'標準',half:'半音下げ',dropd:'Drop D'};
 const OPEN={C:[null,3,2,0,1,0],D:[null,null,0,2,3,2],E:[0,2,2,1,0,0],F:[1,3,3,2,1,1],G:[3,2,0,0,0,3],A:[null,0,2,2,2,0],B:[null,2,4,4,4,2],Am:[null,0,2,2,1,0],Dm:[null,null,0,2,3,1],Em:[0,2,2,0,0,0],C7:[null,3,2,3,1,0],D7:[null,null,0,2,1,2],E7:[0,2,0,1,0,0],G7:[3,2,0,0,0,1],A7:[null,0,2,0,2,0],B7:[null,2,1,2,0,2],CM7:[null,3,2,0,0,0],FM7:[null,null,3,2,1,0],Am7:[null,0,2,0,1,0],Dm7:[null,null,0,2,1,1],Em7:[0,2,0,0,0,0],Csus4:[null,3,3,0,1,1],Cadd9:[null,3,2,0,3,0]};
 const N=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
-let state={measures:[[{name:'C',beats:1},{name:'D',beats:1},{name:'Em',beats:1},{name:'Am',beats:1}]],root:'C'};
-let settings={bpm:120,timeSig:'4/4',capo:0};
+let state={measures:[[{name:'C',beats:1},{name:'D',beats:1},{name:'Em',beats:1},{name:'Am',beats:1}]],root:'C',sectionLabels:{}};
+let settings={bpm:120,timeSig:'4/4',capo:0,keySig:'auto'};
 let selectedChord=null;
 let scrollState={running:false,startTime:0,elapsed:0,raf:0,transitionMeasure:-1,transitionFromY:0,transitionToY:0};
 let codeEditorDirty=false;
 
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function parts(n){const r=(String(n).match(/^[A-G](?:#|b)?/)||['C'])[0];return [r,String(n).slice(r.length)]}
-function pcs(n){const p=parts(n),r=p[0],q=p[1],f=FORM[q]||FORM[''];return f.map(x=>(PC[r]+x)%12)}
+function chordSpec(n){
+ const m=String(n).trim().match(/^([A-G](?:#|b)?)(m7|m9|m6|M7|M9|sus2|sus4|add9|dim7|dim|aug|11|9|7|6|m)?(?:\/([A-G](?:#|b)?))?$/);
+ if(!m)return null;
+ return {root:m[1],quality:m[2]||'',bass:m[3]||'',base:m[1]+(m[2]||'')};
+}
+function parts(n){const c=chordSpec(n);return c?[c.root,c.quality]:['C','']}
+function pcs(n){const c=chordSpec(n),r=c?c.root:'C',q=c?c.quality:'',f=FORM[q]||FORM[''];return f.map(x=>(PC[r]+x)%12)}
 function beatsPerMeasure(){const n=parseInt(settings.timeSig.split('/')[0],10);return Number.isFinite(n)&&n>0?n:4}
-function chordValid(n){return /^[A-G](?:#|b)?(?:m|7|M7|m7|6|m6|sus2|sus4|add9|dim|dim7|aug|9|m9|11)?$/.test(n)}
+function chordValid(n){return !!chordSpec(n)}
+function effectiveKey(){
+ if(settings.keySig&&settings.keySig!=='auto')return settings.keySig;
+ for(const m of state.measures){for(const c of m){const spec=chordSpec(c.name);if(spec)return spec.root}}
+ return 'C';
+}
 
 function autoShape(n){
- if(OPEN[n])return OPEN[n];
- const need=[...new Set(pcs(n))],t=T[document.getElementById('tuning').value];
+ const spec=chordSpec(n),base=spec?spec.base:n;
+ if(OPEN[base])return OPEN[base];
+ const need=[...new Set(pcs(base))],t=T[document.getElementById('tuning').value];
  let best=null,score=999;
  for(let base=0;base<=8;base++){
   let s=[];
@@ -200,7 +213,7 @@ function renderMeasureSvg(m,mi){
 
 function renderMeta(){
  const tuning=document.getElementById('tuning').value,capo=Number(settings.capo)||0;
- document.getElementById('meta').textContent='BPM '+settings.bpm+' ・ '+settings.timeSig+' ・ '+(capo?'Capo '+capo:'Capoなし')+' ・ '+(TLABEL[tuning]||tuning);
+ document.getElementById('meta').textContent='Key '+effectiveKey()+' ・ BPM '+settings.bpm+' ・ '+settings.timeSig+' ・ '+(capo?'Capo '+capo:'Capoなし')+' ・ '+(TLABEL[tuning]||tuning);
 }
 
 function lyricsForMeasure(mi){
@@ -231,6 +244,8 @@ function render(){
   out+='<div class="score-system">';
   for(let j=i;j<Math.min(i+2,state.measures.length);j++){
    out+='<div class="score-measure" data-measure="'+j+'">';
+   const section=(state.sectionLabels&&state.sectionLabels[j])||'';
+   if(section)out+='<div class="section-label">'+esc(section)+'</div>';
    out+='<div class="measure-head"><span>小節 '+(j+1)+'</span><span>'+settings.timeSig+'</span></div>';
    out+=chordRowHtml(state.measures[j],j);
    out+=renderMeasureSvg(state.measures[j],j);
@@ -265,32 +280,53 @@ function packSequential(tokens){
 }
 
 function parseExplicitBars(src){
- const total=beatsPerMeasure();
- return src.split('|').map(x=>x.trim()).filter(Boolean).map(part=>{
+ const total=beatsPerMeasure(),measures=[],sectionLabels={};
+ let pendingSection='';
+ src.split('|').forEach(piece=>{
+  let part=piece.trim();
+  if(!part)return;
+  const sm=part.match(/^\[([^\]]{1,32})\]\s*/);
+  if(sm){pendingSection=sm[1].trim();part=part.slice(sm[0].length).trim()}
+  if(!part)return;
   const raw=part.split(/\s+/).filter(Boolean),valid=raw.map(normalizeToken).filter(Boolean);
-  if(!valid.length)return[];
+  if(!valid.length)return;
   const hasDuration=raw.some(x=>x.includes(':'));
+  let measure;
   if(!hasDuration){
    const d=total/valid.length;
-   return valid.map(x=>({name:x.name,beats:d}));
+   measure=valid.map(x=>({name:x.name,beats:d}));
+  }else{
+   let used=0;
+   measure=valid.map(x=>{const room=Math.max(0,total-used);if(room<=0)return null;const b=Math.min(x.beats,room);used+=b;return{name:x.name,beats:b}}).filter(Boolean);
   }
-  let used=0;return valid.map(x=>{const b=Math.min(x.beats,Math.max(.25,total-used));used+=b;return{name:x.name,beats:b}}).filter(x=>x.beats>0);
+  const mi=measures.length;
+  measures.push(measure);
+  if(pendingSection){sectionLabels[mi]=pendingSection;pendingSection=''}
  });
+ return {measures:measures,sectionLabels:sectionLabels};
+}
+
+function parseLooseBars(src){
+ let text=src.trim(),sectionLabels={};
+ const sm=text.match(/^\[([^\]]{1,32})\]\s*/);
+ if(sm){sectionLabels[0]=sm[1].trim();text=text.slice(sm[0].length).trim()}
+ const tokens=text.split(/\s+/).map(normalizeToken).filter(Boolean);
+ return {measures:packSequential(tokens),sectionLabels:sectionLabels};
 }
 
 function syncText(){
- document.getElementById('codeText').value=state.measures.map(m=>m.map(c=>c.beats===1?c.name:(c.name+':'+Number(c.beats.toFixed(2)))).join(' ')).join(' | ');
+ document.getElementById('codeText').value=state.measures.map((m,i)=>{
+  const section=(state.sectionLabels&&state.sectionLabels[i])?'['+state.sectionLabels[i]+'] ':'';
+  return section+m.map(c=>Math.abs(c.beats-1)<0.0001?c.name:(c.name+':'+Number(c.beats.toFixed(2)))).join(' ');
+ }).join(' | ');
 }
 
 function applyText(){
  const el=document.getElementById('codeText'),src=el.value.trim();
- if(!src){state.measures=[[]];render();save();return}
- if(src.includes('|')){
-  state.measures=parseExplicitBars(src);
- }else{
-  const tokens=src.split(/\s+/).map(normalizeToken).filter(Boolean);
-  state.measures=packSequential(tokens);
- }
+ if(!src){state.measures=[[]];state.sectionLabels={};render();save();return}
+ const parsed=src.includes('|')?parseExplicitBars(src):parseLooseBars(src);
+ state.measures=parsed.measures;
+ state.sectionLabels=parsed.sectionLabels;
  if(!state.measures.length)state.measures=[[]];
  syncText();codeEditorDirty=false;render();save();
 }
@@ -304,11 +340,10 @@ function syncStateFromEditedCodeText(){
  if(!codeEditorDirty)return;
  const src=document.getElementById('codeText').value.trim();
  if(!src){
-  state.measures=[[]];
- }else if(src.includes('|')){
-  state.measures=parseExplicitBars(src);
+  state.measures=[[]];state.sectionLabels={};
  }else{
-  state.measures=packSequential(src.split(/\s+/).map(normalizeToken).filter(Boolean));
+  const parsed=src.includes('|')?parseExplicitBars(src):parseLooseBars(src);
+  state.measures=parsed.measures;state.sectionLabels=parsed.sectionLabels;
  }
  if(!state.measures.length)state.measures=[[]];
  codeEditorDirty=false;
@@ -320,7 +355,9 @@ function addChord(n){
  const all=[];
  state.measures.forEach(m=>m.forEach(c=>all.push({name:c.name,beats:c.beats})));
  all.push({name:n,beats:1});
+ const labels=Object.assign({},state.sectionLabels||{});
  state.measures=packSequential(all);
+ state.sectionLabels=labels;
  syncText();
  codeEditorDirty=false;
  render();
@@ -341,27 +378,32 @@ function showChordDetail(mi,ci){
  document.getElementById('detailName').textContent=c.name;
  document.getElementById('detailDiagram').innerHTML=diagram(sh);
  document.getElementById('detailFingering').textContent=sh.map(x=>x==null?'x':x).join(' ');
- document.getElementById('detailNotes').innerHTML='<b>実際に鳴る音</b><br>'+notes.map(m=>N[m%12]+(Math.floor(m/12)-1)).join(' ・ ');
+ const spec=chordSpec(c.name);
+ document.getElementById('detailNotes').innerHTML='<b>実際に鳴る音</b><br>'+notes.map(m=>N[m%12]+(Math.floor(m/12)-1)).join(' ・ ')+(spec&&spec.bass?'<br><b>指定ベース</b> '+esc(spec.bass):'');
  document.getElementById('chordDetailOverlay').classList.add('open');
 }
 
 function nextVoicing(){
- if(!selectedChord)return;const c=state.measures[selectedChord.mi][selectedChord.ci],sh=autoShape(c.name);
- OPEN[c.name]=sh.map(x=>x==null?null:x+12);render();showChordDetail(selectedChord.mi,selectedChord.ci);save();
+ if(!selectedChord)return;const c=state.measures[selectedChord.mi][selectedChord.ci],sh=autoShape(c.name),spec=chordSpec(c.name);
+ OPEN[spec?spec.base:c.name]=sh.map(x=>x==null?null:x+12);render();showChordDetail(selectedChord.mi,selectedChord.ci);save();
 }
 function closeChordDetail(){document.getElementById('chordDetailOverlay').classList.remove('open')}
 function detailOverlayClose(e){if(e.target.id==='chordDetailOverlay')closeChordDetail()}
 
 function openSettings(){
- document.getElementById('bpm').value=settings.bpm;document.getElementById('timeSig').value=settings.timeSig;document.getElementById('capo').value=String(settings.capo||0);
+ document.getElementById('bpm').value=settings.bpm;document.getElementById('timeSig').value=settings.timeSig;document.getElementById('keySig').value=settings.keySig||'auto';document.getElementById('capo').value=String(settings.capo||0);
  document.getElementById('settingsOverlay').classList.add('open');
 }
 function closeSettings(){document.getElementById('settingsOverlay').classList.remove('open')}
 function overlayClose(e){if(e.target.id==='settingsOverlay')closeSettings()}
 function applySettings(){
  settings.bpm=Math.round(Math.max(20,Math.min(300,Number(document.getElementById('bpm').value)||120)));
- const oldSig=settings.timeSig;settings.timeSig=document.getElementById('timeSig').value||'4/4';settings.capo=Number(document.getElementById('capo').value)||0;
- if(oldSig!==settings.timeSig){const all=[];state.measures.forEach(m=>m.forEach(c=>all.push({name:c.name,beats:1})));state.measures=packSequential(all);syncText()}
+ const oldSig=settings.timeSig;settings.timeSig=document.getElementById('timeSig').value||'4/4';settings.keySig=document.getElementById('keySig').value||'auto';settings.capo=Number(document.getElementById('capo').value)||0;
+ if(oldSig!==settings.timeSig){
+  const all=[],labels=Object.assign({},state.sectionLabels||{});
+  state.measures.forEach(m=>m.forEach(c=>all.push({name:c.name,beats:Number(c.beats)||1})));
+  state.measures=packSequential(all);state.sectionLabels=labels;syncText();
+ }
  closeSettings();render();save();
 }
 
@@ -581,9 +623,13 @@ function load(){
   document.getElementById('title').value=d.title||'';document.getElementById('lyrics').value=d.lyrics||'';document.getElementById('tuning').value=d.tuning||'standard';
   settings=Object.assign(settings,d.settings||{});
   if(d.state&&Array.isArray(d.state.measures)){
-   const all=[];d.state.measures.forEach(m=>m.forEach(c=>all.push({name:c.name,beats:1})));
-   state={measures:packSequential(all),root:d.state.root||'C'};
+   state={
+    measures:d.state.measures.map(m=>m.map(c=>({name:c.name,beats:Number(c.beats)||1}))),
+    root:d.state.root||'C',
+    sectionLabels:Object.assign({},d.state.sectionLabels||{})
+   };
   }
+  if(!settings.keySig)settings.keySig='auto';
   syncText();
  }catch(e){}
 }
