@@ -10,12 +10,12 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 12
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,79 +50,21 @@ jobs:
           test -f guitar-build/android/app/build.gradle
           test -f guitar-build/android/app/src/main/assets/index.html
           test -f guitar-build/android/app/src/main/java/jp/osakakon/guitarchordsheet/MainActivity.java
-          test -f guitar-build/signing-recipient-cert.pem
 
       - name: Build unsigned release APK
         working-directory: guitar-build/android
         run: gradle --no-daemon --stacktrace :app:assembleRelease
 
-      - name: Create release signing key and sign APK
+      - name: Prepare unsigned APK
         shell: bash
         run: |
-          set -euo pipefail
-          mkdir -p /tmp/guitar-release /tmp/guitar-signing
-          PASS="$(openssl rand -hex 32)"
-          KEYSTORE=/tmp/guitar-signing/guitar-release.jks
-          ALIGNED=/tmp/guitar-release/Guitar-Chord-Sheet-aligned.apk
-          SIGNED=/tmp/guitar-release/Guitar-Chord-Sheet.apk
-          UNSIGNED=guitar-build/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          mkdir -p out
+          cp guitar-build/android/app/build/outputs/apk/release/app-release-unsigned.apk out/Guitar-Chord-Sheet-unsigned.apk
 
-          keytool -genkeypair -storetype JKS -keystore "$KEYSTORE"             -storepass "$PASS" -keypass "$PASS" -alias guitar-release             -keyalg RSA -keysize 3072 -validity 10000             -dname "CN=Guitar Chord Sheet, OU=Android, O=Osakakon, L=Osaka, ST=Osaka, C=JP"
-
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -p 4 "$UNSIGNED" "$ALIGNED"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign             --ks "$KEYSTORE" --ks-key-alias guitar-release             --ks-pass "pass:$PASS" --key-pass "pass:$PASS"             --out "$SIGNED" "$ALIGNED"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$SIGNED"             | tee /tmp/guitar-release/signature-verification.txt
-
-          SHA="$(sha256sum "$SIGNED" | awk '{print $1}')"
-          printf '%s\n' "$SHA" > /tmp/guitar-release/sha256.txt
-          cat > /tmp/guitar-release/latest.json <<EOF
-          {
-            "versionCode": 100,
-            "versionName": "0.1.0",
-            "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/Guitar-Chord-Sheet.apk",
-            "sha256": "$SHA"
-          }
-          EOF
-
-          printf '%s' "$PASS" > /tmp/guitar-signing/signing-password.txt
-          tar -C /tmp/guitar-signing -czf /tmp/guitar-signing-backup.tar.gz guitar-release.jks signing-password.txt
-          openssl cms -encrypt -binary -aes-256-cbc             -in /tmp/guitar-signing-backup.tar.gz             -outform DER -out /tmp/guitar-signing-backup.cms             guitar-build/signing-recipient-cert.pem
-          rm -f /tmp/guitar-signing-backup.tar.gz /tmp/guitar-signing/signing-password.txt "$ALIGNED"
-
-      - name: Upload signed APK
+      - name: Upload unsigned APK
         uses: actions/upload-artifact@v4
         with:
-          name: guitar-release-v0.1.0
-          path: /tmp/guitar-release/
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Upload encrypted signing backup
-        uses: actions/upload-artifact@v4
-        with:
-          name: guitar-signing-bootstrap-encrypted
-          path: /tmp/guitar-signing-backup.cms
+          name: guitar-unsigned-build
+          path: out/Guitar-Chord-Sheet-unsigned.apk
           if-no-files-found: error
           retention-days: 1
-
-      - name: Publish APK and update manifest to main
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p /tmp/publish
-          cp /tmp/guitar-release/Guitar-Chord-Sheet.apk /tmp/publish/
-          cp /tmp/guitar-release/latest.json /tmp/publish/
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git checkout -B guitar-publish-main origin/main
-          mkdir -p guitar
-          cp /tmp/publish/Guitar-Chord-Sheet.apk guitar/Guitar-Chord-Sheet.apk
-          cp /tmp/publish/latest.json guitar/latest.json
-          git add guitar/Guitar-Chord-Sheet.apk guitar/latest.json
-          if git diff --cached --quiet; then
-            echo "Published files already match."
-          else
-            git commit -m "Publish Guitar Chord Sheet v0.1.0"
-            git push origin HEAD:main
-          fi
