@@ -2,11 +2,13 @@ package jp.osakakon.guitarchordsheet;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import androidx.core.graphics.Insets;
@@ -20,16 +22,12 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
+
+        // Android 15でもWebViewをシステムバーの下へ確実に配置する。
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
         updater = new Updater(this);
         web = new WebView(this);
-
-        ViewCompat.setOnApplyWindowInsetsListener(web, (v, insets) -> {
-            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
-            return insets;
-        });
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -39,8 +37,38 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient());
         web.setWebChromeClient(new WebChromeClient());
         web.addJavascriptInterface(new Bridge(), "AndroidBridge");
+
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(0xfff3f4f6);
+        root.addView(web, new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT));
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars()
+                    | WindowInsetsCompat.Type.displayCutout());
+
+            // 一部端末/WebViewでinsetsが0になる場合の保険。
+            int fallbackTop = getSystemBarDimension("status_bar_height");
+            int fallbackBottom = getSystemBarDimension("navigation_bar_height");
+
+            int top = Math.max(bars.top, fallbackTop);
+            int bottom = Math.max(bars.bottom, fallbackBottom);
+
+            v.setPadding(bars.left, top, bars.right, bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+
+        setContentView(root);
+        ViewCompat.requestApplyInsets(root);
+
         web.loadUrl("file:///android_asset/index.html");
-        setContentView(web);
+    }
+
+    private int getSystemBarDimension(String name) {
+        int id = getResources().getIdentifier(name, "dimen", "android");
+        return id > 0 ? getResources().getDimensionPixelSize(id) : 0;
     }
 
     @Override protected void onResume() {
