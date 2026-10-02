@@ -22,14 +22,15 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .quality{display:none;margin-top:7px}
 .quality.open{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
 .quality button{min-width:0;min-height:34px;padding:4px 2px;border-radius:8px;font-size:13px;white-space:nowrap}
-.main-actions{display:grid;grid-template-columns:1.35fr .8fr .8fr 1.25fr .72fr;gap:5px;margin-top:7px}
-.main-actions button{min-width:0;min-height:40px;padding:6px 3px;font-size:13px;white-space:nowrap}
+.main-actions{display:grid;grid-template-columns:1.22fr .72fr .72fr 1.55fr .64fr;gap:5px;margin-top:7px}
+.main-actions button{min-width:0;min-height:40px;padding:6px 3px;font-size:12px;white-space:nowrap}
 #sheet{margin-top:10px}
 .score-system{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;margin-top:9px}
 .score-measure{min-width:0;padding:7px 8px 10px;transition:background .18s ease}
-.score-measure.playing{background:#f1f5f9}
+.score-measure.playing{background:#f8fafc}
 .chord-row{display:flex;align-items:flex-start;gap:2px;margin:4px 0 2px}
-.chord-mini{min-width:0;text-align:center;padding:2px 1px}
+.chord-mini{min-width:0;text-align:center;padding:3px 2px;border-radius:10px;transition:background .12s ease,box-shadow .12s ease}
+.chord-mini.playing{background:#e8eef7;box-shadow:inset 0 0 0 1px #c7d2e3}
 .chord-mini button{min-height:0;border:0;padding:0;background:transparent;font-weight:800;font-size:17px;width:100%}
 .chord-mini .diagram{width:72px;height:90px;max-width:100%;display:block;margin:0 auto}
 .lyric-line{min-height:34px;padding:4px 8px 2px;font-size:15px;line-height:1.45;white-space:pre-wrap;border-top:1px solid #eceff2}
@@ -53,8 +54,8 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
  .roots button{font-size:14px;min-height:34px}
  .quality.open{grid-template-columns:repeat(5,minmax(0,1fr))}
  .quality button{font-size:12px;min-height:32px;padding:3px 1px}
- .main-actions{grid-template-columns:1.35fr .8fr .8fr 1.2fr .7fr;gap:4px}
- .main-actions button{font-size:12px;min-height:38px;padding:5px 2px}
+ .main-actions{grid-template-columns:1.18fr .68fr .68fr 1.55fr .62fr;gap:4px}
+ .main-actions button{font-size:11.5px;min-height:38px;padding:5px 1px}
  .settings-grid{grid-template-columns:1fr}
  .score-system{grid-template-columns:1fr}
  .score-measure+.score-measure{border-left:0;border-top:1px solid #c7cbd0}
@@ -69,7 +70,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.1.7</span></b><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.1.8</span></b><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -78,7 +79,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
    <button class="primary" onclick="applyText()">コード生成</button>
    <button onclick="openSettings()">設定</button>
    <button onclick="save()">保存</button>
-   <button id="autoScrollBtn" onclick="toggleAutoScroll()">▶自動</button>
+   <button id="autoScrollBtn" onclick="toggleAutoScroll()">自動スクロール</button>
    <button onclick="resetAutoScroll()">先頭</button>
   </div>
   <div id="autoScrollStatus" class="autoscroll-status controls" style="margin-top:4px">停止中</div>
@@ -213,7 +214,7 @@ function chordRowHtml(m,mi){
  let beat=0,out='<div class="chord-row">';
  m.forEach((c,ci)=>{
   const span=Math.max(.25,Number(c.beats)||1),pct=(span/beatsPerMeasure())*100,sh=autoShape(c.name);
-  out+='<div class="chord-mini" style="flex:0 0 '+pct+'%">';
+  out+='<div class="chord-mini" data-measure="'+mi+'" data-chord="'+ci+'" style="flex:0 0 '+pct+'%">';
   out+='<button onclick="showChordDetail('+mi+','+ci+')">'+esc(c.name)+'</button>';
   out+=diagram(sh);
   out+='</div>';
@@ -364,55 +365,125 @@ function applySettings(){
  closeSettings();render();save();
 }
 
+function beatDurationMs(){
+ return 60000/Math.max(20,Number(settings.bpm)||120);
+}
+
 function measureDurationMs(){
- return beatsPerMeasure()*60000/Math.max(20,Number(settings.bpm)||120);
+ return beatsPerMeasure()*beatDurationMs();
+}
+
+function currentPlaybackPosition(){
+ const perMeasure=beatsPerMeasure();
+ const beatMs=beatDurationMs();
+ const totalBeats=state.measures.reduce((sum,m)=>sum+m.reduce((s,c)=>s+(Number(c.beats)||1),0),0);
+ const beatPos=Math.min(totalBeats,scrollState.elapsed/beatMs);
+ let remaining=beatPos;
+ let measureIndex=0,beatInMeasure=0,chordIndex=0,chordProgress=0;
+
+ for(let mi=0;mi<state.measures.length;mi++){
+  const m=state.measures[mi];
+  const measureBeats=m.reduce((s,c)=>s+(Number(c.beats)||1),0);
+  if(remaining < measureBeats || mi===state.measures.length-1){
+   measureIndex=mi;
+   beatInMeasure=Math.max(0,Math.min(measureBeats,remaining));
+   let b=beatInMeasure;
+   for(let ci=0;ci<m.length;ci++){
+    const cb=Math.max(.25,Number(m[ci].beats)||1);
+    if(b < cb || ci===m.length-1){
+     chordIndex=ci;
+     chordProgress=Math.max(0,Math.min(1,b/cb));
+     break;
+    }
+    b-=cb;
+   }
+   break;
+  }
+  remaining-=measureBeats;
+ }
+ return {measureIndex,beatInMeasure,chordIndex,chordProgress,totalBeats,beatPos,perMeasure};
 }
 
 function updateScrollHighlight(){
- const nodes=[...document.querySelectorAll('.score-measure')];
- const idx=Math.min(nodes.length-1,Math.max(0,Math.floor(scrollState.elapsed/measureDurationMs())));
- nodes.forEach((n,i)=>n.classList.toggle('playing',i===idx));
- return {nodes,idx};
+ const pos=currentPlaybackPosition();
+ const measureNodes=[...document.querySelectorAll('.score-measure')];
+ const chordNodes=[...document.querySelectorAll('.chord-mini')];
+
+ measureNodes.forEach((n,i)=>n.classList.toggle('playing',i===pos.measureIndex));
+ chordNodes.forEach(n=>{
+  const mi=Number(n.dataset.measure),ci=Number(n.dataset.chord);
+  n.classList.toggle('playing',mi===pos.measureIndex&&ci===pos.chordIndex);
+ });
+
+ return {measureNodes,chordNodes,pos};
+}
+
+function scrollForPlayback(info){
+ const nodes=info.measureNodes;
+ if(!nodes.length)return;
+ const pos=info.pos;
+ const current=nodes[Math.min(pos.measureIndex,nodes.length-1)];
+ const next=nodes[Math.min(pos.measureIndex+1,nodes.length-1)];
+
+ const measureBeats=state.measures[pos.measureIndex]
+  ? state.measures[pos.measureIndex].reduce((s,c)=>s+(Number(c.beats)||1),0)
+  : beatsPerMeasure();
+ const frac=Math.max(0,Math.min(1,pos.beatInMeasure/Math.max(.25,measureBeats)));
+
+ const y0=current.getBoundingClientRect().top+window.scrollY-110;
+ const y1=next.getBoundingClientRect().top+window.scrollY-110;
+ const y=y0+(y1-y0)*frac;
+ window.scrollTo(0,Math.max(0,y));
 }
 
 function autoScrollFrame(ts){
  if(!scrollState.running)return;
  if(!scrollState.startTime)scrollState.startTime=ts-scrollState.elapsed;
  scrollState.elapsed=ts-scrollState.startTime;
+
  const info=updateScrollHighlight();
- if(!info.nodes.length){pauseAutoScroll();return}
- if(info.idx>=0){
-  const node=info.nodes[info.idx];
-  const frac=(scrollState.elapsed%measureDurationMs())/measureDurationMs();
-  const next=info.nodes[Math.min(info.idx+1,info.nodes.length-1)];
-  const y0=node.getBoundingClientRect().top+window.scrollY-110;
-  const y1=next.getBoundingClientRect().top+window.scrollY-110;
-  window.scrollTo(0,y0+(y1-y0)*frac);
+ scrollForPlayback(info);
+
+ const totalMs=info.pos.totalBeats*beatDurationMs();
+ if(scrollState.elapsed>=totalMs){
+  scrollState.elapsed=totalMs;
+  stopAutoScroll(false);
+  document.getElementById('autoScrollStatus').textContent='終了';
+  return;
  }
- const total=info.nodes.length*measureDurationMs();
- if(scrollState.elapsed>=total){pauseAutoScroll();scrollState.elapsed=total;document.getElementById('autoScrollStatus').textContent='終了';return}
  scrollState.raf=requestAnimationFrame(autoScrollFrame);
 }
 
 function toggleAutoScroll(){
- if(scrollState.running){pauseAutoScroll();return}
- scrollState.running=true;scrollState.startTime=0;
- document.getElementById('autoScrollBtn').textContent='⏸停止';
- document.getElementById('autoScrollStatus').textContent='BPM '+settings.bpm+' で追従中';
+ if(scrollState.running){
+  stopAutoScroll(true);
+  return;
+ }
+ const info=currentPlaybackPosition();
+ const totalMs=info.totalBeats*beatDurationMs();
+ if(scrollState.elapsed>=totalMs)scrollState.elapsed=0;
+ scrollState.running=true;
+ scrollState.startTime=0;
+ document.getElementById('autoScrollBtn').textContent='停止';
+ document.getElementById('autoScrollStatus').textContent='BPM '+settings.bpm+' で再生中';
  scrollState.raf=requestAnimationFrame(autoScrollFrame);
 }
 
-function pauseAutoScroll(){
+function stopAutoScroll(keepPosition){
  scrollState.running=false;
  if(scrollState.raf)cancelAnimationFrame(scrollState.raf);
- scrollState.raf=0;scrollState.startTime=0;
- const b=document.getElementById('autoScrollBtn');if(b)b.textContent='▶自動';
- const s=document.getElementById('autoScrollStatus');if(s&&s.textContent!=='終了')s.textContent='一時停止';
+ scrollState.raf=0;
+ scrollState.startTime=0;
+ const b=document.getElementById('autoScrollBtn');
+ if(b)b.textContent='自動スクロール';
+ const s=document.getElementById('autoScrollStatus');
+ if(s)s.textContent=keepPosition?'停止中':'停止中';
 }
 
 function resetAutoScroll(){
- pauseAutoScroll();scrollState.elapsed=0;
- document.querySelectorAll('.score-measure').forEach(n=>n.classList.remove('playing'));
+ stopAutoScroll(false);
+ scrollState.elapsed=0;
+ document.querySelectorAll('.score-measure,.chord-mini').forEach(n=>n.classList.remove('playing'));
  const first=document.querySelector('.score-measure');
  if(first)window.scrollTo({top:Math.max(0,first.getBoundingClientRect().top+window.scrollY-110),behavior:'smooth'});
  const s=document.getElementById('autoScrollStatus');if(s)s.textContent='停止中';
