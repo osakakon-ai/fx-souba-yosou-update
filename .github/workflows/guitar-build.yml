@@ -51,6 +51,20 @@ jobs:
           test -f guitar-build/android/app/src/main/assets/index.html
           test -f guitar-build/android/app/src/main/java/jp/osakakon/guitarchordsheet/MainActivity.java
 
+      - name: Validate app JavaScript
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          src = Path("guitar-build/android/app/src/main/assets/index.html").read_text(encoding="utf-8")
+          m = re.search(r"<script>([\\s\\S]*?)</script>", src)
+          if not m:
+              raise SystemExit("script block not found")
+          Path("/tmp/guitar-app.js").write_text(m.group(1), encoding="utf-8")
+          PY
+          node --check /tmp/guitar-app.js
+
       - name: Build unsigned release APK
         working-directory: guitar-build/android
         run: gradle --no-daemon --stacktrace :app:assembleRelease
