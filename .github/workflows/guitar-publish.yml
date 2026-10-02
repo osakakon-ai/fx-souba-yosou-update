@@ -5,7 +5,7 @@ on:
     branches:
       - guitar-build-20261002
     paths:
-      - "guitar-publish/v0.1.9.ready"
+      - "guitar-publish/v0.2.0.ready"
 
 permissions:
   contents: write
@@ -22,9 +22,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat guitar-publish/v0.1.9/chunk*.b64 > /tmp/Guitar-Chord-Sheet.b64
+          cat guitar-publish/v0.2.0/chunk*.b64 > /tmp/Guitar-Chord-Sheet.b64
           base64 -d /tmp/Guitar-Chord-Sheet.b64 > /tmp/Guitar-Chord-Sheet.apk
-          echo "784f4822383cb1eee439062cf42dfa16880bc2940c22f1f6b740b4dc3ae5d79b  /tmp/Guitar-Chord-Sheet.apk" | sha256sum -c -
+          echo "47aedd0463200e19a1ff400e4be1c709239f4f27764dd096365161c86f38c39f  /tmp/Guitar-Chord-Sheet.apk" | sha256sum -c -
           unzip -t /tmp/Guitar-Chord-Sheet.apk >/dev/null
 
       - name: Publish fixed APK and latest.json
@@ -39,12 +39,12 @@ jobs:
           cp /tmp/Guitar-Chord-Sheet.apk guitar/Guitar-Chord-Sheet.apk
           cat > guitar/latest.json <<'EOF'
           {
-            "versionCode": 109,
-            "versionName": "0.1.9",
+            "versionCode": 110,
+            "versionName": "0.2.0",
             "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/Guitar-Chord-Sheet.apk",
-            "sha256": "784f4822383cb1eee439062cf42dfa16880bc2940c22f1f6b740b4dc3ae5d79b"
+            "sha256": "47aedd0463200e19a1ff400e4be1c709239f4f27764dd096365161c86f38c39f"
           }
           EOF
           git add guitar/Guitar-Chord-Sheet.apk guitar/latest.json
-          git commit -m "Publish Guitar Chord Sheet v0.1.9"
+          git commit -m "Publish Guitar Chord Sheet v0.2.0"
           git push origin HEAD:main
