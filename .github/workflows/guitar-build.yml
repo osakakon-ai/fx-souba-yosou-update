@@ -69,16 +69,25 @@ jobs:
         working-directory: guitar-build/android
         run: gradle --no-daemon --stacktrace :app:assembleRelease
 
-      - name: Prepare unsigned APK
+      - name: Prepare unsigned APK and signing tools
         shell: bash
         run: |
-          mkdir -p out
+          set -euo pipefail
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          mkdir -p out/android-build-tools/lib
           cp guitar-build/android/app/build/outputs/apk/release/app-release-unsigned.apk out/Guitar-Chord-Sheet-unsigned.apk
+          cp "$TOOLS/apksigner" out/android-build-tools/apksigner
+          cp "$TOOLS/zipalign" out/android-build-tools/zipalign
+          cp "$TOOLS/lib/apksigner.jar" out/android-build-tools/lib/apksigner.jar
+          if [ -d "$TOOLS/lib64" ]; then
+            cp -a "$TOOLS/lib64" out/android-build-tools/
+          fi
+          chmod +x out/android-build-tools/apksigner out/android-build-tools/zipalign
 
-      - name: Upload unsigned APK
+      - name: Upload unsigned APK and signing tools
         uses: actions/upload-artifact@v4
         with:
           name: guitar-unsigned-build
-          path: out/Guitar-Chord-Sheet-unsigned.apk
+          path: out/
           if-no-files-found: error
           retention-days: 1
