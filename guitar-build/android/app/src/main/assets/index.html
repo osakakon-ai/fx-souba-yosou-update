@@ -70,7 +70,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.1.9</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.2.0</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -139,7 +139,7 @@ const N=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 let state={measures:[[{name:'C',beats:1},{name:'D',beats:1},{name:'Em',beats:1},{name:'Am',beats:1}]],root:'C'};
 let settings={bpm:120,timeSig:'4/4',capo:0};
 let selectedChord=null;
-let scrollState={running:false,startTime:0,elapsed:0,raf:0};
+let scrollState={running:false,startTime:0,elapsed:0,raf:0,transitionMeasure:-1,transitionFromY:0,transitionToY:0};
 let codeEditorDirty=false;
 
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -437,16 +437,51 @@ function chordScrollAnchor(entry,measureNodes){
 function scrollForPlayback(info){
  const p=info.playback;
  if(!p.entry||!info.measureNodes.length)return;
- const currentY=chordScrollAnchor(p.entry,info.measureNodes);
- const nextEntry=p.timeline.entries[Math.min(p.index+1,p.timeline.entries.length-1)];
- let nextY;
- if(p.index+1<p.timeline.entries.length){
-  nextY=chordScrollAnchor(nextEntry,info.measureNodes);
- }else{
-  const currentMeasure=info.measureNodes[Math.min(p.entry.mi,info.measureNodes.length-1)];
-  nextY=currentY+Math.max(80,currentMeasure.offsetHeight/Math.max(1,(state.measures[p.entry.mi]||[]).length));
+
+ const mi=p.entry.mi;
+ const measures=state.measures;
+ if(mi>=measures.length-1){
+  scrollState.transitionMeasure=-1;
+  return;
  }
- const y=currentY+(nextY-currentY)*p.progress;
+
+ const m=measures[mi]||[];
+ const measureBeats=Math.max(.25,m.reduce((s,c)=>s+(Number(c.beats)||1),0));
+ const beatInMeasure=p.entry.localStart+(p.progress*Math.max(.25,p.entry.beats));
+
+ // 次の小節への移動は「現在小節の最後の1拍」に入ってから開始する。
+ // 4/4なら4拍目、3/4なら3拍目からスクロール開始。
+ const transitionLength=Math.min(1,measureBeats);
+ const transitionStart=Math.max(0,measureBeats-transitionLength);
+
+ // 前小節の遷移が境界直前で終わらなかった場合は、次小節開始時に着地点へ揃える。
+ if(scrollState.transitionMeasure>=0 && scrollState.transitionMeasure<mi){
+  window.scrollTo(0,Math.max(0,scrollState.transitionToY));
+  scrollState.transitionMeasure=-1;
+ }
+
+ if(beatInMeasure<transitionStart){
+  return;
+ }
+
+ if(scrollState.transitionMeasure!==mi){
+  const next=info.measureNodes[mi+1];
+  if(!next)return;
+
+  scrollState.transitionMeasure=mi;
+  scrollState.transitionFromY=window.scrollY;
+  scrollState.transitionToY=
+   next.getBoundingClientRect().top+window.scrollY-stickyTopOffset()-8;
+ }
+
+ const progress=Math.max(0,Math.min(
+  1,
+  (beatInMeasure-transitionStart)/Math.max(.001,transitionLength)
+ ));
+
+ // BPMで決まる最後の1拍の実時間と完全に同じ時間軸で線形スクロールする。
+ const y=scrollState.transitionFromY+
+  (scrollState.transitionToY-scrollState.transitionFromY)*progress;
  window.scrollTo(0,Math.max(0,y));
 }
 
@@ -488,6 +523,9 @@ function toggleAutoScroll(){
 
  scrollState.running=true;
  scrollState.startTime=0;
+ scrollState.transitionMeasure=-1;
+ scrollState.transitionFromY=window.scrollY;
+ scrollState.transitionToY=window.scrollY;
  setPlaybackButtons(true);
  document.getElementById('autoScrollStatus').textContent='BPM '+settings.bpm+' で再生中';
  scrollState.raf=requestAnimationFrame(autoScrollFrame);
@@ -498,6 +536,7 @@ function stopAutoScroll(keepPosition){
  if(scrollState.raf)cancelAnimationFrame(scrollState.raf);
  scrollState.raf=0;
  scrollState.startTime=0;
+ scrollState.transitionMeasure=-1;
  setPlaybackButtons(false);
  const s=document.getElementById('autoScrollStatus');
  if(s&&s.textContent!=='終了')s.textContent=keepPosition?'停止中':'停止中';
@@ -506,6 +545,7 @@ function stopAutoScroll(keepPosition){
 function resetAutoScroll(){
  stopAutoScroll(false);
  scrollState.elapsed=0;
+ scrollState.transitionMeasure=-1;
  document.querySelectorAll('.score-measure,.chord-mini').forEach(n=>n.classList.remove('playing'));
  const first=document.querySelector('.score-measure');
  if(first)window.scrollTo({top:Math.max(0,first.getBoundingClientRect().top+window.scrollY-stickyTopOffset()),behavior:'smooth'});
