@@ -35,6 +35,11 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .chord-mini button{min-height:0;border:0;padding:0;background:transparent;font-weight:800;font-size:17px;width:100%}
 .chord-mini .diagram{width:72px;height:90px;max-width:100%;display:block;margin:0 auto}
 .lyric-line{min-height:34px;padding:4px 8px 2px;font-size:15px;line-height:1.45;white-space:pre-wrap;border-top:1px solid #eceff2}
+.lyric-tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.lyric-tools button{min-height:38px;padding:6px 10px;font-size:13px}
+.lyric-chord-row{display:flex;align-items:stretch;border-top:1px solid #eceff2}
+.lyric-chord-cell{min-width:0;padding:7px 4px 6px;text-align:center;font-size:14px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
+.lyric-chord-cell+.lyric-chord-cell{border-left:1px solid #f1f3f5}
 .autoscroll-status{font-size:12px;color:#666;align-self:center}
 
 .measure-head{display:flex;align-items:center;justify-content:space-between;padding:0 5px 2px;font-size:12px;color:#666}
@@ -71,7 +76,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.2.9</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.3.0</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -90,7 +95,13 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
   <div id="roots" class="roots" style="margin-top:7px"></div>
   <div id="quality" class="row quality"></div>
  </div>
- <div class="panel"><textarea id="lyrics" rows="3" placeholder="歌詞"></textarea></div>
+ <div class="panel">
+  <textarea id="lyrics" rows="3" placeholder="歌詞　例: あいう / えお / かき / くけ | こさ / しす / せそ / たち"></textarea>
+  <div class="lyric-tools controls">
+   <button onclick="insertLyricsSeparator('/')">コード区切り /</button>
+   <button onclick="insertLyricsSeparator('|')">小節区切り |</button>
+  </div>
+ </div>
  <div id="sheet"></div>
  <div class="panel controls"><div class="row"><button onclick="window.print()">印刷 / PDF</button><button onclick="clearAll()">新規作成</button></div></div>
 </div>
@@ -226,6 +237,54 @@ function lyricsForMeasure(mi){
  return (parts[mi]||'').trim();
 }
 
+function lyricSegmentsForMeasure(mi,m){
+ const txt=document.getElementById('lyrics').value.trim();
+ if(!txt||!txt.includes('/'))return null;
+
+ if(txt.includes('|')){
+  const measureText=(txt.split('|')[mi]||'').trim();
+  const segs=measureText.split('/').map(x=>x.trim());
+  while(segs.length<m.length)segs.push('');
+  return segs.slice(0,m.length);
+ }
+
+ const all=txt.split('/').map(x=>x.trim());
+ let start=0;
+ for(let i=0;i<mi;i++)start+=(state.measures[i]||[]).length;
+ const segs=all.slice(start,start+m.length);
+ while(segs.length<m.length)segs.push('');
+ return segs;
+}
+
+function lyricRowHtml(m,mi){
+ const segs=lyricSegmentsForMeasure(mi,m);
+ if(!segs)return '<div class="lyric-line">'+esc(lyricsForMeasure(mi))+'</div>';
+
+ let out='<div class="lyric-chord-row">';
+ m.forEach((c,ci)=>{
+  const span=Math.max(.25,Number(c.beats)||1);
+  const pct=(span/beatsPerMeasure())*100;
+  out+='<div class="lyric-chord-cell" style="flex:0 0 '+pct+'%">'+esc(segs[ci]||'')+'</div>';
+ });
+ out+='</div>';
+ return out;
+}
+
+function insertLyricsSeparator(mark){
+ const el=document.getElementById('lyrics');
+ const start=Number.isFinite(el.selectionStart)?el.selectionStart:el.value.length;
+ const end=Number.isFinite(el.selectionEnd)?el.selectionEnd:start;
+ const before=el.value.slice(0,start);
+ const after=el.value.slice(end);
+ const insert=' '+mark+' ';
+ el.value=before+insert+after;
+ const pos=start+insert.length;
+ el.focus();
+ el.setSelectionRange(pos,pos);
+ render();
+ save();
+}
+
 function chordRowHtml(m,mi){
  let beat=0,out='<div class="chord-row">';
  m.forEach((c,ci)=>{
@@ -250,7 +309,7 @@ function render(){
   out+='<div class="measure-head"><span>小節 '+(j+1)+'</span><span>'+settings.timeSig+'</span></div>';
   out+=chordRowHtml(state.measures[j],j);
   if(settings.showStaff!==false)out+=renderMeasureSvg(state.measures[j],j);
-  out+='<div class="lyric-line">'+esc(lyricsForMeasure(j))+'</div>';
+  out+=lyricRowHtml(state.measures[j],j);
   out+='</div>';
  }
  out+='</div>';

@@ -1,6 +1,6 @@
 {
-  "uiVersion": 210,
-  "versionName": "v0.2.9 UI",
+  "uiVersion": 211,
+  "versionName": "v0.3.0 歌詞コード割り当て",
   "htmlUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/index.html",
-  "sha256": "e11f677c2043a3a8f0482c809877466ddcb8294364ca779524d2480f6a5b61ea"
+  "sha256": "6cb4f4fb418ffbd89f38a9bcae6c1b0fbe21d0de09893d2ddb2a804896ba9aa3"
 }
