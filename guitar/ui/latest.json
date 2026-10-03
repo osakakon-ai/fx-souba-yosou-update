@@ -1,6 +1,6 @@
 {
-  "uiVersion": 218,
-  "versionName": "v0.3.7 歌詞1行表示",
+  "uiVersion": 219,
+  "versionName": "v0.3.8 ギター音",
   "htmlUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/index.html",
-  "sha256": "14791e2690ed5ed97f907c6af47fbf944c7eba49233e9d3ec95eb242e3a0f7bc"
+  "sha256": "6509436e7f750427054cb30e4cc85bf8ebe1cff03028fbdc7fc8e744c69ce3ff"
 }
