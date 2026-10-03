@@ -80,7 +80,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.3.8</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.3.9</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -137,7 +137,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
     <option value="off" selected>なし</option><option value="on">あり</option>
    </select></div>
   </div>
-  <div class="settings-note">「|」は小節区切り、[Intro]・[Verse]・[Chorus]などはセクション見出しです。通常入力は1コード＝1拍、C:2 は2拍、C/E は分数コードとして扱います。明示した小節内で拍数を省略した場合は、その小節をコード数で均等に分けます。五線譜は表示・非表示を切り替えられます。横に並べるコード数は3〜6個から選べます。ギター音を「あり」にすると、自動スクロールでコードが切り替わるたびにストローク音が鳴ります。</div>
+  <div class="settings-note">「|」は小節区切り、[Intro]・[Verse]・[Chorus]などはセクション見出しです。通常入力は1コード＝1拍、C:2 は2拍、C/E は分数コードとして扱います。明示した小節内で拍数を省略した場合は、その小節をコード数で均等に分けます。五線譜は表示・非表示を切り替えられます。横に並べるコード数は3〜6個から選べます。ギター音を「あり」にすると、自動スクロールでコードが切り替わるたびにFreePatsの実録クラシックギター音源でストローク音が鳴ります。</div>
   <div class="row"><button class="primary" onclick="applySettings()">設定を反映</button><button onclick="closeSettings()">閉じる</button></div>
  </div>
 </div>
@@ -167,9 +167,6 @@ let settings={bpm:120,timeSig:'4/4',capo:0,keySig:'auto',showStaff:true,chordsPe
 let selectedChord=null;
 let scrollState={running:false,startTime:0,elapsed:0,raf:0,transitionMeasure:-1,transitionFromY:0,transitionToY:0,lastSoundIndex:-1};
 let codeEditorDirty=false;
-let guitarAudioCtx=null;
-let guitarActiveSources=[];
-const guitarPluckCache=new Map();
 
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function chordSpec(n){
@@ -207,97 +204,24 @@ function sound(shape){
 }
 
 function ensureGuitarAudio(){
- const AC=window.AudioContext||window.webkitAudioContext;
- if(!AC)return null;
- if(!guitarAudioCtx)guitarAudioCtx=new AC();
- if(guitarAudioCtx.state==='suspended')guitarAudioCtx.resume().catch(()=>{});
- return guitarAudioCtx;
-}
-
-function midiFrequency(midi){
- return 440*Math.pow(2,(Number(midi)-69)/12);
-}
-
-function guitarPluckBuffer(midi){
- const ctx=ensureGuitarAudio();
- if(!ctx)return null;
- const key=String(midi)+'@'+ctx.sampleRate;
- if(guitarPluckCache.has(key))return guitarPluckCache.get(key);
-
- const sr=ctx.sampleRate;
- const duration=1.65;
- const length=Math.floor(sr*duration);
- const buffer=ctx.createBuffer(1,length,sr);
- const data=buffer.getChannelData(0);
- const freq=midiFrequency(midi);
- const period=Math.max(2,Math.round(sr/freq));
- const ring=new Float32Array(period);
-
- for(let i=0;i<period;i++)ring[i]=(Math.random()*2-1)*0.8;
-
- let idx=0;
- for(let i=0;i<length;i++){
-  const next=(idx+1)%period;
-  const pick=ring[idx];
-  // Karplus-Strong: 隣接サンプルを平均しながら減衰させ、弦の余韻を作る。
-  ring[idx]=(ring[idx]+ring[next])*0.4985;
-  const envelope=Math.exp(-3.2*i/length);
-  data[i]=pick*envelope;
-  idx=next;
- }
-
- guitarPluckCache.set(key,buffer);
- return buffer;
+ // 実際の音声はAndroid側のFreePats実録サンプラーが担当する。
+ return !!(window.AndroidBridge&&AndroidBridge.playGuitarNotes);
 }
 
 function stopGuitarAudio(){
- guitarActiveSources.forEach(src=>{
-  try{src.stop()}catch(e){}
- });
- guitarActiveSources=[];
+ if(window.AndroidBridge&&AndroidBridge.stopGuitarNotes){
+  try{AndroidBridge.stopGuitarNotes()}catch(e){}
+ }
 }
 
 function playGuitarChord(name){
  if(!settings.guitarSound)return;
- const ctx=ensureGuitarAudio();
- if(!ctx)return;
-
  const notes=sound(autoShape(name));
  if(!notes.length)return;
 
- // 次のコードへ移った時に前の余韻を少し残しつつ、長すぎる音だけ止める。
- guitarActiveSources=guitarActiveSources.filter(src=>!src.__ended);
-
- const base=ctx.currentTime+0.012;
- notes.forEach((midi,i)=>{
-  const buffer=guitarPluckBuffer(midi);
-  if(!buffer)return;
-
-  const src=ctx.createBufferSource();
-  const gain=ctx.createGain();
-  const filter=ctx.createBiquadFilter();
-
-  src.buffer=buffer;
-  filter.type='lowpass';
-  filter.frequency.setValueAtTime(3600,base);
-  filter.Q.setValueAtTime(0.35,base);
-
-  const t=base+i*0.024;
-  const level=Math.max(0.035,0.085-(i*0.006));
-  gain.gain.setValueAtTime(0.0001,t);
-  gain.gain.exponentialRampToValueAtTime(level,t+0.008);
-  gain.gain.exponentialRampToValueAtTime(0.0001,t+1.35);
-
-  src.connect(filter);
-  filter.connect(gain);
-  gain.connect(ctx.destination);
-
-  src.__ended=false;
-  src.onended=()=>{src.__ended=true};
-  guitarActiveSources.push(src);
-  src.start(t);
-  src.stop(t+1.5);
- });
+ if(window.AndroidBridge&&AndroidBridge.playGuitarNotes){
+  try{AndroidBridge.playGuitarNotes(notes.join(','))}catch(e){}
+ }
 }
 
 function noteY(m){return Math.max(53,Math.min(121,105-((m-60)*3.35)))}
