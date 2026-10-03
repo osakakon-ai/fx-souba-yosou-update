@@ -211,11 +211,25 @@ public class MainActivity extends Activity {
     new Thread(()->{
       try{
         JSONObject o=new JSONObject(readTextUrl(LATEST_URL));
-        int latest=o.getInt("versionCode");String name=o.getString("versionName");String url=o.getString("apkUrl");
+        int latest=o.getInt("versionCode");String name=o.getString("versionName");
         PackageInfo pi=getPackageManager().getPackageInfo(getPackageName(),0);
         long current=Build.VERSION.SDK_INT>=28?pi.getLongVersionCode():pi.versionCode;
         if(latest<=current){runOnUiThread(()->Toast.makeText(this,"最新です v"+name,Toast.LENGTH_SHORT).show());return;}
-        runOnUiThread(()->downloadUpdate(url,name));
+
+        int count=o.getInt("partCount");
+        String pattern=o.getString("partUrlPattern");
+        StringBuilder encoded=new StringBuilder();
+        for(int i=0;i<count;i++){
+          encoded.append(readTextUrl(String.format(Locale.US,pattern,i)).trim());
+        }
+        byte[] apk=android.util.Base64.decode(encoded.toString(),android.util.Base64.DEFAULT);
+        File dir=new File(getCacheDir(),"updates");if(!dir.exists())dir.mkdirs();
+        File file=new File(dir,"Training-App-update.apk");
+        try(java.io.FileOutputStream out=new java.io.FileOutputStream(file)){out.write(apk);}
+        runOnUiThread(()->{
+          Toast.makeText(this,"v"+name+" をダウンロードしました",Toast.LENGTH_SHORT).show();
+          openDownloadedApk(file);
+        });
       }catch(Exception e){
         runOnUiThread(()->Toast.makeText(this,"更新確認に失敗しました",Toast.LENGTH_LONG).show());
       }
@@ -224,32 +238,16 @@ public class MainActivity extends Activity {
 
   String readTextUrl(String url) throws Exception{
     java.net.HttpURLConnection con=(java.net.HttpURLConnection)new java.net.URL(url).openConnection();
-    con.setConnectTimeout(10000);con.setReadTimeout(20000);
+    con.setConnectTimeout(10000);con.setReadTimeout(30000);
     try(java.io.InputStream in=con.getInputStream();java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream()){
       byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);
       return out.toString("UTF-8");
     }finally{con.disconnect();}
   }
 
-  void downloadUpdate(String url,String version){
+  void openDownloadedApk(File file){
     try{
-      DownloadManager.Request req=new DownloadManager.Request(Uri.parse(url));
-      req.setTitle("筋トレログ v"+version);
-      req.setDescription("更新版をダウンロードしています");
-      req.setMimeType("application/vnd.android.package-archive");
-      req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-      req.setDestinationInExternalFilesDir(this,android.os.Environment.DIRECTORY_DOWNLOADS,"Training-App-update.apk");
-      DownloadManager dm=(DownloadManager)getSystemService(DOWNLOAD_SERVICE);
-      updateDownloadId=dm.enqueue(req);
-      Toast.makeText(this,"更新版のダウンロードを開始しました",Toast.LENGTH_SHORT).show();
-    }catch(Exception e){Toast.makeText(this,"ダウンロードを開始できませんでした",Toast.LENGTH_LONG).show();}
-  }
-
-  void openDownloadedApk(long id){
-    try{
-      DownloadManager dm=(DownloadManager)getSystemService(DOWNLOAD_SERVICE);
-      Uri uri=dm.getUriForDownloadedFile(id);
-      if(uri==null){Toast.makeText(this,"更新ファイルを開けませんでした",Toast.LENGTH_LONG).show();return;}
+      Uri uri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".fileprovider",file);
       Intent in=new Intent(Intent.ACTION_VIEW);
       in.setDataAndType(uri,"application/vnd.android.package-archive");
       in.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_NEW_TASK);
