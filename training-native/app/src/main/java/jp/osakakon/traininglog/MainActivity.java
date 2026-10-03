@@ -102,14 +102,14 @@ public class MainActivity extends Activity {
     Button done=btn("このセット完了");done.setOnClickListener(v->completeSet());body.addView(done);body.addView(tv("今日のメニュー",18,TEXT));
     for(int i=0;i<workout.size();i++){int col=i==exIndex?ACC:TEXT;String m=i<exIndex?"✓ ":i==exIndex?"▶ ":"";body.addView(tv(m+(i+1)+". "+workout.get(i).detail(),15,col));}
   }
-  void completeSet(){Exercise e=workout.get(exIndex);if(setIndex<e.sets)rest(e.rest,()->{setIndex++;showWorkout();});else if(exIndex<workout.size()-1)rest(e.rest,()->{exIndex++;setIndex=1;showWorkout();});else finish();}
+  void completeSet(){Exercise e=workout.get(exIndex);if(setIndex<e.sets)rest(e.rest,()->{setIndex++;showWorkout();});else if(exIndex<workout.size()-1)rest(e.rest,()->{exIndex++;setIndex=1;showWorkout();});else finishWorkout();}
   void rest(int seconds,Runnable next){
     base("インターバル");final int[] rem={Math.max(0,seconds)};TextView clock=tv(rem[0]+" 秒",48,ACC);clock.setGravity(Gravity.CENTER);body.addView(clock);
     EditText custom=field("秒数を自由入力",""+rem[0],true);body.addView(custom);LinearLayout a=new LinearLayout(this);Button minus=btn("-15秒"),apply=btn("適用"),plus=btn("+15秒"),skip=btn("スキップ");a.addView(minus);a.addView(apply);a.addView(plus);body.addView(a);body.addView(skip);
     Runnable launch=()->{if(timer!=null)timer.cancel();clock.setText(rem[0]+" 秒");timer=new CountDownTimer(rem[0]*1000L,1000){public void onTick(long m){clock.setText((int)Math.ceil(m/1000.0)+" 秒");}public void onFinish(){next.run();}};timer.start();};
     minus.setOnClickListener(v->{rem[0]=Math.max(0,rem[0]-15);custom.setText(""+rem[0]);launch.run();});plus.setOnClickListener(v->{rem[0]+=15;custom.setText(""+rem[0]);launch.run();});apply.setOnClickListener(v->{try{rem[0]=Math.max(0,Integer.parseInt(custom.getText().toString()));launch.run();}catch(Exception e){}});skip.setOnClickListener(v->{if(timer!=null)timer.cancel();next.run();});launch.run();
   }
-  void finish(){String day=fmt.format(new Date());StringBuilder s=new StringBuilder();for(Exercise e:workout){if(s.length()>0)s.append("\n");s.append(e.detail());}sp.edit().putString("record_"+day,s.toString()).apply();selectedDate=day;showMain();Toast.makeText(this,"筋トレ完了",Toast.LENGTH_LONG).show();}
+  void finishWorkout(){String day=fmt.format(new Date());StringBuilder s=new StringBuilder();for(Exercise e:workout){if(s.length()>0)s.append("\n");s.append(e.detail());}sp.edit().putString("record_"+day,s.toString()).apply();selectedDate=day;showMain();Toast.makeText(this,"筋トレ完了",Toast.LENGTH_LONG).show();}
   void shareScreen(){
     try{
       Bitmap bm=Bitmap.createBitmap(root.getWidth(),root.getHeight(),Bitmap.Config.ARGB_8888);Canvas c=new Canvas(bm);root.draw(c);
