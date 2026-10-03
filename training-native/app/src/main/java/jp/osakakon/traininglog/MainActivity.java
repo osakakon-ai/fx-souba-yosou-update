@@ -198,13 +198,24 @@ public class MainActivity extends Activity {
     new Thread(()->{
       try{
         JSONObject o=new JSONObject(readTextUrl(LATEST_URL));
-        int latest=o.getInt("versionCode");String name=o.getString("versionName");String url=o.getString("apkUrl");
+        int latest=o.getInt("versionCode");String name=o.getString("versionName");
         PackageInfo pi=getPackageManager().getPackageInfo(getPackageName(),0);
         long current=Build.VERSION.SDK_INT>=28?pi.getLongVersionCode():pi.versionCode;
         if(latest<=current){runOnUiThread(()->Toast.makeText(this,"最新です v"+name,Toast.LENGTH_SHORT).show());return;}
+
+        int count=o.getInt("partCount");
+        String pattern=o.getString("partUrlPattern");
+        java.io.ByteArrayOutputStream all=new java.io.ByteArrayOutputStream();
+        for(int i=0;i<count;i++){
+          String part=readTextUrl(String.format(Locale.US,pattern,i)).replace("\n","").replace("\r","").trim();
+          byte[] decoded=android.util.Base64.decode(part,android.util.Base64.DEFAULT);
+          all.write(decoded);
+        }
+
         File dir=new File(getCacheDir(),"updates");if(!dir.exists())dir.mkdirs();
         File file=new File(dir,"Training-App-update.apk");
-        downloadBinary(url,file);
+        try(java.io.FileOutputStream out=new java.io.FileOutputStream(file)){all.writeTo(out);}
+
         runOnUiThread(()->{
           Toast.makeText(this,"v"+name+" をダウンロードしました",Toast.LENGTH_SHORT).show();
           openDownloadedApk(file);
@@ -221,14 +232,6 @@ public class MainActivity extends Activity {
     try(java.io.InputStream in=con.getInputStream();java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream()){
       byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);
       return out.toString("UTF-8");
-    }finally{con.disconnect();}
-  }
-
-  void downloadBinary(String url,File file) throws Exception{
-    java.net.HttpURLConnection con=(java.net.HttpURLConnection)new java.net.URL(url).openConnection();
-    con.setConnectTimeout(10000);con.setReadTimeout(30000);
-    try(java.io.InputStream in=con.getInputStream();java.io.FileOutputStream out=new java.io.FileOutputStream(file)){
-      byte[] buf=new byte[16384];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);
     }finally{con.disconnect();}
   }
 
