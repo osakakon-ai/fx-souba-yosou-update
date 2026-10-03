@@ -7,9 +7,7 @@ import android.content.res.ColorStateList;
 import android.graphics.*;
 import android.net.Uri;
 import android.provider.MediaStore;
-import android.app.DownloadManager;
 import android.content.pm.PackageInfo;
-import android.database.Cursor;
 import org.json.JSONObject;
 import android.view.*;
 import android.widget.*;
@@ -21,8 +19,6 @@ public class MainActivity extends Activity {
   final int BG=Color.rgb(11,15,20), CARD=Color.rgb(24,31,40), TEXT=Color.rgb(238,244,248), SUB=Color.rgb(160,174,188), ACC=Color.rgb(87,214,141);
   LinearLayout root, body; SharedPreferences sp; String selectedDate;
   static final String LATEST_URL="https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/training/latest.json";
-  long updateDownloadId=-1;
-  BroadcastReceiver updateReceiver;
   ArrayList<Exercise> workout=new ArrayList<>(); int exIndex=0,setIndex=1; CountDownTimer timer;
   SimpleDateFormat fmt=new SimpleDateFormat("yyyy-MM-dd",Locale.JAPAN);
 
@@ -36,19 +32,10 @@ public class MainActivity extends Activity {
   }
 
   @Override public void onCreate(Bundle b){
-    super.onCreate(b);sp=getSharedPreferences("training",MODE_PRIVATE);selectedDate=fmt.format(new Date());
-    updateReceiver=new BroadcastReceiver(){public void onReceive(Context c,Intent i){
-      if(!DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(i.getAction()))return;
-      long id=i.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID,-1);
-      if(id==updateDownloadId)openDownloadedApk(id);
-    }};
-    IntentFilter f=new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
-    if(Build.VERSION.SDK_INT>=33)registerReceiver(updateReceiver,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(updateReceiver,f);
-    showMain();
+    super.onCreate(b);sp=getSharedPreferences("training",MODE_PRIVATE);selectedDate=fmt.format(new Date());showMain();
   }
   @Override public void onDestroy(){
     if(timer!=null)timer.cancel();
-    try{if(updateReceiver!=null)unregisterReceiver(updateReceiver);}catch(Exception ignored){}
     super.onDestroy();
   }
 
