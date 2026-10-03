@@ -71,7 +71,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.2.3</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.2.4</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -112,8 +112,11 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
    <div class="field"><label for="tuning">チューニング</label><select id="tuning">
     <option value="standard">標準 E A D G B E</option><option value="half">半音下げ Eb Ab Db Gb Bb Eb</option><option value="dropd">Drop D D A D G B E</option>
    </select></div>
+   <div class="field"><label for="showStaff">五線譜</label><select id="showStaff">
+    <option value="on" selected>表示する</option><option value="off">表示しない</option>
+   </select></div>
   </div>
-  <div class="settings-note">「|」は小節区切り、[Intro]・[Verse]・[Chorus]などはセクション見出しです。通常入力は1コード＝1拍、C:2 は2拍、C/E は分数コードとして扱います。明示した小節内で拍数を省略した場合は、その小節をコード数で均等に分けます。表示順は「セクション → コード名 → 個別ダイヤグラム → 五線譜 → 歌詞」です。</div>
+  <div class="settings-note">「|」は小節区切り、[Intro]・[Verse]・[Chorus]などはセクション見出しです。通常入力は1コード＝1拍、C:2 は2拍、C/E は分数コードとして扱います。明示した小節内で拍数を省略した場合は、その小節をコード数で均等に分けます。五線譜は設定から表示・非表示を切り替えられます。</div>
   <div class="row"><button class="primary" onclick="applySettings()">設定を反映</button><button onclick="closeSettings()">閉じる</button></div>
  </div>
 </div>
@@ -139,7 +142,7 @@ const OPEN={C:[null,3,2,0,1,0],D:[null,null,0,2,3,2],E:[0,2,2,1,0,0],F:[1,3,3,2,
 const N=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
 let state={measures:[[{name:'C',beats:1},{name:'D',beats:1},{name:'Em',beats:1},{name:'Am',beats:1}]],root:'C',sectionLabels:{}};
-let settings={bpm:120,timeSig:'4/4',capo:0,keySig:'auto'};
+let settings={bpm:120,timeSig:'4/4',capo:0,keySig:'auto',showStaff:true};
 let selectedChord=null;
 let scrollState={running:false,startTime:0,elapsed:0,raf:0,transitionMeasure:-1,transitionFromY:0,transitionToY:0};
 let codeEditorDirty=false;
@@ -248,7 +251,7 @@ function render(){
    if(section)out+='<div class="section-label">'+esc(section)+'</div>';
    out+='<div class="measure-head"><span>小節 '+(j+1)+'</span><span>'+settings.timeSig+'</span></div>';
    out+=chordRowHtml(state.measures[j],j);
-   out+=renderMeasureSvg(state.measures[j],j);
+   if(settings.showStaff!==false)out+=renderMeasureSvg(state.measures[j],j);
    out+='<div class="lyric-line">'+esc(lyricsForMeasure(j))+'</div>';
    out+='</div>';
   }
@@ -391,14 +394,14 @@ function closeChordDetail(){document.getElementById('chordDetailOverlay').classL
 function detailOverlayClose(e){if(e.target.id==='chordDetailOverlay')closeChordDetail()}
 
 function openSettings(){
- document.getElementById('bpm').value=settings.bpm;document.getElementById('timeSig').value=settings.timeSig;document.getElementById('keySig').value=settings.keySig||'auto';document.getElementById('capo').value=String(settings.capo||0);
+ document.getElementById('bpm').value=settings.bpm;document.getElementById('timeSig').value=settings.timeSig;document.getElementById('keySig').value=settings.keySig||'auto';document.getElementById('capo').value=String(settings.capo||0);document.getElementById('showStaff').value=settings.showStaff===false?'off':'on';
  document.getElementById('settingsOverlay').classList.add('open');
 }
 function closeSettings(){document.getElementById('settingsOverlay').classList.remove('open')}
 function overlayClose(e){if(e.target.id==='settingsOverlay')closeSettings()}
 function applySettings(){
  settings.bpm=Math.round(Math.max(20,Math.min(300,Number(document.getElementById('bpm').value)||120)));
- const oldSig=settings.timeSig;settings.timeSig=document.getElementById('timeSig').value||'4/4';settings.keySig=document.getElementById('keySig').value||'auto';settings.capo=Number(document.getElementById('capo').value)||0;
+ const oldSig=settings.timeSig;settings.timeSig=document.getElementById('timeSig').value||'4/4';settings.keySig=document.getElementById('keySig').value||'auto';settings.capo=Number(document.getElementById('capo').value)||0;settings.showStaff=document.getElementById('showStaff').value!=='off';
  if(oldSig!==settings.timeSig){
   const all=[],labels=Object.assign({},state.sectionLabels||{});
   state.measures.forEach(m=>m.forEach(c=>all.push({name:c.name,beats:Number(c.beats)||1})));
@@ -630,6 +633,7 @@ function load(){
    };
   }
   if(!settings.keySig)settings.keySig='auto';
+  if(typeof settings.showStaff!=='boolean')settings.showStaff=true;
   syncText();
  }catch(e){}
 }
