@@ -1,6 +1,6 @@
 {
-  "uiVersion": 213,
-  "versionName": "v0.3.2 コード歌詞左詰め",
+  "uiVersion": 214,
+  "versionName": "v0.3.3 歌詞位置調整",
   "htmlUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/index.html",
-  "sha256": "fd46a6cf68f812712455036f958743ecd9795ef06e1474b815cf5b6b3ddcba5b"
+  "sha256": "8d6a531ae6f4a63b7b9d4a63c0b69b5e56995052c15ad8825b4590d26d351408"
 }
