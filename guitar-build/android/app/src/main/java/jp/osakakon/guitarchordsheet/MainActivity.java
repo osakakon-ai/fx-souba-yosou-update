@@ -20,6 +20,11 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
+
 public class MainActivity extends Activity {
     private static final String HOME_SHORTCUT_ID = "guitar_chord_sheet_home";
 
@@ -29,7 +34,6 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
 
-        // Android 15でもWebViewをシステムバーの下へ確実に配置する。
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
         updater = new Updater(this);
@@ -55,7 +59,6 @@ public class MainActivity extends Activity {
                 WindowInsetsCompat.Type.systemBars()
                     | WindowInsetsCompat.Type.displayCutout());
 
-            // 一部端末/WebViewでinsetsが0になる場合の保険。
             int fallbackTop = getSystemBarDimension("status_bar_height");
             int fallbackBottom = getSystemBarDimension("navigation_bar_height");
 
@@ -69,10 +72,36 @@ public class MainActivity extends Activity {
         setContentView(root);
         ViewCompat.requestApplyInsets(root);
 
-        web.loadUrl("file:///android_asset/index.html");
-
-        // ホーム画面に未登録なら、Android標準の追加確認を表示する。
+        loadAppPage();
         requestHomeScreenShortcut();
+    }
+
+    void reloadAppPage() {
+        loadAppPage();
+    }
+
+    private void loadAppPage() {
+        File downloaded = new File(new File(getFilesDir(), "web"), "index.html");
+        if (!downloaded.exists()) {
+            web.loadUrl("file:///android_asset/index.html");
+            return;
+        }
+
+        try (FileInputStream in = new FileInputStream(downloaded);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            String html = new String(out.toByteArray(), StandardCharsets.UTF_8);
+            web.loadDataWithBaseURL(
+                "file:///android_asset/",
+                html,
+                "text/html",
+                "UTF-8",
+                null);
+        } catch (Exception e) {
+            web.loadUrl("file:///android_asset/index.html");
+        }
     }
 
     private void requestHomeScreenShortcut() {

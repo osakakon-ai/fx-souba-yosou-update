@@ -1,7 +1,7 @@
 package jp.osakakon.guitarchordsheet;
 
-import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
@@ -14,55 +14,114 @@ import org.json.JSONObject;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 final class Updater {
-    private static final String MANIFEST_URL =
+    private static final String UI_MANIFEST_URL =
+        "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/latest.json";
+    private static final String APK_MANIFEST_URL =
         "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/latest.json";
+    private static final int BUILTIN_UI_VERSION = 207;
 
-    private final Activity activity;
+    private final MainActivity activity;
     private volatile File pendingApk;
 
-    Updater(Activity a) { activity = a; }
+    Updater(MainActivity a) { activity = a; }
 
     void check() {
         new Thread(() -> {
             try {
-                JSONObject j = new JSONObject(readTextNoCache(MANIFEST_URL));
-                int remoteCode = j.getInt("versionCode");
-                String remoteName = j.optString("versionName", "");
-                long installed = activity.getPackageManager()
-                    .getPackageInfo(activity.getPackageName(), 0).getLongVersionCode();
-                int localCode = installed > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) installed;
-
-                if (remoteCode <= localCode) {
-                    toast("最新版です");
-                    return;
-                }
-
-                toast("v" + remoteName + " をダウンロードしています");
-
-                File dir = new File(activity.getCacheDir(), "updates");
-                if (!dir.exists() && !dir.mkdirs()) {
-                    throw new IOException("更新用フォルダを作成できません");
-                }
-
-                File apk = new File(dir, "Guitar-Chord-Sheet.apk");
-                download(j.getString("apkUrl"), apk);
-
-                String expected = j.getString("sha256").trim().toLowerCase();
-                String actual = sha256(apk);
-                if (!actual.equals(expected)) {
-                    apk.delete();
-                    throw new IOException("ダウンロードしたAPKの検証に失敗しました");
-                }
-
-                pendingApk = apk;
-                install(apk);
+                if (checkUiUpdate()) return;
+                checkApkUpdate();
             } catch (Exception e) {
                 toast("更新に失敗しました: " + e.getMessage());
             }
         }).start();
+    }
+
+    private boolean checkUiUpdate() throws Exception {
+        JSONObject j = new JSONObject(readTextNoCache(UI_MANIFEST_URL));
+        int remoteUi = j.getInt("uiVersion");
+        String remoteName = j.optString("versionName", "");
+
+        SharedPreferences prefs =
+            activity.getSharedPreferences("gcs_updater", MainActivity.MODE_PRIVATE);
+        int localUi = prefs.getInt("uiVersion", BUILTIN_UI_VERSION);
+
+        if (remoteUi <= localUi) return false;
+
+        toast("画面データ " + remoteName + " を更新しています");
+
+        byte[] html = readBytesNoCache(j.getString("htmlUrl"));
+        String expected = j.getString("sha256").trim().toLowerCase();
+        String actual = sha256(html);
+        if (!actual.equals(expected)) {
+            throw new IOException("画面データの検証に失敗しました");
+        }
+
+        File dir = new File(activity.getFilesDir(), "web");
+        if (!dir.exists() && !dir.mkdirs()) {
+            throw new IOException("更新用フォルダを作成できません");
+        }
+
+        File tmp = new File(dir, "index.html.tmp");
+        File dst = new File(dir, "index.html");
+        try (OutputStream os = new FileOutputStream(tmp, false)) {
+            os.write(html);
+            os.flush();
+        }
+
+        if (dst.exists() && !dst.delete()) {
+            tmp.delete();
+            throw new IOException("旧画面データを置き換えられません");
+        }
+        if (!tmp.renameTo(dst)) {
+            tmp.delete();
+            throw new IOException("新しい画面データを保存できません");
+        }
+
+        prefs.edit().putInt("uiVersion", remoteUi).apply();
+
+        activity.runOnUiThread(() -> {
+            Toast.makeText(activity, "更新しました", Toast.LENGTH_SHORT).show();
+            activity.reloadAppPage();
+        });
+        return true;
+    }
+
+    private void checkApkUpdate() throws Exception {
+        JSONObject j = new JSONObject(readTextNoCache(APK_MANIFEST_URL));
+        int remoteCode = j.getInt("versionCode");
+        String remoteName = j.optString("versionName", "");
+        long installed = activity.getPackageManager()
+            .getPackageInfo(activity.getPackageName(), 0).getLongVersionCode();
+        int localCode = installed > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) installed;
+
+        if (remoteCode <= localCode) {
+            toast("最新版です");
+            return;
+        }
+
+        toast("v" + remoteName + " をダウンロードしています");
+
+        File dir = new File(activity.getCacheDir(), "updates");
+        if (!dir.exists() && !dir.mkdirs()) {
+            throw new IOException("更新用フォルダを作成できません");
+        }
+
+        File apk = new File(dir, "Guitar-Chord-Sheet.apk");
+        download(j.getString("apkUrl"), apk);
+
+        String expected = j.getString("sha256").trim().toLowerCase();
+        String actual = sha256(apk);
+        if (!actual.equals(expected)) {
+            apk.delete();
+            throw new IOException("ダウンロードしたAPKの検証に失敗しました");
+        }
+
+        pendingApk = apk;
+        install(apk);
     }
 
     void resumePendingInstall() {
@@ -75,6 +134,10 @@ final class Updater {
     }
 
     private String readTextNoCache(String u) throws Exception {
+        return new String(readBytesNoCache(u), StandardCharsets.UTF_8);
+    }
+
+    private byte[] readBytesNoCache(String u) throws Exception {
         String sep = u.contains("?") ? "&" : "?";
         HttpURLConnection c = (HttpURLConnection)new URL(
             u + sep + "t=" + System.currentTimeMillis()).openConnection();
@@ -82,18 +145,18 @@ final class Updater {
         c.setRequestProperty("Cache-Control", "no-cache");
         c.setRequestProperty("Pragma", "no-cache");
         c.setConnectTimeout(10000);
-        c.setReadTimeout(15000);
+        c.setReadTimeout(20000);
         try {
             int status = c.getResponseCode();
             if (status < 200 || status >= 300) {
                 throw new IOException("更新情報 HTTP " + status);
             }
-            try (BufferedReader r = new BufferedReader(
-                    new InputStreamReader(c.getInputStream()))) {
-                StringBuilder b = new StringBuilder();
-                String x;
-                while ((x = r.readLine()) != null) b.append(x);
-                return b.toString();
+            try (InputStream in = c.getInputStream();
+                 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                byte[] b = new byte[8192];
+                int n;
+                while ((n = in.read(b)) > 0) out.write(b, 0, n);
+                return out.toByteArray();
             }
         } finally {
             c.disconnect();
@@ -122,6 +185,12 @@ final class Updater {
         }
     }
 
+    private String sha256(byte[] data) throws Exception {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        md.update(data);
+        return toHex(md.digest());
+    }
+
     private String sha256(File f) throws Exception {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         try (InputStream in = new FileInputStream(f)) {
@@ -129,8 +198,12 @@ final class Updater {
             int n;
             while ((n = in.read(b)) > 0) md.update(b, 0, n);
         }
+        return toHex(md.digest());
+    }
+
+    private String toHex(byte[] digest) {
         StringBuilder s = new StringBuilder();
-        for (byte x : md.digest()) s.append(String.format("%02x", x));
+        for (byte x : digest) s.append(String.format("%02x", x));
         return s.toString();
     }
 
