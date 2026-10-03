@@ -27,7 +27,8 @@ jobs:
           SRC=/tmp/freepats-spanish-classical-guitar
           DEST=guitar-build/android/app/src/main/assets/audio/freepats
           rm -rf "$SRC" "$DEST"
-          git clone --depth 1 https://github.com/freepats/spanish-classical-guitar.git "$SRC"
+          git clone --no-checkout https://github.com/freepats/spanish-classical-guitar.git "$SRC"
+          git -C "$SRC" checkout 6f4eb1b092acc88f5448cea1a0001bd07b971af8
           mkdir -p "$DEST"
           cp -a "$SRC/samples" "$DEST/"
           cp "$SRC/LICENSE" "$DEST/LICENSE"
@@ -36,6 +37,7 @@ jobs:
           FreePats Spanish Classical Guitar
           Version 2019-06-18
           Source: https://github.com/freepats/spanish-classical-guitar
+          Commit: 6f4eb1b092acc88f5448cea1a0001bd07b971af8
           License: CC0 1.0 Public Domain Dedication
           EOF
 
