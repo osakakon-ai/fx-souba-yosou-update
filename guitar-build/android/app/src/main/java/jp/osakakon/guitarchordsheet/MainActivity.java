@@ -1,6 +1,10 @@
 package jp.osakakon.guitarchordsheet;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.content.pm.ShortcutInfo;
+import android.content.pm.ShortcutManager;
+import android.graphics.drawable.Icon;
 import android.os.Bundle;
 import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
@@ -17,6 +21,8 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 public class MainActivity extends Activity {
+    private static final String HOME_SHORTCUT_ID = "guitar_chord_sheet_home";
+
     private WebView web;
     private Updater updater;
 
@@ -64,6 +70,31 @@ public class MainActivity extends Activity {
         ViewCompat.requestApplyInsets(root);
 
         web.loadUrl("file:///android_asset/index.html");
+
+        // ホーム画面に未登録なら、Android標準の追加確認を表示する。
+        requestHomeScreenShortcut();
+    }
+
+    private void requestHomeScreenShortcut() {
+        ShortcutManager shortcutManager = getSystemService(ShortcutManager.class);
+        if (shortcutManager == null || !shortcutManager.isRequestPinShortcutSupported()) return;
+
+        for (ShortcutInfo info : shortcutManager.getPinnedShortcuts()) {
+            if (HOME_SHORTCUT_ID.equals(info.getId())) return;
+        }
+
+        Intent launchIntent = new Intent(this, MainActivity.class);
+        launchIntent.setAction(Intent.ACTION_MAIN);
+        launchIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+
+        ShortcutInfo shortcut = new ShortcutInfo.Builder(this, HOME_SHORTCUT_ID)
+            .setShortLabel(getString(R.string.app_name))
+            .setLongLabel(getString(R.string.app_name))
+            .setIcon(Icon.createWithResource(this, R.mipmap.ic_launcher))
+            .setIntent(launchIntent)
+            .build();
+
+        shortcutManager.requestPinShortcut(shortcut, null);
     }
 
     private int getSystemBarDimension(String name) {
