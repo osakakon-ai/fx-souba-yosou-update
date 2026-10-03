@@ -1,7 +1,6 @@
 package jp.osakakon.guitarchordsheet;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
@@ -22,7 +21,6 @@ final class Updater {
         "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/latest.json";
     private static final String APK_MANIFEST_URL =
         "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/latest.json";
-    private static final int BUILTIN_UI_VERSION = 207;
 
     private final MainActivity activity;
     private volatile File pendingApk;
@@ -32,44 +30,53 @@ final class Updater {
     void check() {
         new Thread(() -> {
             try {
-                if (checkUiUpdate()) return;
+                if (syncUiByHash()) return;
                 checkApkUpdate();
             } catch (Exception e) {
-                toast("更新に失敗しました: " + e.getMessage());
+                toast("更新に失敗しました: " + safeMessage(e));
             }
         }).start();
     }
 
-    private boolean checkUiUpdate() throws Exception {
+    private boolean syncUiByHash() throws Exception {
         JSONObject j = new JSONObject(readTextNoCache(UI_MANIFEST_URL));
-        int remoteUi = j.getInt("uiVersion");
-        String remoteName = j.optString("versionName", "");
+        String expected = j.getString("sha256").trim().toLowerCase();
+        String remoteName = j.optString("versionName", "最新UI");
 
-        SharedPreferences prefs =
-            activity.getSharedPreferences("gcs_updater", MainActivity.MODE_PRIVATE);
-        int localUi = prefs.getInt("uiVersion", BUILTIN_UI_VERSION);
+        File dir = new File(activity.getFilesDir(), "web");
+        File dst = new File(dir, "index.html");
 
-        if (remoteUi <= localUi) return false;
+        // 端末に保存済みの実ファイルを直接検証する。
+        if (dst.exists() && expected.equals(sha256(dst))) {
+            return false;
+        }
+
+        // 保存済みUIが無い場合は、APK内蔵UIもハッシュで確認する。
+        if (!dst.exists() && expected.equals(assetSha256("index.html"))) {
+            return false;
+        }
 
         toast("画面データ " + remoteName + " を更新しています");
 
         byte[] html = readBytesNoCache(j.getString("htmlUrl"));
-        String expected = j.getString("sha256").trim().toLowerCase();
         String actual = sha256(html);
         if (!actual.equals(expected)) {
             throw new IOException("画面データの検証に失敗しました");
         }
 
-        File dir = new File(activity.getFilesDir(), "web");
         if (!dir.exists() && !dir.mkdirs()) {
             throw new IOException("更新用フォルダを作成できません");
         }
 
         File tmp = new File(dir, "index.html.tmp");
-        File dst = new File(dir, "index.html");
         try (OutputStream os = new FileOutputStream(tmp, false)) {
             os.write(html);
             os.flush();
+        }
+
+        if (!expected.equals(sha256(tmp))) {
+            tmp.delete();
+            throw new IOException("保存前の画面データ検証に失敗しました");
         }
 
         if (dst.exists() && !dst.delete()) {
@@ -81,7 +88,10 @@ final class Updater {
             throw new IOException("新しい画面データを保存できません");
         }
 
-        prefs.edit().putInt("uiVersion", remoteUi).apply();
+        if (!expected.equals(sha256(dst))) {
+            dst.delete();
+            throw new IOException("保存後の画面データ検証に失敗しました");
+        }
 
         activity.runOnUiThread(() -> {
             Toast.makeText(activity, "更新しました", Toast.LENGTH_SHORT).show();
@@ -142,8 +152,9 @@ final class Updater {
         HttpURLConnection c = (HttpURLConnection)new URL(
             u + sep + "t=" + System.currentTimeMillis()).openConnection();
         c.setUseCaches(false);
-        c.setRequestProperty("Cache-Control", "no-cache");
+        c.setRequestProperty("Cache-Control", "no-cache, no-store, max-age=0");
         c.setRequestProperty("Pragma", "no-cache");
+        c.setRequestProperty("Accept", "*/*");
         c.setConnectTimeout(10000);
         c.setReadTimeout(20000);
         try {
@@ -166,7 +177,8 @@ final class Updater {
     private void download(String u, File out) throws Exception {
         HttpURLConnection c = (HttpURLConnection)new URL(u).openConnection();
         c.setUseCaches(false);
-        c.setRequestProperty("Cache-Control", "no-cache");
+        c.setRequestProperty("Cache-Control", "no-cache, no-store, max-age=0");
+        c.setRequestProperty("Pragma", "no-cache");
         c.setConnectTimeout(10000);
         c.setReadTimeout(30000);
         try {
@@ -183,6 +195,16 @@ final class Updater {
         } finally {
             c.disconnect();
         }
+    }
+
+    private String assetSha256(String name) throws Exception {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        try (InputStream in = activity.getAssets().open(name)) {
+            byte[] b = new byte[8192];
+            int n;
+            while ((n = in.read(b)) > 0) md.update(b, 0, n);
+        }
+        return toHex(md.digest());
     }
 
     private String sha256(byte[] data) throws Exception {
@@ -205,6 +227,11 @@ final class Updater {
         StringBuilder s = new StringBuilder();
         for (byte x : digest) s.append(String.format("%02x", x));
         return s.toString();
+    }
+
+    private String safeMessage(Exception e) {
+        String m = e.getMessage();
+        return (m == null || m.trim().isEmpty()) ? e.getClass().getSimpleName() : m;
     }
 
     private void install(File apk) {

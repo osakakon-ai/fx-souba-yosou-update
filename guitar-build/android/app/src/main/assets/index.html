@@ -26,15 +26,23 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .main-actions button{min-width:0;min-height:40px;padding:6px 3px;font-size:12px;white-space:nowrap}
 #sheet{margin-top:10px}
 .score-work{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;margin-top:9px}
-.score-measure{min-width:0;padding:7px 8px 10px;transition:background .18s ease}.score-work>.score-measure{border-top:1px solid #eceff2}.score-work>.score-measure:nth-child(-n+2){border-top:0}.score-work>.score-measure:nth-child(even){border-left:1px solid #eceff2}
+.score-measure{min-width:0;padding:7px 8px 10px;transition:background .18s ease}.score-work>.score-measure{border-top:0!important}.score-work>.score-measure+.score-measure{border-top:0!important}.score-work>.score-measure:nth-child(even){border-left:1px solid #eceff2}
 .section-label{margin:-1px 0 5px;padding:4px 7px;border-left:4px solid #111;background:#f3f4f6;border-radius:6px;font-size:13px;font-weight:800;letter-spacing:.02em}
 .score-measure.playing{background:#fff}
-.chord-row{display:flex;align-items:flex-start;gap:2px;margin:4px 0 2px}
-.chord-mini{min-width:0;text-align:center;padding:3px 2px;border-radius:10px;transition:background .12s ease,box-shadow .12s ease}
+.chord-row{display:grid;grid-template-columns:repeat(var(--chord-cols,4),var(--chord-cell-w,68px));justify-content:start;align-items:start;gap:var(--chord-gap,5px);margin:4px 0 2px;padding-left:4px}
+.chord-mini{min-width:0;text-align:left;padding:3px 0;border-radius:10px;transition:background .12s ease,box-shadow .12s ease}
 .chord-mini.playing{background:#dbeafe;box-shadow:inset 0 0 0 2px #93c5fd}
-.chord-mini button{min-height:0;border:0;padding:0;background:transparent;font-weight:800;font-size:17px;width:100%}
-.chord-mini .diagram{width:72px;height:90px;max-width:100%;display:block;margin:0 auto}
+.chord-mini button{min-height:0;border:0;padding:0;background:transparent;font-weight:800;font-size:var(--chord-font,16px);width:var(--diagram-w,64px);max-width:100%;white-space:nowrap;text-align:center}
+.chord-mini .diagram{width:var(--diagram-w,64px);height:auto;max-width:100%;display:block;margin:0}
 .lyric-line{min-height:34px;padding:4px 8px 2px;font-size:15px;line-height:1.45;white-space:pre-wrap;border-top:1px solid #eceff2}
+.lyric-tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.lyric-tools button{min-height:38px;padding:6px 10px;font-size:13px}
+.lyric-chord-row{display:grid;grid-template-columns:repeat(var(--chord-cols,4),var(--chord-cell-w,68px));justify-content:start;align-items:stretch;gap:var(--chord-gap,5px);border-top:1px solid #eceff2;padding-left:4px}
+.lyric-chord-cell{min-width:0;padding:7px 0 6px;text-align:left;font-size:var(--lyric-font,14px);line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
+.chord-lyric-flow{display:grid;grid-template-columns:repeat(var(--chord-cols,4),var(--chord-cell-w,68px));justify-content:start;align-items:start;gap:var(--chord-gap,5px);padding:4px 0 7px 4px;border-top:1px solid #eceff2}
+.chord-lyric-item{min-width:0}
+.chord-lyric-item .chord-mini{padding:0}
+.chord-lyric-text{margin-top:2px;min-height:20px;font-size:var(--lyric-font,14px);line-height:1.35;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;color:#222}
 .autoscroll-status{font-size:12px;color:#666;align-self:center}
 
 .measure-head{display:flex;align-items:center;justify-content:space-between;padding:0 5px 2px;font-size:12px;color:#666}
@@ -59,9 +67,9 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
  .main-actions button{font-size:11.5px;min-height:38px;padding:5px 1px}
  .settings-grid{grid-template-columns:1fr}
  .score-work{grid-template-columns:1fr}
- .score-work>.score-measure{border-left:0!important;border-top:1px solid #eceff2} .score-work>.score-measure:first-child{border-top:0}
+ .score-work>.score-measure{border-left:0!important;border-top:0!important}.score-work>.score-measure+.score-measure{border-top:0!important}.score-work>.score-measure:first-child{border-top:0!important}
  .detail-grid{grid-template-columns:1fr}
- .chord-mini .diagram{width:68px;height:86px}
+ .chord-mini .diagram{max-width:100%}
 }
 @media print{
  .top,.controls,.settings-overlay,.chord-detail-overlay{display:none!important}
@@ -71,7 +79,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.2.7</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.3.2</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -90,7 +98,13 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
   <div id="roots" class="roots" style="margin-top:7px"></div>
   <div id="quality" class="row quality"></div>
  </div>
- <div class="panel"><textarea id="lyrics" rows="3" placeholder="歌詞"></textarea></div>
+ <div class="panel">
+  <textarea id="lyrics" rows="3" placeholder="歌詞　例: あいう / えお / かき / くけ | こさ / しす / せそ / たち"></textarea>
+  <div class="lyric-tools controls">
+   <button onclick="insertLyricsSeparator('/')">コード区切り /</button>
+   <button onclick="insertLyricsSeparator('|')">小節区切り |</button>
+  </div>
+ </div>
  <div id="sheet"></div>
  <div class="panel controls"><div class="row"><button onclick="window.print()">印刷 / PDF</button><button onclick="clearAll()">新規作成</button></div></div>
 </div>
@@ -115,8 +129,11 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
    <div class="field"><label for="showStaff">五線譜</label><select id="showStaff">
     <option value="on" selected>表示する</option><option value="off">表示しない</option>
    </select></div>
+   <div class="field"><label for="chordsPerRow">横に並べるコード数</label><select id="chordsPerRow">
+    <option value="3">3個</option><option value="4" selected>4個</option><option value="5">5個</option><option value="6">6個</option>
+   </select></div>
   </div>
-  <div class="settings-note">「|」は小節区切り、[Intro]・[Verse]・[Chorus]などはセクション見出しです。通常入力は1コード＝1拍、C:2 は2拍、C/E は分数コードとして扱います。明示した小節内で拍数を省略した場合は、その小節をコード数で均等に分けます。五線譜は設定から表示・非表示を切り替えられます。</div>
+  <div class="settings-note">「|」は小節区切り、[Intro]・[Verse]・[Chorus]などはセクション見出しです。通常入力は1コード＝1拍、C:2 は2拍、C/E は分数コードとして扱います。明示した小節内で拍数を省略した場合は、その小節をコード数で均等に分けます。五線譜は表示・非表示を切り替えられます。横に並べるコード数は3〜6個から選べ、数に合わせてダイヤグラムを自動縮小します。</div>
   <div class="row"><button class="primary" onclick="applySettings()">設定を反映</button><button onclick="closeSettings()">閉じる</button></div>
  </div>
 </div>
@@ -142,7 +159,7 @@ const OPEN={C:[null,3,2,0,1,0],D:[null,null,0,2,3,2],E:[0,2,2,1,0,0],F:[1,3,3,2,
 const N=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
 let state={measures:[[{name:'C',beats:1},{name:'D',beats:1},{name:'Em',beats:1},{name:'Am',beats:1}]],root:'C',sectionLabels:{}};
-let settings={bpm:120,timeSig:'4/4',capo:0,keySig:'auto',showStaff:true};
+let settings={bpm:120,timeSig:'4/4',capo:0,keySig:'auto',showStaff:true,chordsPerRow:4};
 let selectedChord=null;
 let scrollState={running:false,startTime:0,elapsed:0,raf:0,transitionMeasure:-1,transitionFromY:0,transitionToY:0};
 let codeEditorDirty=false;
@@ -226,15 +243,84 @@ function lyricsForMeasure(mi){
  return (parts[mi]||'').trim();
 }
 
-function chordRowHtml(m,mi){
- let beat=0,out='<div class="chord-row">';
+function lyricSegmentsForMeasure(mi,m){
+ const txt=document.getElementById('lyrics').value.trim();
+ if(!txt||!txt.includes('/'))return null;
+
+ if(txt.includes('|')){
+  const measureText=(txt.split('|')[mi]||'').trim();
+  const segs=measureText.split('/').map(x=>x.trim());
+  while(segs.length<m.length)segs.push('');
+  return segs.slice(0,m.length);
+ }
+
+ const all=txt.split('/').map(x=>x.trim());
+ let start=0;
+ for(let i=0;i<mi;i++)start+=(state.measures[i]||[]).length;
+ const segs=all.slice(start,start+m.length);
+ while(segs.length<m.length)segs.push('');
+ return segs;
+}
+
+function chordLayout(){
+ const cols=Math.max(3,Math.min(6,Number(settings.chordsPerRow)||4));
+ const map={
+  3:{cell:94,diagram:68,chord:16,lyric:14,gap:7},
+  4:{cell:73,diagram:56,chord:15,lyric:14,gap:5},
+  5:{cell:58,diagram:50,chord:14,lyric:13,gap:4},
+  6:{cell:49,diagram:44,chord:12,lyric:12,gap:3}
+ };
+ const x=map[cols]||map[4];
+ return {
+  cols:cols,
+  style:'--chord-cols:'+cols+';--chord-cell-w:'+x.cell+'px;--diagram-w:'+x.diagram+'px;--chord-font:'+x.chord+'px;--lyric-font:'+x.lyric+'px;--chord-gap:'+x.gap+'px'
+ };
+}
+
+function lyricRowHtml(m,mi){
+ const segs=lyricSegmentsForMeasure(mi,m);
+ if(!segs)return '<div class="lyric-line">'+esc(lyricsForMeasure(mi))+'</div>';
+
+ const layout=chordLayout();
+ let out='<div class="chord-lyric-flow" style="'+layout.style+'">';
  m.forEach((c,ci)=>{
-  const span=Math.max(.25,Number(c.beats)||1),pct=(span/beatsPerMeasure())*100,sh=autoShape(c.name);
-  out+='<div class="chord-mini" data-measure="'+mi+'" data-chord="'+ci+'" style="flex:0 0 '+pct+'%">';
+  const sh=autoShape(c.name);
+  out+='<div class="chord-lyric-item">';
+  out+='<div class="chord-mini" data-measure="'+mi+'" data-chord="'+ci+'">';
   out+='<button onclick="showChordDetail('+mi+','+ci+')">'+esc(c.name)+'</button>';
   out+=diagram(sh);
   out+='</div>';
-  beat+=span;
+  out+='<div class="chord-lyric-text">'+esc(segs[ci]||'')+'</div>';
+  out+='</div>';
+ });
+ out+='</div>';
+ return out;
+}
+
+function insertLyricsSeparator(mark){
+ const el=document.getElementById('lyrics');
+ const start=Number.isFinite(el.selectionStart)?el.selectionStart:el.value.length;
+ const end=Number.isFinite(el.selectionEnd)?el.selectionEnd:start;
+ const before=el.value.slice(0,start);
+ const after=el.value.slice(end);
+ const insert=' '+mark+' ';
+ el.value=before+insert+after;
+ const pos=start+insert.length;
+ el.focus();
+ el.setSelectionRange(pos,pos);
+ render();
+ save();
+}
+
+function chordRowHtml(m,mi){
+ const layout=chordLayout();
+ let out='<div class="chord-row" style="'+layout.style+'">';
+ m.forEach((c,ci)=>{
+  const sh=autoShape(c.name);
+  out+='<div class="chord-mini" data-measure="'+mi+'" data-chord="'+ci+'">';
+  out+='<button onclick="showChordDetail('+mi+','+ci+')">'+esc(c.name)+'</button>';
+  out+=diagram(sh);
+  out+='</div>';
  });
  out+='</div>';
  return out;
@@ -248,9 +334,10 @@ function render(){
   const section=(state.sectionLabels&&state.sectionLabels[j])||'';
   if(section)out+='<div class="section-label">'+esc(section)+'</div>';
   out+='<div class="measure-head"><span>小節 '+(j+1)+'</span><span>'+settings.timeSig+'</span></div>';
-  out+=chordRowHtml(state.measures[j],j);
+  const hasChordLyrics=!!lyricSegmentsForMeasure(j,state.measures[j]);
+  if(!hasChordLyrics)out+=chordRowHtml(state.measures[j],j);
   if(settings.showStaff!==false)out+=renderMeasureSvg(state.measures[j],j);
-  out+='<div class="lyric-line">'+esc(lyricsForMeasure(j))+'</div>';
+  out+=lyricRowHtml(state.measures[j],j);
   out+='</div>';
  }
  out+='</div>';
@@ -391,14 +478,14 @@ function closeChordDetail(){document.getElementById('chordDetailOverlay').classL
 function detailOverlayClose(e){if(e.target.id==='chordDetailOverlay')closeChordDetail()}
 
 function openSettings(){
- document.getElementById('bpm').value=settings.bpm;document.getElementById('timeSig').value=settings.timeSig;document.getElementById('keySig').value=settings.keySig||'auto';document.getElementById('capo').value=String(settings.capo||0);document.getElementById('showStaff').value=settings.showStaff===false?'off':'on';
+ document.getElementById('bpm').value=settings.bpm;document.getElementById('timeSig').value=settings.timeSig;document.getElementById('keySig').value=settings.keySig||'auto';document.getElementById('capo').value=String(settings.capo||0);document.getElementById('showStaff').value=settings.showStaff===false?'off':'on';document.getElementById('chordsPerRow').value=String(settings.chordsPerRow||4);
  document.getElementById('settingsOverlay').classList.add('open');
 }
 function closeSettings(){document.getElementById('settingsOverlay').classList.remove('open')}
 function overlayClose(e){if(e.target.id==='settingsOverlay')closeSettings()}
 function applySettings(){
  settings.bpm=Math.round(Math.max(20,Math.min(300,Number(document.getElementById('bpm').value)||120)));
- const oldSig=settings.timeSig;settings.timeSig=document.getElementById('timeSig').value||'4/4';settings.keySig=document.getElementById('keySig').value||'auto';settings.capo=Number(document.getElementById('capo').value)||0;settings.showStaff=document.getElementById('showStaff').value!=='off';
+ const oldSig=settings.timeSig;settings.timeSig=document.getElementById('timeSig').value||'4/4';settings.keySig=document.getElementById('keySig').value||'auto';settings.capo=Number(document.getElementById('capo').value)||0;settings.showStaff=document.getElementById('showStaff').value!=='off';settings.chordsPerRow=Math.max(3,Math.min(6,Number(document.getElementById('chordsPerRow').value)||4));
  if(oldSig!==settings.timeSig){
   const all=[],labels=Object.assign({},state.sectionLabels||{});
   state.measures.forEach(m=>m.forEach(c=>all.push({name:c.name,beats:Number(c.beats)||1})));
@@ -631,6 +718,7 @@ function load(){
   }
   if(!settings.keySig)settings.keySig='auto';
   if(typeof settings.showStaff!=='boolean')settings.showStaff=true;
+  if(![3,4,5,6].includes(Number(settings.chordsPerRow)))settings.chordsPerRow=4;
   syncText();
  }catch(e){}
 }
