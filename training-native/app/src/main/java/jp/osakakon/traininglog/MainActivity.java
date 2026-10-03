@@ -14,7 +14,6 @@ import org.json.JSONObject;
 import android.view.*;
 import android.widget.*;
 import java.io.OutputStream;
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -22,6 +21,8 @@ public class MainActivity extends Activity {
   final int BG=Color.rgb(11,15,20), CARD=Color.rgb(24,31,40), TEXT=Color.rgb(238,244,248), SUB=Color.rgb(160,174,188), ACC=Color.rgb(87,214,141);
   LinearLayout root, body; SharedPreferences sp; String selectedDate;
   static final String LATEST_URL="https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/training/latest.json";
+  long updateDownloadId=-1;
+  BroadcastReceiver updateReceiver;
   ArrayList<Exercise> workout=new ArrayList<>(); int exIndex=0,setIndex=1; CountDownTimer timer;
   SimpleDateFormat fmt=new SimpleDateFormat("yyyy-MM-dd",Locale.JAPAN);
 
@@ -35,9 +36,21 @@ public class MainActivity extends Activity {
   }
 
   @Override public void onCreate(Bundle b){
-    super.onCreate(b);sp=getSharedPreferences("training",MODE_PRIVATE);selectedDate=fmt.format(new Date());showMain();
+    super.onCreate(b);sp=getSharedPreferences("training",MODE_PRIVATE);selectedDate=fmt.format(new Date());
+    updateReceiver=new BroadcastReceiver(){public void onReceive(Context c,Intent i){
+      if(!DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(i.getAction()))return;
+      long id=i.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID,-1);
+      if(id==updateDownloadId)openDownloadedApk(id);
+    }};
+    IntentFilter f=new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+    if(Build.VERSION.SDK_INT>=33)registerReceiver(updateReceiver,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(updateReceiver,f);
+    showMain();
   }
-  @Override public void onDestroy(){if(timer!=null)timer.cancel();super.onDestroy();}
+  @Override public void onDestroy(){
+    if(timer!=null)timer.cancel();
+    try{if(updateReceiver!=null)unregisterReceiver(updateReceiver);}catch(Exception ignored){}
+    super.onDestroy();
+  }
 
   void base(String title){
     root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BG);
@@ -198,28 +211,11 @@ public class MainActivity extends Activity {
     new Thread(()->{
       try{
         JSONObject o=new JSONObject(readTextUrl(LATEST_URL));
-        int latest=o.getInt("versionCode");String name=o.getString("versionName");
+        int latest=o.getInt("versionCode");String name=o.getString("versionName");String url=o.getString("apkUrl");
         PackageInfo pi=getPackageManager().getPackageInfo(getPackageName(),0);
         long current=Build.VERSION.SDK_INT>=28?pi.getLongVersionCode():pi.versionCode;
         if(latest<=current){runOnUiThread(()->Toast.makeText(this,"最新です v"+name,Toast.LENGTH_SHORT).show());return;}
-
-        int count=o.getInt("partCount");
-        String pattern=o.getString("partUrlPattern");
-        java.io.ByteArrayOutputStream all=new java.io.ByteArrayOutputStream();
-        for(int i=0;i<count;i++){
-          String part=readTextUrl(String.format(Locale.US,pattern,i)).replace("\n","").replace("\r","").trim();
-          byte[] decoded=android.util.Base64.decode(part,android.util.Base64.DEFAULT);
-          all.write(decoded);
-        }
-
-        File dir=new File(getCacheDir(),"updates");if(!dir.exists())dir.mkdirs();
-        File file=new File(dir,"Training-App-update.apk");
-        try(java.io.FileOutputStream out=new java.io.FileOutputStream(file)){all.writeTo(out);}
-
-        runOnUiThread(()->{
-          Toast.makeText(this,"v"+name+" をダウンロードしました",Toast.LENGTH_SHORT).show();
-          openDownloadedApk(file);
-        });
+        runOnUiThread(()->downloadUpdate(url,name));
       }catch(Exception e){
         runOnUiThread(()->Toast.makeText(this,"更新確認に失敗しました",Toast.LENGTH_LONG).show());
       }
@@ -235,9 +231,25 @@ public class MainActivity extends Activity {
     }finally{con.disconnect();}
   }
 
-  void openDownloadedApk(File file){
+  void downloadUpdate(String url,String version){
     try{
-      Uri uri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".fileprovider",file);
+      DownloadManager.Request req=new DownloadManager.Request(Uri.parse(url));
+      req.setTitle("筋トレログ v"+version);
+      req.setDescription("更新版をダウンロードしています");
+      req.setMimeType("application/vnd.android.package-archive");
+      req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+      req.setDestinationInExternalFilesDir(this,android.os.Environment.DIRECTORY_DOWNLOADS,"Training-App-update.apk");
+      DownloadManager dm=(DownloadManager)getSystemService(DOWNLOAD_SERVICE);
+      updateDownloadId=dm.enqueue(req);
+      Toast.makeText(this,"更新版のダウンロードを開始しました",Toast.LENGTH_SHORT).show();
+    }catch(Exception e){Toast.makeText(this,"ダウンロードを開始できませんでした",Toast.LENGTH_LONG).show();}
+  }
+
+  void openDownloadedApk(long id){
+    try{
+      DownloadManager dm=(DownloadManager)getSystemService(DOWNLOAD_SERVICE);
+      Uri uri=dm.getUriForDownloadedFile(id);
+      if(uri==null){Toast.makeText(this,"更新ファイルを開けませんでした",Toast.LENGTH_LONG).show();return;}
       Intent in=new Intent(Intent.ACTION_VIEW);
       in.setDataAndType(uri,"application/vnd.android.package-archive");
       in.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_NEW_TASK);
