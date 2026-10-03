@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "training-build/source.zip"
+      - "training-native/**"
       - ".github/workflows/training-apk.yml"
   workflow_dispatch:
 permissions:
@@ -20,22 +20,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - name: Extract
-        run: |
-          rm -rf training-android
-          mkdir training-android
-          unzip -q training-build/source.zip -d training-android
-          if [ -d training-android/training_app_android ]; then
-            shopt -s dotglob
-            mv training-android/training_app_android/* training-android/
-            rmdir training-android/training_app_android
-          fi
-      - name: Build
-        run: gradle -p training-android --no-daemon assembleDebug
-      - name: Publish
+      - name: Build installable debug APK
+        run: gradle -p training-native --no-daemon assembleDebug
+      - name: Publish APK
         run: |
           mkdir -p training
-          cp training-android/app/build/outputs/apk/debug/app-debug.apk training/Training-App.apk
+          cp training-native/app/build/outputs/apk/debug/app-debug.apk training/Training-App.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add training/Training-App.apk
