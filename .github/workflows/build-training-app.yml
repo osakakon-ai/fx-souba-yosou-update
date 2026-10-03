@@ -1,0 +1,79 @@
+name: Build Training App APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'training-app/source.part*.b64'
+      - '.github/workflows/build-training-app.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Rebuild source archive
+        shell: bash
+        run: |
+          cat training-app/source.part*.b64 | base64 -d > training-app/source.zip
+          echo "11b2c89df1a5327f8b235b45769208e7ae18719068110c59e4e9a4c09854c644  training-app/source.zip" | sha256sum -c -
+          mkdir -p build/training-app
+          unzip -q training-app/source.zip -d build/training-app
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform
+        shell: bash
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Build release APK
+        working-directory: build/training-app
+        run: gradle :app:assembleRelease --no-daemon
+
+      - name: Publish APK and update metadata
+        shell: bash
+        run: |
+          cp build/training-app/app/build/outputs/apk/release/app-release.apk training-app/Training-App.apk
+          SHA=$(sha256sum training-app/Training-App.apk | awk '{print $1}')
+          cat > training-app/latest.json <<EOF
+          {
+            "versionCode": 100000,
+            "versionName": "1.0.0",
+            "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/training-app/Training-App.apk",
+            "sha256": "$SHA"
+          }
+          EOF
+
+      - name: Commit APK
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add training-app/Training-App.apk training-app/latest.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Build training app v1.0.0"
+          git push
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Training-App-v1.0.0
+          path: training-app/Training-App.apk
