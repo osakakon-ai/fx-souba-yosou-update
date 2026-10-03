@@ -43,7 +43,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .chord-lyric-item{min-width:0;display:flex;flex-direction:column;align-items:center}
 .chord-lyric-item .chord-mini{padding:0;width:var(--diagram-w,64px)}
 .chord-lyric-item .chord-mini .diagram{margin:0 auto}
-.chord-lyric-text{margin-top:2px;min-height:20px;width:var(--diagram-w,64px);padding-left:6px;font-size:var(--lyric-font,14px);line-height:1.35;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;color:#222}
+.chord-lyric-text{margin-top:2px;min-height:20px;box-sizing:border-box;width:var(--chord-cell-w,68px);padding-left:var(--lyric-indent,10px);font-size:var(--lyric-font,14px);line-height:1.35;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;color:#222}
 .autoscroll-status{font-size:12px;color:#666;align-self:center}
 
 .measure-head{display:flex;align-items:center;justify-content:space-between;padding:0 5px 2px;font-size:12px;color:#666}
@@ -80,7 +80,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.3.4</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.3.5</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -266,15 +266,15 @@ function lyricSegmentsForMeasure(mi,m){
 function chordLayout(){
  const cols=Math.max(3,Math.min(6,Number(settings.chordsPerRow)||4));
  const map={
-  3:{cell:94,diagram:68,chord:16,lyric:14,gap:7},
-  4:{cell:73,diagram:56,chord:15,lyric:14,gap:5},
-  5:{cell:58,diagram:50,chord:14,lyric:13,gap:4},
-  6:{cell:49,diagram:44,chord:12,lyric:12,gap:3}
+  3:{cell:96,diagram:68,chord:16,lyric:14,gap:7,indent:13},
+  4:{cell:78,diagram:56,chord:15,lyric:14,gap:5,indent:12},
+  5:{cell:62,diagram:50,chord:14,lyric:13,gap:4,indent:10},
+  6:{cell:52,diagram:44,chord:12,lyric:12,gap:3,indent:8}
  };
  const x=map[cols]||map[4];
  return {
   cols:cols,
-  style:'--chord-cols:'+cols+';--chord-cell-w:'+x.cell+'px;--diagram-w:'+x.diagram+'px;--chord-font:'+x.chord+'px;--lyric-font:'+x.lyric+'px;--chord-gap:'+x.gap+'px'
+  style:'--chord-cols:'+cols+';--chord-cell-w:'+x.cell+'px;--diagram-w:'+x.diagram+'px;--chord-font:'+x.chord+'px;--lyric-font:'+x.lyric+'px;--chord-gap:'+x.gap+'px;--lyric-indent:'+x.indent+'px'
  };
 }
 

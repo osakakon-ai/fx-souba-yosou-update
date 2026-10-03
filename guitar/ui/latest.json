@@ -1,6 +1,6 @@
 {
-  "uiVersion": 215,
-  "versionName": "v0.3.4 更新機構確認",
+  "uiVersion": 216,
+  "versionName": "v0.3.5 歌詞幅と位置調整",
   "htmlUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/index.html",
-  "sha256": "3799154721469b08ddd7c7f3e077b8c550a8f80b4fe570ac42fbc0a0139421f8"
+  "sha256": "9920801be13ef5ad028dabccd940f5bb2bc19b7973ac65a77618da5397c927b8"
 }
