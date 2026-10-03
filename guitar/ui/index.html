@@ -29,17 +29,20 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .score-measure{min-width:0;padding:7px 8px 10px;transition:background .18s ease}.score-work>.score-measure{border-top:0!important}.score-work>.score-measure+.score-measure{border-top:0!important}.score-work>.score-measure:nth-child(even){border-left:1px solid #eceff2}
 .section-label{margin:-1px 0 5px;padding:4px 7px;border-left:4px solid #111;background:#f3f4f6;border-radius:6px;font-size:13px;font-weight:800;letter-spacing:.02em}
 .score-measure.playing{background:#fff}
-.chord-row{display:grid;grid-template-columns:repeat(var(--chord-cols,4),minmax(0,1fr));align-items:start;gap:2px;margin:4px 0 2px}
-.chord-mini{min-width:0;text-align:center;padding:3px 1px;border-radius:10px;transition:background .12s ease,box-shadow .12s ease}
+.chord-row{display:grid;grid-template-columns:repeat(var(--chord-cols,4),var(--chord-cell-w,68px));justify-content:start;align-items:start;gap:var(--chord-gap,5px);margin:4px 0 2px;padding-left:4px}
+.chord-mini{min-width:0;text-align:left;padding:3px 0;border-radius:10px;transition:background .12s ease,box-shadow .12s ease}
 .chord-mini.playing{background:#dbeafe;box-shadow:inset 0 0 0 2px #93c5fd}
-.chord-mini button{min-height:0;border:0;padding:0;background:transparent;font-weight:800;font-size:var(--chord-font,16px);width:100%;white-space:nowrap}
-.chord-mini .diagram{width:var(--diagram-w,64px);height:auto;max-width:100%;display:block;margin:0 auto}
+.chord-mini button{min-height:0;border:0;padding:0;background:transparent;font-weight:800;font-size:var(--chord-font,16px);width:var(--diagram-w,64px);max-width:100%;white-space:nowrap;text-align:center}
+.chord-mini .diagram{width:var(--diagram-w,64px);height:auto;max-width:100%;display:block;margin:0}
 .lyric-line{min-height:34px;padding:4px 8px 2px;font-size:15px;line-height:1.45;white-space:pre-wrap;border-top:1px solid #eceff2}
 .lyric-tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
 .lyric-tools button{min-height:38px;padding:6px 10px;font-size:13px}
-.lyric-chord-row{display:grid;grid-template-columns:repeat(var(--chord-cols,4),minmax(0,1fr));align-items:stretch;border-top:1px solid #eceff2}
-.lyric-chord-cell{min-width:0;padding:7px 3px 6px;text-align:center;font-size:var(--lyric-font,14px);line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
-.lyric-chord-cell+.lyric-chord-cell{border-left:1px solid #f1f3f5}
+.lyric-chord-row{display:grid;grid-template-columns:repeat(var(--chord-cols,4),var(--chord-cell-w,68px));justify-content:start;align-items:stretch;gap:var(--chord-gap,5px);border-top:1px solid #eceff2;padding-left:4px}
+.lyric-chord-cell{min-width:0;padding:7px 0 6px;text-align:left;font-size:var(--lyric-font,14px);line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
+.chord-lyric-flow{display:grid;grid-template-columns:repeat(var(--chord-cols,4),var(--chord-cell-w,68px));justify-content:start;align-items:start;gap:var(--chord-gap,5px);padding:4px 0 7px 4px;border-top:1px solid #eceff2}
+.chord-lyric-item{min-width:0}
+.chord-lyric-item .chord-mini{padding:0}
+.chord-lyric-text{margin-top:2px;min-height:20px;font-size:var(--lyric-font,14px);line-height:1.35;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;color:#222}
 .autoscroll-status{font-size:12px;color:#666;align-self:center}
 
 .measure-head{display:flex;align-items:center;justify-content:space-between;padding:0 5px 2px;font-size:12px;color:#666}
@@ -76,7 +79,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.3.1</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.3.2</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -262,15 +265,15 @@ function lyricSegmentsForMeasure(mi,m){
 function chordLayout(){
  const cols=Math.max(3,Math.min(6,Number(settings.chordsPerRow)||4));
  const map={
-  3:{diagram:72,chord:17,lyric:14},
-  4:{diagram:62,chord:16,lyric:14},
-  5:{diagram:55,chord:14,lyric:13},
-  6:{diagram:49,chord:13,lyric:12}
+  3:{cell:94,diagram:68,chord:16,lyric:14,gap:7},
+  4:{cell:73,diagram:56,chord:15,lyric:14,gap:5},
+  5:{cell:58,diagram:50,chord:14,lyric:13,gap:4},
+  6:{cell:49,diagram:44,chord:12,lyric:12,gap:3}
  };
  const x=map[cols]||map[4];
  return {
   cols:cols,
-  style:'--chord-cols:'+cols+';--diagram-w:'+x.diagram+'px;--chord-font:'+x.chord+'px;--lyric-font:'+x.lyric+'px'
+  style:'--chord-cols:'+cols+';--chord-cell-w:'+x.cell+'px;--diagram-w:'+x.diagram+'px;--chord-font:'+x.chord+'px;--lyric-font:'+x.lyric+'px;--chord-gap:'+x.gap+'px'
  };
 }
 
@@ -279,9 +282,16 @@ function lyricRowHtml(m,mi){
  if(!segs)return '<div class="lyric-line">'+esc(lyricsForMeasure(mi))+'</div>';
 
  const layout=chordLayout();
- let out='<div class="lyric-chord-row" style="'+layout.style+'">';
+ let out='<div class="chord-lyric-flow" style="'+layout.style+'">';
  m.forEach((c,ci)=>{
-  out+='<div class="lyric-chord-cell">'+esc(segs[ci]||'')+'</div>';
+  const sh=autoShape(c.name);
+  out+='<div class="chord-lyric-item">';
+  out+='<div class="chord-mini" data-measure="'+mi+'" data-chord="'+ci+'">';
+  out+='<button onclick="showChordDetail('+mi+','+ci+')">'+esc(c.name)+'</button>';
+  out+=diagram(sh);
+  out+='</div>';
+  out+='<div class="chord-lyric-text">'+esc(segs[ci]||'')+'</div>';
+  out+='</div>';
  });
  out+='</div>';
  return out;
@@ -324,7 +334,8 @@ function render(){
   const section=(state.sectionLabels&&state.sectionLabels[j])||'';
   if(section)out+='<div class="section-label">'+esc(section)+'</div>';
   out+='<div class="measure-head"><span>小節 '+(j+1)+'</span><span>'+settings.timeSig+'</span></div>';
-  out+=chordRowHtml(state.measures[j],j);
+  const hasChordLyrics=!!lyricSegmentsForMeasure(j,state.measures[j]);
+  if(!hasChordLyrics)out+=chordRowHtml(state.measures[j],j);
   if(settings.showStaff!==false)out+=renderMeasureSvg(state.measures[j],j);
   out+=lyricRowHtml(state.measures[j],j);
   out+='</div>';
