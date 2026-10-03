@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ギターコード譜</title>
+<style>
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:#f3f4f6;color:#111;font-family:system-ui,-apple-system,sans-serif}
+.app{max-width:900px;margin:auto;padding:10px 10px calc(72px + env(safe-area-inset-bottom,0px))}
+.top,.panel,.score-work,.settings-card,.chord-detail-card{background:#fff;border:1px solid #d7dbe0;border-radius:14px}
+.top{position:sticky;top:0;z-index:10;display:flex;gap:8px;align-items:center;min-height:58px;padding:10px 12px}
+.top b{flex:1;min-width:0}.top-follow-stop{display:none;background:#111;color:#fff;border-color:#111;min-width:72px}.top-follow-stop.show{display:block}.panel{padding:10px;margin-top:9px}.row{display:flex;gap:7px;flex-wrap:wrap}
+button,input,textarea,select{font:inherit}
+button{border:1px solid #bbb;background:#fff;border-radius:10px;padding:9px 12px;min-height:44px}
+.primary{background:#111;color:#fff}
+input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-radius:10px;background:#fff;font-size:16px}
+.meta{margin-top:7px;padding:8px 10px;border-radius:10px;background:#f5f6f7;font-size:13px;color:#444}
+.roots{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.roots button{font-weight:800;font-size:15px;padding:5px 2px;min-height:36px;border-radius:8px}
+.quality{display:none;margin-top:7px}
+.quality.open{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.quality button{min-width:0;min-height:34px;padding:4px 2px;border-radius:8px;font-size:13px;white-space:nowrap}
+.main-actions{display:grid;grid-template-columns:1.22fr .72fr .72fr 1.55fr .64fr;gap:5px;margin-top:7px}
+.main-actions button{min-width:0;min-height:40px;padding:6px 3px;font-size:12px;white-space:nowrap}
+#sheet{margin-top:10px}
+.score-work{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;margin-top:9px}
+.score-measure{min-width:0;padding:7px 8px 10px;transition:background .18s ease}.score-work>.score-measure{border-top:1px solid #eceff2}.score-work>.score-measure:nth-child(-n+2){border-top:0}.score-work>.score-measure:nth-child(even){border-left:1px solid #eceff2}
+.section-label{margin:-1px 0 5px;padding:4px 7px;border-left:4px solid #111;background:#f3f4f6;border-radius:6px;font-size:13px;font-weight:800;letter-spacing:.02em}
+.score-measure.playing{background:#fff}
+.chord-row{display:flex;align-items:flex-start;gap:2px;margin:4px 0 2px}
+.chord-mini{min-width:0;text-align:center;padding:3px 2px;border-radius:10px;transition:background .12s ease,box-shadow .12s ease}
+.chord-mini.playing{background:#dbeafe;box-shadow:inset 0 0 0 2px #93c5fd}
+.chord-mini button{min-height:0;border:0;padding:0;background:transparent;font-weight:800;font-size:17px;width:100%}
+.chord-mini .diagram{width:72px;height:90px;max-width:100%;display:block;margin:0 auto}
+.lyric-line{min-height:34px;padding:4px 8px 2px;font-size:15px;line-height:1.45;white-space:pre-wrap;border-top:1px solid #eceff2}
+.autoscroll-status{font-size:12px;color:#666;align-self:center}
+
+.measure-head{display:flex;align-items:center;justify-content:space-between;padding:0 5px 2px;font-size:12px;color:#666}
+.score-svg{display:block;width:100%;height:auto;touch-action:manipulation}
+.chord-label{font-size:18px;font-weight:800;cursor:pointer}
+.beat-label{font-size:9px;fill:#999}
+.muted{font-size:12px;color:#666}
+.settings-overlay,.chord-detail-overlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.42);padding:20px 12px;overflow:auto}
+.settings-overlay.open,.chord-detail-overlay.open{display:flex;align-items:flex-start;justify-content:center}
+.settings-card,.chord-detail-card{width:min(620px,100%);padding:16px}
+.settings-card h2,.chord-detail-card h2{margin:0 0 12px;font-size:21px}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field label{display:block;margin-bottom:5px;font-size:13px;font-weight:700}.settings-note{margin:10px 0;font-size:12px;color:#666}
+.detail-grid{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:start}.diagram{width:145px;height:175px}
+.fingering{font-family:monospace;font-size:15px;margin-top:6px}.detail-notes{font-size:14px;line-height:1.7}
+@media(max-width:560px){
+ .roots{grid-template-columns:repeat(6,1fr)}
+ .roots button{font-size:14px;min-height:34px}
+ .quality.open{grid-template-columns:repeat(5,minmax(0,1fr))}
+ .quality button{font-size:12px;min-height:32px;padding:3px 1px}
+ .main-actions{grid-template-columns:1.18fr .68fr .68fr 1.55fr .62fr;gap:4px}
+ .main-actions button{font-size:11.5px;min-height:38px;padding:5px 1px}
+ .settings-grid{grid-template-columns:1fr}
+ .score-work{grid-template-columns:1fr}
+ .score-work>.score-measure{border-left:0!important;border-top:1px solid #eceff2} .score-work>.score-measure:first-child{border-top:0}
+ .detail-grid{grid-template-columns:1fr}
+ .chord-mini .diagram{width:68px;height:86px}
+}
+@media print{
+ .top,.controls,.settings-overlay,.chord-detail-overlay{display:none!important}
+ body{background:#fff}.app{max-width:none}.score-work{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="app">
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.2.7</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="panel">
+  <input id="title" value="新しいコード譜" placeholder="曲名">
+  <div id="meta" class="meta"></div>
+  <textarea id="codeText" rows="2" style="margin-top:7px" placeholder="例: [Intro] C G Am F | [Verse] C:2 G:2">C D Em Am</textarea>
+  <div class="main-actions controls">
+   <button class="primary" onclick="applyText()">コード生成</button>
+   <button onclick="openSettings()">設定</button>
+   <button onclick="save()">保存</button>
+   <button id="autoScrollBtn" onclick="toggleAutoScroll()">自動スクロール</button>
+   <button onclick="resetAutoScroll()">先頭</button>
+  </div>
+  <div id="autoScrollStatus" class="autoscroll-status controls" style="margin-top:4px">停止中</div>
+ </div>
+ <div class="panel controls">
+  <div class="muted">コードを追加</div>
+  <div id="roots" class="roots" style="margin-top:7px"></div>
+  <div id="quality" class="row quality"></div>
+ </div>
+ <div class="panel"><textarea id="lyrics" rows="3" placeholder="歌詞"></textarea></div>
+ <div id="sheet"></div>
+ <div class="panel controls"><div class="row"><button onclick="window.print()">印刷 / PDF</button><button onclick="clearAll()">新規作成</button></div></div>
+</div>
+
+<div id="settingsOverlay" class="settings-overlay" onclick="overlayClose(event)">
+ <div class="settings-card">
+  <h2>譜面設定</h2>
+  <div class="settings-grid">
+   <div class="field"><label for="bpm">BPM</label><input id="bpm" type="number" min="20" max="300" step="1" value="120"></div>
+   <div class="field"><label for="timeSig">拍子</label><select id="timeSig">
+    <option>2/4</option><option>3/4</option><option selected>4/4</option><option>5/4</option><option>6/8</option><option>9/8</option><option>12/8</option>
+   </select></div>
+   <div class="field"><label for="keySig">キー</label><select id="keySig"><option value="auto" selected>自動</option><option>C</option><option>Db</option><option>D</option><option>Eb</option><option>E</option><option>F</option><option>Gb</option><option>G</option><option>Ab</option><option>A</option><option>Bb</option><option>B</option></select></div>
+   <div class="field"><label for="capo">カポ</label><select id="capo">
+    <option value="0">なし</option><option value="1">1フレット</option><option value="2">2フレット</option><option value="3">3フレット</option>
+    <option value="4">4フレット</option><option value="5">5フレット</option><option value="6">6フレット</option><option value="7">7フレット</option>
+    <option value="8">8フレット</option><option value="9">9フレット</option><option value="10">10フレット</option><option value="11">11フレット</option><option value="12">12フレット</option>
+   </select></div>
+   <div class="field"><label for="tuning">チューニング</label><select id="tuning">
+    <option value="standard">標準 E A D G B E</option><option value="half">半音下げ Eb Ab Db Gb Bb Eb</option><option value="dropd">Drop D D A D G B E</option>
+   </select></div>
+   <div class="field"><label for="showStaff">五線譜</label><select id="showStaff">
+    <option value="on" selected>表示する</option><option value="off">表示しない</option>
+   </select></div>
+  </div>
+  <div class="settings-note">「|」は小節区切り、[Intro]・[Verse]・[Chorus]などはセクション見出しです。通常入力は1コード＝1拍、C:2 は2拍、C/E は分数コードとして扱います。明示した小節内で拍数を省略した場合は、その小節をコード数で均等に分けます。五線譜は設定から表示・非表示を切り替えられます。</div>
+  <div class="row"><button class="primary" onclick="applySettings()">設定を反映</button><button onclick="closeSettings()">閉じる</button></div>
+ </div>
+</div>
+
+<div id="chordDetailOverlay" class="chord-detail-overlay" onclick="detailOverlayClose(event)">
+ <div class="chord-detail-card">
+  <h2 id="detailName">C</h2>
+  <div class="detail-grid">
+   <div><div id="detailDiagram"></div><div id="detailFingering" class="fingering"></div></div>
+   <div class="detail-notes"><div id="detailNotes"></div><div class="row" style="margin-top:10px"><button onclick="nextVoicing()">別フォーム</button><button onclick="closeChordDetail()">閉じる</button></div></div>
+  </div>
+ </div>
+</div>
+
+<script>
+const ROOTS=['C','C#','Db','D','D#','Eb','E','F','F#','Gb','G','G#','Ab','A','A#','Bb','B'];
+const QUAL=['','m','7','M7','m7','6','m6','sus2','sus4','add9','dim','dim7','aug','9','M9','m9','11'];
+const PC={C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
+const FORM={'':[0,4,7],m:[0,3,7],7:[0,4,7,10],M7:[0,4,7,11],m7:[0,3,7,10],6:[0,4,7,9],m6:[0,3,7,9],sus2:[0,2,7],sus4:[0,5,7],add9:[0,2,4,7],dim:[0,3,6],dim7:[0,3,6,9],aug:[0,4,8],9:[0,2,4,7,10],M9:[0,2,4,7,11],m9:[0,2,3,7,10],11:[0,2,4,5,7,10]};
+const T={standard:[40,45,50,55,59,64],half:[39,44,49,54,58,63],dropd:[38,45,50,55,59,64]};
+const TLABEL={standard:'標準',half:'半音下げ',dropd:'Drop D'};
+const OPEN={C:[null,3,2,0,1,0],D:[null,null,0,2,3,2],E:[0,2,2,1,0,0],F:[1,3,3,2,1,1],G:[3,2,0,0,0,3],A:[null,0,2,2,2,0],B:[null,2,4,4,4,2],Am:[null,0,2,2,1,0],Dm:[null,null,0,2,3,1],Em:[0,2,2,0,0,0],C7:[null,3,2,3,1,0],D7:[null,null,0,2,1,2],E7:[0,2,0,1,0,0],G7:[3,2,0,0,0,1],A7:[null,0,2,0,2,0],B7:[null,2,1,2,0,2],CM7:[null,3,2,0,0,0],FM7:[null,null,3,2,1,0],Am7:[null,0,2,0,1,0],Dm7:[null,null,0,2,1,1],Em7:[0,2,0,0,0,0],Csus4:[null,3,3,0,1,1],Cadd9:[null,3,2,0,3,0]};
+const N=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+let state={measures:[[{name:'C',beats:1},{name:'D',beats:1},{name:'Em',beats:1},{name:'Am',beats:1}]],root:'C',sectionLabels:{}};
+let settings={bpm:120,timeSig:'4/4',capo:0,keySig:'auto',showStaff:true};
+let selectedChord=null;
+let scrollState={running:false,startTime:0,elapsed:0,raf:0,transitionMeasure:-1,transitionFromY:0,transitionToY:0};
+let codeEditorDirty=false;
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function chordSpec(n){
+ const m=String(n).trim().match(/^([A-G](?:#|b)?)(m7|m9|m6|M7|M9|sus2|sus4|add9|dim7|dim|aug|11|9|7|6|m)?(?:\/([A-G](?:#|b)?))?$/);
+ if(!m)return null;
+ return {root:m[1],quality:m[2]||'',bass:m[3]||'',base:m[1]+(m[2]||'')};
+}
+function parts(n){const c=chordSpec(n);return c?[c.root,c.quality]:['C','']}
+function pcs(n){const c=chordSpec(n),r=c?c.root:'C',q=c?c.quality:'',f=FORM[q]||FORM[''];return f.map(x=>(PC[r]+x)%12)}
+function beatsPerMeasure(){const n=parseInt(settings.timeSig.split('/')[0],10);return Number.isFinite(n)&&n>0?n:4}
+function chordValid(n){return !!chordSpec(n)}
+function effectiveKey(){
+ if(settings.keySig&&settings.keySig!=='auto')return settings.keySig;
+ for(const m of state.measures){for(const c of m){const spec=chordSpec(c.name);if(spec)return spec.root}}
+ return 'C';
+}
+
+function autoShape(n){
+ const spec=chordSpec(n),base=spec?spec.base:n;
+ if(OPEN[base])return OPEN[base];
+ const need=[...new Set(pcs(base))],t=T[document.getElementById('tuning').value];
+ let best=null,score=999;
+ for(let base=0;base<=8;base++){
+  let s=[];
+  for(let i=0;i<6;i++){let f=null;for(let x=base;x<=base+4;x++){if(need.includes((t[i]+x)%12)){f=x;break}}s.push(f)}
+  const got=[...new Set(s.map((f,i)=>f==null?null:(t[i]+f)%12).filter(x=>x!=null))];
+  if(need.every(x=>got.includes(x))){const sc=s.filter(x=>x==null).length*4+base;if(sc<score){best=s;score=sc}}
+ }
+ return best||[null,null,0,0,0,0];
+}
+
+function sound(shape){
+ const t=T[document.getElementById('tuning').value],capo=Number(settings.capo)||0;
+ return shape.map((f,i)=>f==null?null:t[i]+capo+f).filter(x=>x!=null);
+}
+
+function noteY(m){return Math.max(53,Math.min(121,105-((m-60)*3.35)))}
+
+function renderMeasureSvg(m,mi){
+ const total=beatsPerMeasure(),x0=54,x1=350,slot=(x1-x0)/total;
+ let s='<svg class="score-svg" viewBox="0 0 360 132" role="img" aria-label="小節 '+(mi+1)+' の五線譜">';
+ for(let k=0;k<5;k++){const y=48+k*10;s+='<line x1="18" y1="'+y+'" x2="350" y2="'+y+'" stroke="#222" stroke-width="1"/>'}
+ s+='<line x1="18" y1="48" x2="18" y2="88" stroke="#222" stroke-width="1.5"/>';
+ s+='<line x1="350" y1="48" x2="350" y2="88" stroke="#222" stroke-width="2"/>';
+ s+='<text x="23" y="87" font-size="48">𝄞</text>';
+ for(let b=0;b<total;b++){
+  const bx=x0+(b+.5)*slot;
+  if(b>0){const gx=x0+b*slot;s+='<line x1="'+gx+'" y1="39" x2="'+gx+'" y2="94" stroke="#ddd" stroke-dasharray="2 3"/>'}
+  s+='<text class="beat-label" x="'+bx+'" y="121" text-anchor="middle">'+(b+1)+'</text>';
+ }
+ let beat=0;
+ m.forEach((c)=>{
+  let span=Number(c.beats)||1;span=Math.max(.25,Math.min(total-beat,span));
+  if(span<=0)return;
+  const cx=x0+(beat+span/2)*slot;
+  const notes=sound(autoShape(c.name)),seen={};
+  notes.forEach((midi)=>{
+   const y=Math.max(31,Math.min(96,81-((midi-60)*3.35))),key=String(midi),offset=(seen[key]||0)*5;seen[key]=(seen[key]||0)+1;
+   const nx=cx-5+offset;
+   s+='<ellipse cx="'+nx+'" cy="'+y+'" rx="5.2" ry="3.8" fill="#111"/>';
+   s+='<line x1="'+(nx+5)+'" y1="'+y+'" x2="'+(nx+5)+'" y2="'+(y-22)+'" stroke="#111" stroke-width="1"/>';
+  });
+  beat+=span;
+ });
+ s+='</svg>';
+ return s;
+}
+
+function renderMeta(){
+ const tuning=document.getElementById('tuning').value,capo=Number(settings.capo)||0;
+ document.getElementById('meta').textContent='Key '+effectiveKey()+' ・ BPM '+settings.bpm+' ・ '+settings.timeSig+' ・ '+(capo?'Capo '+capo:'Capoなし')+' ・ '+(TLABEL[tuning]||tuning);
+}
+
+function lyricsForMeasure(mi){
+ const txt=document.getElementById('lyrics').value.trim();
+ if(!txt)return '';
+ const parts=txt.includes('|')?txt.split('|'):txt.split(/\r?\n/);
+ return (parts[mi]||'').trim();
+}
+
+function chordRowHtml(m,mi){
+ let beat=0,out='<div class="chord-row">';
+ m.forEach((c,ci)=>{
+  const span=Math.max(.25,Number(c.beats)||1),pct=(span/beatsPerMeasure())*100,sh=autoShape(c.name);
+  out+='<div class="chord-mini" data-measure="'+mi+'" data-chord="'+ci+'" style="flex:0 0 '+pct+'%">';
+  out+='<button onclick="showChordDetail('+mi+','+ci+')">'+esc(c.name)+'</button>';
+  out+=diagram(sh);
+  out+='</div>';
+  beat+=span;
+ });
+ out+='</div>';
+ return out;
+}
+
+function render(){
+ renderMeta();
+ let out='<div class="score-work">';
+ for(let j=0;j<state.measures.length;j++){
+  out+='<div class="score-measure" data-measure="'+j+'">';
+  const section=(state.sectionLabels&&state.sectionLabels[j])||'';
+  if(section)out+='<div class="section-label">'+esc(section)+'</div>';
+  out+='<div class="measure-head"><span>小節 '+(j+1)+'</span><span>'+settings.timeSig+'</span></div>';
+  out+=chordRowHtml(state.measures[j],j);
+  if(settings.showStaff!==false)out+=renderMeasureSvg(state.measures[j],j);
+  out+='<div class="lyric-line">'+esc(lyricsForMeasure(j))+'</div>';
+  out+='</div>';
+ }
+ out+='</div>';
+ document.getElementById('sheet').innerHTML=out;
+ if(scrollState.running)updateScrollHighlight();
+}
+
+function normalizeToken(raw){
+ const p=String(raw).trim().split(':');const name=p[0];const beats=p[1]?Number(p[1]):1;
+ if(!chordValid(name))return null;
+ return{name:name,beats:Number.isFinite(beats)&&beats>0?beats:1};
+}
+
+function packSequential(tokens){
+ const total=beatsPerMeasure(),measures=[];let cur=[],used=0;
+ tokens.forEach(t=>{
+  let remaining=Math.max(.25,Number(t.beats)||1);
+  while(remaining>0){
+   if(used>=total-0.0001){measures.push(cur);cur=[];used=0}
+   const take=Math.min(remaining,total-used);
+   cur.push({name:t.name,beats:take});used+=take;remaining-=take;
+   if(used>=total-0.0001){measures.push(cur);cur=[];used=0}
+  }
+ });
+ if(cur.length||!measures.length)measures.push(cur);
+ return measures;
+}
+
+function parseExplicitBars(src){
+ const total=beatsPerMeasure(),measures=[],sectionLabels={};
+ let pendingSection='';
+ src.split('|').forEach(piece=>{
+  let part=piece.trim();
+  if(!part)return;
+  const sm=part.match(/^\[([^\]]{1,32})\]\s*/);
+  if(sm){pendingSection=sm[1].trim();part=part.slice(sm[0].length).trim()}
+  if(!part)return;
+  const raw=part.split(/\s+/).filter(Boolean),valid=raw.map(normalizeToken).filter(Boolean);
+  if(!valid.length)return;
+  const hasDuration=raw.some(x=>x.includes(':'));
+  let measure;
+  if(!hasDuration){
+   const d=total/valid.length;
+   measure=valid.map(x=>({name:x.name,beats:d}));
+  }else{
+   let used=0;
+   measure=valid.map(x=>{const room=Math.max(0,total-used);if(room<=0)return null;const b=Math.min(x.beats,room);used+=b;return{name:x.name,beats:b}}).filter(Boolean);
+  }
+  const mi=measures.length;
+  measures.push(measure);
+  if(pendingSection){sectionLabels[mi]=pendingSection;pendingSection=''}
+ });
+ return {measures:measures,sectionLabels:sectionLabels};
+}
+
+function parseLooseBars(src){
+ let text=src.trim(),sectionLabels={};
+ const sm=text.match(/^\[([^\]]{1,32})\]\s*/);
+ if(sm){sectionLabels[0]=sm[1].trim();text=text.slice(sm[0].length).trim()}
+ const tokens=text.split(/\s+/).map(normalizeToken).filter(Boolean);
+ return {measures:packSequential(tokens),sectionLabels:sectionLabels};
+}
+
+function syncText(){
+ document.getElementById('codeText').value=state.measures.map((m,i)=>{
+  const section=(state.sectionLabels&&state.sectionLabels[i])?'['+state.sectionLabels[i]+'] ':'';
+  return section+m.map(c=>Math.abs(c.beats-1)<0.0001?c.name:(c.name+':'+Number(c.beats.toFixed(2)))).join(' ');
+ }).join(' | ');
+}
+
+function applyText(){
+ const el=document.getElementById('codeText'),src=el.value.trim();
+ if(!src){state.measures=[[]];state.sectionLabels={};render();save();return}
+ const parsed=src.includes('|')?parseExplicitBars(src):parseLooseBars(src);
+ state.measures=parsed.measures;
+ state.sectionLabels=parsed.sectionLabels;
+ if(!state.measures.length)state.measures=[[]];
+ syncText();codeEditorDirty=false;render();save();
+}
+
+function selectRoot(r){
+ state.root=r;const q=document.getElementById('quality');q.classList.add('open');
+ q.innerHTML=QUAL.map(x=>'<button onclick="addChord(\''+r+x+'\')">'+r+x+'</button>').join('');
+}
+
+function syncStateFromEditedCodeText(){
+ if(!codeEditorDirty)return;
+ const src=document.getElementById('codeText').value.trim();
+ if(!src){
+  state.measures=[[]];state.sectionLabels={};
+ }else{
+  const parsed=src.includes('|')?parseExplicitBars(src):parseLooseBars(src);
+  state.measures=parsed.measures;state.sectionLabels=parsed.sectionLabels;
+ }
+ if(!state.measures.length)state.measures=[[]];
+ codeEditorDirty=false;
+}
+
+function addChord(n){
+ // 入力欄を手で削除・変更した場合は、古い内部データを先に捨てる。
+ syncStateFromEditedCodeText();
+ const all=[];
+ state.measures.forEach(m=>m.forEach(c=>all.push({name:c.name,beats:c.beats})));
+ all.push({name:n,beats:1});
+ const labels=Object.assign({},state.sectionLabels||{});
+ state.measures=packSequential(all);
+ state.sectionLabels=labels;
+ syncText();
+ codeEditorDirty=false;
+ render();
+ save();
+}
+
+function diagram(shape){
+ let fs=shape.filter(x=>x!=null&&x>0),start=fs.length&&Math.min(...fs)>4?Math.min(...fs):1,s='<svg class="diagram" viewBox="0 0 125 155">';
+ for(let i=0;i<6;i++){let x=20+i*17;s+='<line x1="'+x+'" y1="30" x2="'+x+'" y2="135" stroke="#222"/>'}
+ for(let j=0;j<6;j++){let y=30+j*21;s+='<line x1="20" y1="'+y+'" x2="105" y2="'+y+'" stroke="#222"/>'}
+ shape.forEach((f,i)=>{let x=20+i*17;if(f==null)s+='<text x="'+(x-4)+'" y="20">×</text>';else if(f===0)s+='<text x="'+(x-4)+'" y="20">○</text>';else{let y=40+(f-start)*21;if(y>=35&&y<=135)s+='<circle cx="'+x+'" cy="'+y+'" r="6" fill="#111"/>'}});
+ if(start>1)s+='<text x="1" y="50" font-size="10">'+start+'fr</text>';return s+'</svg>';
+}
+
+function showChordDetail(mi,ci){
+ const c=state.measures[mi]&&state.measures[mi][ci];if(!c)return;
+ selectedChord={mi:mi,ci:ci};const sh=autoShape(c.name),notes=sound(sh);
+ document.getElementById('detailName').textContent=c.name;
+ document.getElementById('detailDiagram').innerHTML=diagram(sh);
+ document.getElementById('detailFingering').textContent=sh.map(x=>x==null?'x':x).join(' ');
+ const spec=chordSpec(c.name);
+ document.getElementById('detailNotes').innerHTML='<b>実際に鳴る音</b><br>'+notes.map(m=>N[m%12]+(Math.floor(m/12)-1)).join(' ・ ')+(spec&&spec.bass?'<br><b>指定ベース</b> '+esc(spec.bass):'');
+ document.getElementById('chordDetailOverlay').classList.add('open');
+}
+
+function nextVoicing(){
+ if(!selectedChord)return;const c=state.measures[selectedChord.mi][selectedChord.ci],sh=autoShape(c.name),spec=chordSpec(c.name);
+ OPEN[spec?spec.base:c.name]=sh.map(x=>x==null?null:x+12);render();showChordDetail(selectedChord.mi,selectedChord.ci);save();
+}
+function closeChordDetail(){document.getElementById('chordDetailOverlay').classList.remove('open')}
+function detailOverlayClose(e){if(e.target.id==='chordDetailOverlay')closeChordDetail()}
+
+function openSettings(){
+ document.getElementById('bpm').value=settings.bpm;document.getElementById('timeSig').value=settings.timeSig;document.getElementById('keySig').value=settings.keySig||'auto';document.getElementById('capo').value=String(settings.capo||0);document.getElementById('showStaff').value=settings.showStaff===false?'off':'on';
+ document.getElementById('settingsOverlay').classList.add('open');
+}
+function closeSettings(){document.getElementById('settingsOverlay').classList.remove('open')}
+function overlayClose(e){if(e.target.id==='settingsOverlay')closeSettings()}
+function applySettings(){
+ settings.bpm=Math.round(Math.max(20,Math.min(300,Number(document.getElementById('bpm').value)||120)));
+ const oldSig=settings.timeSig;settings.timeSig=document.getElementById('timeSig').value||'4/4';settings.keySig=document.getElementById('keySig').value||'auto';settings.capo=Number(document.getElementById('capo').value)||0;settings.showStaff=document.getElementById('showStaff').value!=='off';
+ if(oldSig!==settings.timeSig){
+  const all=[],labels=Object.assign({},state.sectionLabels||{});
+  state.measures.forEach(m=>m.forEach(c=>all.push({name:c.name,beats:Number(c.beats)||1})));
+  state.measures=packSequential(all);state.sectionLabels=labels;syncText();
+ }
+ closeSettings();render();save();
+}
+
+function beatDurationMs(){
+ return 60000/Math.max(20,Number(settings.bpm)||120);
+}
+
+function buildPlaybackTimeline(){
+ const entries=[];
+ let absoluteBeat=0;
+ state.measures.forEach((m,mi)=>{
+  let localBeat=0;
+  m.forEach((c,ci)=>{
+   const beats=Math.max(.25,Number(c.beats)||1);
+   entries.push({
+    mi:mi,ci:ci,name:c.name,beats:beats,
+    localStart:localBeat,
+    startBeat:absoluteBeat,
+    endBeat:absoluteBeat+beats
+   });
+   localBeat+=beats;
+   absoluteBeat+=beats;
+  });
+ });
+ return {entries:entries,totalBeats:absoluteBeat};
+}
+
+function playbackAtElapsed(){
+ const timeline=buildPlaybackTimeline();
+ if(!timeline.entries.length)return {timeline:timeline,index:-1,entry:null,progress:0,beatPos:0};
+ const beatPos=Math.max(0,Math.min(timeline.totalBeats,scrollState.elapsed/beatDurationMs()));
+ let index=timeline.entries.findIndex(e=>beatPos<e.endBeat-0.000001);
+ if(index<0)index=timeline.entries.length-1;
+ const entry=timeline.entries[index];
+ const progress=Math.max(0,Math.min(1,(beatPos-entry.startBeat)/Math.max(.25,entry.beats)));
+ return {timeline:timeline,index:index,entry:entry,progress:progress,beatPos:beatPos};
+}
+
+function updateScrollHighlight(playback){
+ const p=playback||playbackAtElapsed();
+ const measureNodes=[...document.querySelectorAll('.score-measure')];
+ const chordNodes=[...document.querySelectorAll('.chord-mini')];
+ measureNodes.forEach((n,i)=>n.classList.toggle('playing',!!p.entry&&i===p.entry.mi));
+ chordNodes.forEach(n=>{
+  const mi=Number(n.dataset.measure),ci=Number(n.dataset.chord);
+  n.classList.toggle('playing',!!p.entry&&mi===p.entry.mi&&ci===p.entry.ci);
+ });
+ return {playback:p,measureNodes:measureNodes,chordNodes:chordNodes};
+}
+
+function stickyTopOffset(){
+ const top=document.querySelector('.top');
+ return (top?top.getBoundingClientRect().height:58)+14;
+}
+
+function chordScrollAnchor(entry,measureNodes){
+ if(!entry||!measureNodes.length)return window.scrollY;
+ const node=measureNodes[Math.min(entry.mi,measureNodes.length-1)];
+ const nextMeasure=measureNodes[Math.min(entry.mi+1,measureNodes.length-1)];
+ const y0=node.getBoundingClientRect().top+window.scrollY;
+ let y1;
+ if(entry.mi+1<measureNodes.length){
+  y1=nextMeasure.getBoundingClientRect().top+window.scrollY;
+ }else{
+  y1=y0+Math.max(node.offsetHeight,180);
+ }
+ const m=state.measures[entry.mi]||[];
+ const measureBeats=Math.max(.25,m.reduce((s,c)=>s+(Number(c.beats)||1),0));
+ const frac=Math.max(0,Math.min(1,entry.localStart/measureBeats));
+ return y0+(y1-y0)*frac-stickyTopOffset();
+}
+
+function smoothStep01(t){
+ const x=Math.max(0,Math.min(1,t));
+ return x*x*(3-2*x);
+}
+
+function scrollForPlayback(info){
+ const p=info.playback;
+ if(!p.entry||!info.measureNodes.length)return;
+
+ const mi=p.entry.mi;
+ const measures=state.measures;
+ if(mi>=measures.length-1){
+  scrollState.transitionMeasure=-1;
+  return;
+ }
+
+ const m=measures[mi]||[];
+ const measureBeats=Math.max(.25,m.reduce((s,c)=>s+(Number(c.beats)||1),0));
+ const beatInMeasure=p.entry.localStart+(p.progress*Math.max(.25,p.entry.beats));
+
+ // ハイライトはBPMそのまま。スクロールは別制御で、
+ // 次小節の直前にだけ「予告移動」する。
+ // 4/4なら約2.75拍目から開始し、3.85拍目までに終了。
+ const leadBeats=Math.min(1.25,measureBeats);
+ const settleBeforeEnd=Math.min(.15,leadBeats*.2);
+ const transitionStart=Math.max(0,measureBeats-leadBeats);
+ const transitionEnd=Math.max(
+  transitionStart+.25,
+  measureBeats-settleBeforeEnd
+ );
+
+ // 前の遷移が終わらないまま小節境界を越えた場合だけ着地点へ補正。
+ if(scrollState.transitionMeasure>=0 && scrollState.transitionMeasure<mi){
+  window.scrollTo(0,Math.max(0,scrollState.transitionToY));
+  scrollState.transitionMeasure=-1;
+ }
+
+ if(beatInMeasure<transitionStart)return;
+
+ if(scrollState.transitionMeasure!==mi){
+  const next=info.measureNodes[mi+1];
+  if(!next)return;
+
+  const sticky=stickyTopOffset();
+  const viewportBelowHeader=Math.max(320,window.innerHeight-sticky);
+
+  // 次小節を上端まで持ち上げず、画面の約55%位置に先出しする。
+  // これで現在小節の4個目も残しつつ、次小節の頭も見える。
+  const previewLine=sticky+(viewportBelowHeader*.55);
+  const nextTop=next.getBoundingClientRect().top+window.scrollY;
+  const desired=Math.max(window.scrollY,nextTop-previewLine);
+
+  scrollState.transitionMeasure=mi;
+  scrollState.transitionFromY=window.scrollY;
+  scrollState.transitionToY=desired;
+ }
+
+ const linear=Math.max(0,Math.min(
+  1,
+  (beatInMeasure-transitionStart)/
+   Math.max(.001,transitionEnd-transitionStart)
+ ));
+
+ // 時間はBPMに同期したまま、加減速だけ滑らかにする。
+ const eased=smoothStep01(linear);
+ const y=scrollState.transitionFromY+
+  (scrollState.transitionToY-scrollState.transitionFromY)*eased;
+
+ window.scrollTo(0,Math.max(0,y));
+}
+
+function setPlaybackButtons(running){
+ const main=document.getElementById('autoScrollBtn');
+ const follow=document.getElementById('topFollowStop');
+ if(main)main.textContent=running?'停止':'自動スクロール';
+ if(follow)follow.classList.toggle('show',running);
+}
+
+function autoScrollFrame(ts){
+ if(!scrollState.running)return;
+ if(!scrollState.startTime)scrollState.startTime=ts-scrollState.elapsed;
+ scrollState.elapsed=ts-scrollState.startTime;
+
+ const playback=playbackAtElapsed();
+ const info=updateScrollHighlight(playback);
+ scrollForPlayback(info);
+
+ const totalMs=playback.timeline.totalBeats*beatDurationMs();
+ if(scrollState.elapsed>=totalMs){
+  scrollState.elapsed=totalMs;
+  stopAutoScroll(false);
+  document.getElementById('autoScrollStatus').textContent='終了';
+  return;
+ }
+ scrollState.raf=requestAnimationFrame(autoScrollFrame);
+}
+
+function toggleAutoScroll(){
+ if(scrollState.running){
+  stopAutoScroll(true);
+  return;
+ }
+ const playback=playbackAtElapsed();
+ const totalMs=playback.timeline.totalBeats*beatDurationMs();
+ if(totalMs<=0)return;
+ if(scrollState.elapsed>=totalMs)scrollState.elapsed=0;
+
+ scrollState.running=true;
+ scrollState.startTime=0;
+ scrollState.transitionMeasure=-1;
+ scrollState.transitionFromY=window.scrollY;
+ scrollState.transitionToY=window.scrollY;
+ setPlaybackButtons(true);
+ document.getElementById('autoScrollStatus').textContent='BPM '+settings.bpm+' で再生中';
+ scrollState.raf=requestAnimationFrame(autoScrollFrame);
+}
+
+function stopAutoScroll(keepPosition){
+ scrollState.running=false;
+ if(scrollState.raf)cancelAnimationFrame(scrollState.raf);
+ scrollState.raf=0;
+ scrollState.startTime=0;
+ scrollState.transitionMeasure=-1;
+ setPlaybackButtons(false);
+ const s=document.getElementById('autoScrollStatus');
+ if(s&&s.textContent!=='終了')s.textContent=keepPosition?'停止中':'停止中';
+}
+
+function resetAutoScroll(){
+ stopAutoScroll(false);
+ scrollState.elapsed=0;
+ scrollState.transitionMeasure=-1;
+ document.querySelectorAll('.score-measure,.chord-mini').forEach(n=>n.classList.remove('playing'));
+ const first=document.querySelector('.score-measure');
+ if(first)window.scrollTo({top:Math.max(0,first.getBoundingClientRect().top+window.scrollY-stickyTopOffset()),behavior:'smooth'});
+ const s=document.getElementById('autoScrollStatus');if(s)s.textContent='停止中';
+}
+
+function save(){
+ localStorage.setItem('gcs',JSON.stringify({title:document.getElementById('title').value,lyrics:document.getElementById('lyrics').value,tuning:document.getElementById('tuning').value,codeText:document.getElementById('codeText').value,state:state,settings:settings}));
+}
+function load(){
+ try{
+  const d=JSON.parse(localStorage.getItem('gcs'));if(!d)return;
+  document.getElementById('title').value=d.title||'';document.getElementById('lyrics').value=d.lyrics||'';document.getElementById('tuning').value=d.tuning||'standard';
+  settings=Object.assign(settings,d.settings||{});
+  if(d.state&&Array.isArray(d.state.measures)){
+   state={
+    measures:d.state.measures.map(m=>m.map(c=>({name:c.name,beats:Number(c.beats)||1}))),
+    root:d.state.root||'C',
+    sectionLabels:Object.assign({},d.state.sectionLabels||{})
+   };
+  }
+  if(!settings.keySig)settings.keySig='auto';
+  if(typeof settings.showStaff!=='boolean')settings.showStaff=true;
+  syncText();
+ }catch(e){}
+}
+function clearAll(){if(confirm('新しいコード譜を作りますか？')){localStorage.removeItem('gcs');location.reload()}}
+function updateApp(){if(window.AndroidBridge&&AndroidBridge.checkForUpdate)AndroidBridge.checkForUpdate();else alert('APK版で利用できます')}
+
+document.getElementById('roots').innerHTML=ROOTS.map(r=>'<button onclick="selectRoot(\''+r+'\')">'+r+'</button>').join('');
+document.getElementById('title').addEventListener('input',save);
+document.getElementById('codeText').addEventListener('input',()=>{codeEditorDirty=true;save()});
+document.getElementById('lyrics').addEventListener('input',()=>{render();save()});
+document.getElementById('tuning').addEventListener('change',()=>{render();save()});
+load();render();
+</script>
+</body>
+</html>
