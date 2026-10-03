@@ -6,33 +6,90 @@ on:
       - "training-native/**"
       - ".github/workflows/training-apk.yml"
   workflow_dispatch:
+  schedule:
+    - cron: "17 3 1 * *"
+
 permissions:
   contents: write
+  actions: read
+
+concurrency:
+  group: training-apk
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      STORE_PASS: traininglog2026
+      KEY_PASS: traininglog2026
+      KEY_ALIAS: trainingkey
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - name: Build installable debug APK
-        run: gradle -p training-native --no-daemon assembleDebug
+
+      - name: Restore or create stable signing key
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          mkdir -p training-signing
+          ART_ID="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=training-signing-key&per_page=100" --jq '.artifacts | map(select(.expired == false)) | sort_by(.created_at) | reverse | .[0].id // empty')"
+          if [ -n "$ART_ID" ]; then
+            curl -fsSL -L               -H "Authorization: Bearer $GH_TOKEN"               -H "Accept: application/vnd.github+json"               "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART_ID}/zip"               -o training-signing/key.zip
+            unzip -qo training-signing/key.zip -d training-signing
+          fi
+          if [ ! -f training-signing/training-release.jks ]; then
+            keytool -genkeypair -v               -keystore training-signing/training-release.jks               -storepass "$STORE_PASS"               -alias "$KEY_ALIAS"               -keypass "$KEY_PASS"               -keyalg RSA -keysize 2048 -validity 10000               -dname "CN=Training Log, O=osakakon-ai, C=JP"
+          fi
+
+      - name: Preserve signing key
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-signing-key
+          path: training-signing/training-release.jks
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Build signed release APK
+        env:
+          TRAINING_KEYSTORE_PATH: ${{ github.workspace }}/training-signing/training-release.jks
+          TRAINING_KEYSTORE_PASSWORD: ${{ env.STORE_PASS }}
+          TRAINING_KEY_ALIAS: ${{ env.KEY_ALIAS }}
+          TRAINING_KEY_PASSWORD: ${{ env.KEY_PASS }}
+        run: gradle -p training-native --no-daemon assembleRelease
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: Training-App
-          path: training-native/app/build/outputs/apk/debug/app-debug.apk
-      - name: Publish APK
+          path: training-native/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+
+      - name: Publish APK and update metadata
         run: |
+          set -e
           mkdir -p training
-          cp training-native/app/build/outputs/apk/debug/app-debug.apk training/Training-App.apk
+          cp training-native/app/build/outputs/apk/release/app-release.apk training/Training-App.apk
+          VERSION_CODE="$(grep -oP 'versionCode\s+\K\d+' training-native/app/build.gradle | head -1)"
+          VERSION_NAME="$(grep -oP "versionName\s+'\K[^']+" training-native/app/build.gradle | head -1)"
+          cat > training/latest.json <<EOF
+          {
+            "versionCode": ${VERSION_CODE},
+            "versionName": "${VERSION_NAME}",
+            "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/training/Training-App.apk"
+          }
+          EOF
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add training/Training-App.apk
-          git commit -m "Publish training app APK" || exit 0
+          git add training/Training-App.apk training/latest.json
+          git commit -m "Publish training app APK v${VERSION_NAME}" || exit 0
           git push
