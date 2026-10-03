@@ -7,6 +7,10 @@ import android.content.res.ColorStateList;
 import android.graphics.*;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.app.DownloadManager;
+import android.content.pm.PackageInfo;
+import android.database.Cursor;
+import org.json.JSONObject;
 import android.view.*;
 import android.widget.*;
 import java.io.OutputStream;
@@ -16,6 +20,9 @@ import java.util.*;
 public class MainActivity extends Activity {
   final int BG=Color.rgb(11,15,20), CARD=Color.rgb(24,31,40), TEXT=Color.rgb(238,244,248), SUB=Color.rgb(160,174,188), ACC=Color.rgb(87,214,141);
   LinearLayout root, body; SharedPreferences sp; String selectedDate;
+  static final String LATEST_URL="https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/training/latest.json";
+  long updateDownloadId=-1;
+  BroadcastReceiver updateReceiver;
   ArrayList<Exercise> workout=new ArrayList<>(); int exIndex=0,setIndex=1; CountDownTimer timer;
   SimpleDateFormat fmt=new SimpleDateFormat("yyyy-MM-dd",Locale.JAPAN);
 
@@ -28,18 +35,25 @@ public class MainActivity extends Activity {
     static String trim(double v){return v==(long)v?Long.toString((long)v):Double.toString(v);}
   }
 
-  @Override public void onCreate(Bundle b){super.onCreate(b);sp=getSharedPreferences("training",MODE_PRIVATE);selectedDate=fmt.format(new Date());showMain();}
-  @Override public void onDestroy(){if(timer!=null)timer.cancel();super.onDestroy();}
+  @Override public void onCreate(Bundle b){
+    super.onCreate(b);sp=getSharedPreferences("training",MODE_PRIVATE);selectedDate=fmt.format(new Date());
+    updateReceiver=new BroadcastReceiver(){public void onReceive(Context c,Intent i){
+      if(!DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(i.getAction()))return;
+      long id=i.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID,-1);
+      if(id==updateDownloadId)openDownloadedApk(id);
+    }};
+    IntentFilter f=new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+    if(Build.VERSION.SDK_INT>=33)registerReceiver(updateReceiver,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(updateReceiver,f);
+    showMain();
+  }
+  @Override public void onDestroy(){if(timer!=null)timer.cancel();try{if(updateReceiver!=null)unregisterReceiver(updateReceiver);}catch(Exception ignored){}super.onDestroy();}
 
   void base(String title){
     root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BG);
     root.setOnApplyWindowInsetsListener((v,i)->{android.graphics.Insets s=i.getInsets(WindowInsets.Type.statusBars());v.setPadding(0,s.top,0,0);return i;});
     LinearLayout top=new LinearLayout(this);top.setGravity(Gravity.CENTER_VERTICAL);top.setPadding(16,8,10,6);
     top.addView(tv(title,22,TEXT),new LinearLayout.LayoutParams(0,-2,1));
-    Button upd=btn("↻ 更新");upd.setOnClickListener(v->{
-      Intent in=new Intent(Intent.ACTION_VIEW,Uri.parse("https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/training/Training-App.apk"));
-      startActivity(in);
-    });top.addView(upd);root.addView(top);
+    Button upd=btn("↻ 更新");upd.setOnClickListener(v->checkForUpdate());top.addView(upd);root.addView(top);
     body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(14,4,14,28);
     ScrollView sv=new ScrollView(this);sv.addView(body);root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);
   }
@@ -175,6 +189,51 @@ public class MainActivity extends Activity {
     minus.setOnClickListener(v->{rem[0]=Math.max(0,rem[0]-15);custom.setText(""+rem[0]);launch.run();});plus.setOnClickListener(v->{rem[0]+=15;custom.setText(""+rem[0]);launch.run();});apply.setOnClickListener(v->{try{rem[0]=Math.max(0,Integer.parseInt(custom.getText().toString()));launch.run();}catch(Exception e){}});skip.setOnClickListener(v->{if(timer!=null)timer.cancel();next.run();});launch.run();
   }
   void finishWorkout(){String day=fmt.format(new Date());StringBuilder s=new StringBuilder();for(Exercise e:workout){if(s.length()>0)s.append("\n");s.append(e.detail());}sp.edit().putString("record_"+day,s.toString()).apply();selectedDate=day;showMain();Toast.makeText(this,"筋トレ完了",Toast.LENGTH_LONG).show();}
+  void checkForUpdate(){
+    Toast.makeText(this,"更新を確認しています",Toast.LENGTH_SHORT).show();
+    new Thread(()->{
+      try{
+        java.net.HttpURLConnection con=(java.net.HttpURLConnection)new java.net.URL(LATEST_URL).openConnection();
+        con.setConnectTimeout(10000);con.setReadTimeout(10000);
+        java.io.InputStream in=con.getInputStream();
+        java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream();
+        byte[] buf=new byte[4096];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);in.close();con.disconnect();
+        JSONObject o=new JSONObject(out.toString("UTF-8"));
+        int latest=o.getInt("versionCode");String name=o.getString("versionName");String url=o.getString("apkUrl");
+        PackageInfo pi=getPackageManager().getPackageInfo(getPackageName(),0);
+        long current=Build.VERSION.SDK_INT>=28?pi.getLongVersionCode():pi.versionCode;
+        if(latest<=current){runOnUiThread(()->Toast.makeText(this,"最新です v"+name,Toast.LENGTH_SHORT).show());return;}
+        runOnUiThread(()->downloadUpdate(url,name));
+      }catch(Exception e){runOnUiThread(()->Toast.makeText(this,"更新確認に失敗しました",Toast.LENGTH_LONG).show());}
+    }).start();
+  }
+
+  void downloadUpdate(String url,String version){
+    try{
+      DownloadManager.Request req=new DownloadManager.Request(Uri.parse(url));
+      req.setTitle("筋トレログ v"+version);
+      req.setDescription("更新版をダウンロードしています");
+      req.setMimeType("application/vnd.android.package-archive");
+      req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+      req.setDestinationInExternalFilesDir(this,android.os.Environment.DIRECTORY_DOWNLOADS,"Training-App-update.apk");
+      DownloadManager dm=(DownloadManager)getSystemService(DOWNLOAD_SERVICE);
+      updateDownloadId=dm.enqueue(req);
+      Toast.makeText(this,"更新版のダウンロードを開始しました",Toast.LENGTH_SHORT).show();
+    }catch(Exception e){Toast.makeText(this,"ダウンロードを開始できませんでした",Toast.LENGTH_LONG).show();}
+  }
+
+  void openDownloadedApk(long id){
+    try{
+      DownloadManager dm=(DownloadManager)getSystemService(DOWNLOAD_SERVICE);
+      Uri uri=dm.getUriForDownloadedFile(id);
+      if(uri==null){Toast.makeText(this,"更新ファイルを開けませんでした",Toast.LENGTH_LONG).show();return;}
+      Intent in=new Intent(Intent.ACTION_VIEW);
+      in.setDataAndType(uri,"application/vnd.android.package-archive");
+      in.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_NEW_TASK);
+      startActivity(in);
+    }catch(Exception e){Toast.makeText(this,"インストーラーを開けませんでした",Toast.LENGTH_LONG).show();}
+  }
+
   void shareScreen(){
     try{
       Bitmap bm=Bitmap.createBitmap(root.getWidth(),root.getHeight(),Bitmap.Config.ARGB_8888);Canvas c=new Canvas(bm);root.draw(c);
