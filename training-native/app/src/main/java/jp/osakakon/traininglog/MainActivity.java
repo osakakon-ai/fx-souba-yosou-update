@@ -230,7 +230,7 @@ public class MainActivity extends Activity {
 
   void openDownloadedApk(File file){
     try{
-      Uri uri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".fileprovider",file);
+      Uri uri=Uri.parse("content://"+getPackageName()+".updates/"+file.getName());
       Intent in=new Intent(Intent.ACTION_VIEW);
       in.setDataAndType(uri,"application/vnd.android.package-archive");
       in.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_NEW_TASK);
