@@ -47,6 +47,12 @@ public class MainActivity extends Activity {
   Button btn(String s){Button b=new Button(this);b.setText(s);b.setTextColor(TEXT);b.setBackgroundTintList(ColorStateList.valueOf(CARD));return b;}
   LinearLayout card(){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setPadding(14,10,14,10);c.setBackgroundColor(CARD);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(0,6,0,6);c.setLayoutParams(p);return c;}
   EditText field(String hint,String val,boolean num){EditText e=new EditText(this);e.setHint(hint);e.setHintTextColor(SUB);e.setTextColor(TEXT);e.setText(val);if(num)e.setInputType(android.text.InputType.TYPE_CLASS_NUMBER|android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);return e;}
+  int dp(int v){return Math.round(v*getResources().getDisplayMetrics().density);}
+  LinearLayout labeledRow(String label,EditText input){
+    LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);
+    TextView l=tv(label,14,TEXT);l.setMinWidth(dp(105));row.addView(l,new LinearLayout.LayoutParams(dp(105),-2));
+    row.addView(input,new LinearLayout.LayoutParams(0,-2,1));return row;
+  }
 
   void showMain(){
     base("筋トレログ");
@@ -62,7 +68,66 @@ public class MainActivity extends Activity {
     View v=body.findViewWithTag("record");if(!(v instanceof LinearLayout))return;LinearLayout box=(LinearLayout)v;box.removeAllViews();
     String rec=sp.getString("record_"+selectedDate,"");LinearLayout c=card();c.addView(tv(selectedDate,18,TEXT));
     if(rec.isEmpty())c.addView(tv("筋トレ記録なし",15,SUB));else for(String s:rec.split("\n"))c.addView(tv("✓ "+s,16,TEXT));box.addView(c);
-    if(!rec.isEmpty()){Button share=btn("カレンダー＋今日の内容を共有");share.setOnClickListener(x->shareScreen());box.addView(share);}
+    if(!rec.isEmpty()){
+      LinearLayout actions=new LinearLayout(this);
+      Button edit=btn("編集"),del=btn("削除");
+      actions.addView(edit,new LinearLayout.LayoutParams(0,-2,1));actions.addView(del,new LinearLayout.LayoutParams(0,-2,1));
+      box.addView(actions);
+      edit.setOnClickListener(x->editRecordDialog(selectedDate));
+      del.setOnClickListener(x->deleteRecord(selectedDate));
+      Button share=btn("カレンダー＋今日の内容を共有");share.setOnClickListener(x->shareScreen());box.addView(share);
+    }
+  }
+
+  Exercise parseRecordLine(String line){
+    try{
+      java.util.regex.Matcher m=java.util.regex.Pattern.compile("^(.*?)\\s{2,}(?:(\\d+(?:\\.\\d+)?)kg × )?(\\d+)回 × (\\d+)セット$").matcher(line.trim());
+      if(m.matches()){
+        String name=m.group(1).trim();double kg=m.group(2)==null?0:Double.parseDouble(m.group(2));
+        int reps=Integer.parseInt(m.group(3)),sets=Integer.parseInt(m.group(4));
+        return new Exercise(name,kg,reps,sets,0);
+      }
+    }catch(Exception ignored){}
+    return new Exercise(line.trim(),0,10,1,0);
+  }
+
+  void deleteRecord(String date){
+    new AlertDialog.Builder(this).setTitle("記録を削除").setMessage(date+" の筋トレ記録を削除しますか？")
+      .setPositiveButton("削除",(d,w)->{sp.edit().remove("record_"+date).apply();renderRecord();Toast.makeText(this,"記録を削除しました",Toast.LENGTH_SHORT).show();})
+      .setNegativeButton("キャンセル",null).show();
+  }
+
+  void editRecordDialog(String date){
+    String rec=sp.getString("record_"+date,"");if(rec.isEmpty())return;
+    LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(18,4,18,4);
+    ArrayList<LinearLayout> rows=new ArrayList<>();ArrayList<EditText[]> editors=new ArrayList<>();
+    String[] lines=rec.split("\n");
+    for(int i=0;i<lines.length;i++){
+      Exercise e=parseRecordLine(lines[i]);
+      LinearLayout block=card();block.addView(tv((i+1)+"種目目",16,TEXT));
+      EditText n=field("種目名",e.name,false),kg=field("0",Exercise.trim(e.kg),true),r=field("10",""+e.reps,true),s=field("3",""+e.sets,true);
+      block.addView(labeledRow("種目名",n));block.addView(labeledRow("重量（kg）",kg));block.addView(labeledRow("回数",r));block.addView(labeledRow("セット数",s));
+      Button remove=btn("この種目を削除");block.addView(remove);
+      rows.add(block);editors.add(new EditText[]{n,kg,r,s});list.addView(block);
+      remove.setOnClickListener(v->block.setVisibility(View.GONE));
+    }
+    ScrollView scroll=new ScrollView(this);scroll.addView(list);
+    new AlertDialog.Builder(this).setTitle(date+" の記録を編集").setView(scroll)
+      .setPositiveButton("保存",(d,w)->{
+        try{
+          StringBuilder out=new StringBuilder();
+          for(int i=0;i<rows.size();i++){
+            if(rows.get(i).getVisibility()!=View.VISIBLE)continue;
+            EditText[] ed=editors.get(i);String name=ed[0].getText().toString().trim();if(name.isEmpty())continue;
+            double kg=Double.parseDouble(ed[1].getText().toString());int reps=Integer.parseInt(ed[2].getText().toString()),sets=Integer.parseInt(ed[3].getText().toString());
+            Exercise e=new Exercise(name,kg,Math.max(1,reps),Math.max(1,sets),0);
+            if(out.length()>0)out.append("\n");out.append(e.detail());
+          }
+          if(out.length()==0){sp.edit().remove("record_"+date).apply();Toast.makeText(this,"記録を削除しました",Toast.LENGTH_SHORT).show();}
+          else {sp.edit().putString("record_"+date,out.toString()).apply();Toast.makeText(this,"記録を更新しました",Toast.LENGTH_SHORT).show();}
+          renderRecord();
+        }catch(Exception ex){Toast.makeText(this,"入力値を確認してください",Toast.LENGTH_SHORT).show();}
+      }).setNegativeButton("キャンセル",null).show();
   }
 
   ArrayList<Exercise> load(){ArrayList<Exercise>a=new ArrayList<>();String s=sp.getString("exercises","");
@@ -79,7 +144,7 @@ public class MainActivity extends Activity {
   void editForm(Exercise old,int idx){
     LinearLayout f=new LinearLayout(this);f.setOrientation(LinearLayout.VERTICAL);f.setPadding(22,4,22,0);
     EditText n=field("種目名",old==null?"":old.name,false),kg=field("重量 kg",old==null?"0":Exercise.trim(old.kg),true),r=field("回数",old==null?"10":""+old.reps,true),s=field("セット数",old==null?"3":""+old.sets,true),t=field("休憩 秒",old==null?"60":""+old.rest,true);
-    f.addView(n);f.addView(kg);f.addView(r);f.addView(s);f.addView(t);
+    f.addView(labeledRow("種目名",n));f.addView(labeledRow("重量（kg）",kg));f.addView(labeledRow("回数",r));f.addView(labeledRow("セット数",s));f.addView(labeledRow("休憩（秒）",t));
     AlertDialog.Builder b=new AlertDialog.Builder(this).setTitle(idx<0?"メニュー登録":"メニュー編集").setView(f).setPositiveButton("保存",(d,w)->{
       try{if(n.getText().toString().trim().isEmpty())return;ArrayList<Exercise>a=load();Exercise e=new Exercise(n.getText().toString().trim(),Double.parseDouble(kg.getText().toString()),Integer.parseInt(r.getText().toString()),Integer.parseInt(s.getText().toString()),Integer.parseInt(t.getText().toString()));if(idx<0)a.add(e);else a.set(idx,e);save(a);}catch(Exception ex){Toast.makeText(this,"入力値を確認してください",Toast.LENGTH_SHORT).show();}
     }).setNegativeButton("キャンセル",null);
