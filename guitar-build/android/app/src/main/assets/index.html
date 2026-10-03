@@ -9,7 +9,7 @@
 html,body{min-height:100%}
 body{margin:0;background:#f3f4f6;color:#111;font-family:system-ui,-apple-system,sans-serif}
 .app{max-width:900px;margin:auto;padding:10px 10px calc(72px + env(safe-area-inset-bottom,0px))}
-.top,.panel,.score-system,.settings-card,.chord-detail-card{background:#fff;border:1px solid #d7dbe0;border-radius:14px}
+.top,.panel,.score-work,.settings-card,.chord-detail-card{background:#fff;border:1px solid #d7dbe0;border-radius:14px}
 .top{position:sticky;top:0;z-index:10;display:flex;gap:8px;align-items:center;min-height:58px;padding:10px 12px}
 .top b{flex:1;min-width:0}.top-follow-stop{display:none;background:#111;color:#fff;border-color:#111;min-width:72px}.top-follow-stop.show{display:block}.panel{padding:10px;margin-top:9px}.row{display:flex;gap:7px;flex-wrap:wrap}
 button,input,textarea,select{font:inherit}
@@ -25,8 +25,8 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .main-actions{display:grid;grid-template-columns:1.22fr .72fr .72fr 1.55fr .64fr;gap:5px;margin-top:7px}
 .main-actions button{min-width:0;min-height:40px;padding:6px 3px;font-size:12px;white-space:nowrap}
 #sheet{margin-top:10px}
-.score-system{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;margin-top:9px}
-.score-measure{min-width:0;padding:7px 8px 10px;transition:background .18s ease}
+.score-work{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;margin-top:9px}
+.score-measure{min-width:0;padding:7px 8px 10px;transition:background .18s ease}.score-work>.score-measure{border-top:1px solid #c7cbd0}.score-work>.score-measure:nth-child(-n+2){border-top:0}.score-work>.score-measure:nth-child(even){border-left:1px solid #c7cbd0}
 .section-label{margin:-1px 0 5px;padding:4px 7px;border-left:4px solid #111;background:#f3f4f6;border-radius:6px;font-size:13px;font-weight:800;letter-spacing:.02em}
 .score-measure.playing{background:#fff}
 .chord-row{display:flex;align-items:flex-start;gap:2px;margin:4px 0 2px}
@@ -36,7 +36,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .chord-mini .diagram{width:72px;height:90px;max-width:100%;display:block;margin:0 auto}
 .lyric-line{min-height:34px;padding:4px 8px 2px;font-size:15px;line-height:1.45;white-space:pre-wrap;border-top:1px solid #eceff2}
 .autoscroll-status{font-size:12px;color:#666;align-self:center}
-.score-measure+.score-measure{border-left:1px solid #c7cbd0}
+
 .measure-head{display:flex;align-items:center;justify-content:space-between;padding:0 5px 2px;font-size:12px;color:#666}
 .score-svg{display:block;width:100%;height:auto;touch-action:manipulation}
 .chord-label{font-size:18px;font-weight:800;cursor:pointer}
@@ -58,20 +58,20 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
  .main-actions{grid-template-columns:1.18fr .68fr .68fr 1.55fr .62fr;gap:4px}
  .main-actions button{font-size:11.5px;min-height:38px;padding:5px 1px}
  .settings-grid{grid-template-columns:1fr}
- .score-system{grid-template-columns:1fr}
- .score-measure+.score-measure{border-left:0;border-top:1px solid #c7cbd0}
+ .score-work{grid-template-columns:1fr}
+ .score-work>.score-measure{border-left:0!important;border-top:1px solid #c7cbd0} .score-work>.score-measure:first-child{border-top:0}
  .detail-grid{grid-template-columns:1fr}
  .chord-mini .diagram{width:68px;height:86px}
 }
 @media print{
  .top,.controls,.settings-overlay,.chord-detail-overlay{display:none!important}
- body{background:#fff}.app{max-width:none}.score-system{break-inside:avoid}
+ body{background:#fff}.app{max-width:none}.score-work{break-inside:avoid}
 }
 </style>
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.2.4</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.2.5</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -242,21 +242,18 @@ function chordRowHtml(m,mi){
 
 function render(){
  renderMeta();
- let out='';
- for(let i=0;i<state.measures.length;i+=2){
-  out+='<div class="score-system">';
-  for(let j=i;j<Math.min(i+2,state.measures.length);j++){
-   out+='<div class="score-measure" data-measure="'+j+'">';
-   const section=(state.sectionLabels&&state.sectionLabels[j])||'';
-   if(section)out+='<div class="section-label">'+esc(section)+'</div>';
-   out+='<div class="measure-head"><span>小節 '+(j+1)+'</span><span>'+settings.timeSig+'</span></div>';
-   out+=chordRowHtml(state.measures[j],j);
-   if(settings.showStaff!==false)out+=renderMeasureSvg(state.measures[j],j);
-   out+='<div class="lyric-line">'+esc(lyricsForMeasure(j))+'</div>';
-   out+='</div>';
-  }
+ let out='<div class="score-work">';
+ for(let j=0;j<state.measures.length;j++){
+  out+='<div class="score-measure" data-measure="'+j+'">';
+  const section=(state.sectionLabels&&state.sectionLabels[j])||'';
+  if(section)out+='<div class="section-label">'+esc(section)+'</div>';
+  out+='<div class="measure-head"><span>小節 '+(j+1)+'</span><span>'+settings.timeSig+'</span></div>';
+  out+=chordRowHtml(state.measures[j],j);
+  if(settings.showStaff!==false)out+=renderMeasureSvg(state.measures[j],j);
+  out+='<div class="lyric-line">'+esc(lyricsForMeasure(j))+'</div>';
   out+='</div>';
  }
+ out+='</div>';
  document.getElementById('sheet').innerHTML=out;
  if(scrollState.running)updateScrollHighlight();
 }
