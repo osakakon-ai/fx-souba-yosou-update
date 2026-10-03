@@ -219,16 +219,22 @@ public class MainActivity extends Activity {
         int count=o.getInt("partCount");
         String pattern=o.getString("partUrlPattern");
         StringBuilder encoded=new StringBuilder();
-        for(int i=0;i<count;i++){
-          encoded.append(readTextUrl(String.format(Locale.US,pattern,i)).trim());
-        }
+        for(int i=0;i<count;i++) encoded.append(readTextUrl(String.format(Locale.US,pattern,i)).trim());
         byte[] apk=android.util.Base64.decode(encoded.toString(),android.util.Base64.DEFAULT);
-        File dir=new File(getCacheDir(),"updates");if(!dir.exists())dir.mkdirs();
-        File file=new File(dir,"Training-App-update.apk");
-        try(java.io.FileOutputStream out=new java.io.FileOutputStream(file)){out.write(apk);}
+
+        ContentValues values=new ContentValues();
+        values.put(MediaStore.Downloads.DISPLAY_NAME,"Training-App-update.apk");
+        values.put(MediaStore.Downloads.MIME_TYPE,"application/vnd.android.package-archive");
+        values.put(MediaStore.Downloads.RELATIVE_PATH,android.os.Environment.DIRECTORY_DOWNLOADS+"/TrainingLog");
+        Uri uri=getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+        if(uri==null)throw new IllegalStateException("download uri");
+        try(OutputStream out=getContentResolver().openOutputStream(uri)){
+          if(out==null)throw new IllegalStateException("download stream");
+          out.write(apk);
+        }
         runOnUiThread(()->{
           Toast.makeText(this,"v"+name+" をダウンロードしました",Toast.LENGTH_SHORT).show();
-          openDownloadedApk(file);
+          openDownloadedApk(uri);
         });
       }catch(Exception e){
         runOnUiThread(()->Toast.makeText(this,"更新確認に失敗しました",Toast.LENGTH_LONG).show());
@@ -245,9 +251,8 @@ public class MainActivity extends Activity {
     }finally{con.disconnect();}
   }
 
-  void openDownloadedApk(File file){
+  void openDownloadedApk(Uri uri){
     try{
-      Uri uri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".fileprovider",file);
       Intent in=new Intent(Intent.ACTION_VIEW);
       in.setDataAndType(uri,"application/vnd.android.package-archive");
       in.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_NEW_TASK);
