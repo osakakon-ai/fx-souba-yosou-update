@@ -30,6 +30,7 @@ public class MainActivity extends Activity {
 
     private WebView web;
     private Updater updater;
+    private GuitarSampler guitarSampler;
 
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
@@ -37,6 +38,7 @@ public class MainActivity extends Activity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
         updater = new Updater(this);
+        guitarSampler = new GuitarSampler(this);
         web = new WebView(this);
 
         WebSettings s = web.getSettings();
@@ -135,6 +137,12 @@ public class MainActivity extends Activity {
         return id > 0 ? getResources().getDimensionPixelSize(id) : 0;
     }
 
+    @Override protected void onDestroy() {
+        if (guitarSampler != null) guitarSampler.release();
+        if (web != null) web.destroy();
+        super.onDestroy();
+    }
+
     @Override public void onBackPressed() {
         if (web.canGoBack()) web.goBack(); else super.onBackPressed();
     }
@@ -144,6 +152,14 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> Toast.makeText(
                 MainActivity.this, "最新版を確認しています", Toast.LENGTH_SHORT).show());
             updater.check();
+        }
+
+        @JavascriptInterface public void playGuitarNotes(String midiCsv) {
+            if (guitarSampler != null) guitarSampler.playMidiCsv(midiCsv);
+        }
+
+        @JavascriptInterface public void stopGuitarNotes() {
+            if (guitarSampler != null) guitarSampler.stop();
         }
     }
 }
