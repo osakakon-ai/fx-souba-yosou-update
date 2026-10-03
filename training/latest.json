@@ -1,6 +1,5 @@
 {
   "versionCode": 6,
   "versionName": "0.5.1",
-  "partCount": 6,
-  "partUrlPattern": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/training/Training-App.part%02d.b64"
+  "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/training/Training-App.apk"
 }
