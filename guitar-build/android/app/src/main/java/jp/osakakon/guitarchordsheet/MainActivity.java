@@ -80,8 +80,12 @@ public class MainActivity extends Activity {
         loadAppPage();
     }
 
+    File downloadedUiFile() {
+        return new File(new File(getFilesDir(), "web"), "index.html");
+    }
+
     private void loadAppPage() {
-        File downloaded = new File(new File(getFilesDir(), "web"), "index.html");
+        File downloaded = downloadedUiFile();
         if (!downloaded.exists()) {
             web.loadUrl("file:///android_asset/index.html");
             return;
@@ -129,11 +133,6 @@ public class MainActivity extends Activity {
     private int getSystemBarDimension(String name) {
         int id = getResources().getIdentifier(name, "dimen", "android");
         return id > 0 ? getResources().getDimensionPixelSize(id) : 0;
-    }
-
-    @Override protected void onResume() {
-        super.onResume();
-        if (updater != null) updater.resumePendingInstall();
     }
 
     @Override public void onBackPressed() {
