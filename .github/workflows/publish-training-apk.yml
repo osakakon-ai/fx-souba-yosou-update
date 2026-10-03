@@ -1,0 +1,41 @@
+name: Publish Training APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - "training/apk-parts/**"
+      - ".github/workflows/publish-training-apk.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-training-apk
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble signed APK
+        run: |
+          set -e
+          cat training/apk-parts/part-*.txt | tr -d '\n\r ' | base64 -d > training/Training-App.apk
+          echo "3b0e1844d3e1250aef02ebdad2f7ef3a0ba23bb1414e620c8b46b23f479ee2cf  training/Training-App.apk" | sha256sum -c -
+      - name: Write update metadata
+        run: |
+          cat > training/latest.json <<'EOF'
+          {
+            "versionCode": 5,
+            "versionName": "0.5.0",
+            "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/training/Training-App.apk"
+          }
+          EOF
+      - name: Publish
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add training/Training-App.apk training/latest.json
+          git commit -m "Publish training app v0.5.0" || exit 0
+          git push
