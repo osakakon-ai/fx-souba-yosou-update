@@ -1,0 +1,68 @@
+name: Analyze FX 2.275 for status icon repair
+
+on:
+  push:
+    paths:
+      - 'repair-2.276/ANALYZE_READY'
+
+permissions:
+  contents: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install apktool
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq apktool
+      - name: Decode and inspect APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/fx2275 repair-2.276/analysis
+          mkdir -p repair-2.276/analysis
+          apktool d -f -o /tmp/fx2275 FX-Souba-Yosou-2.275.apk >/tmp/apktool.log 2>&1
+          cp /tmp/fx2275/AndroidManifest.xml repair-2.276/analysis/AndroidManifest.xml
+          {
+            echo '=== APKTOOL ==='
+            cat /tmp/apktool.log
+            echo
+            echo '=== APKTOOL.YML ==='
+            cat /tmp/fx2275/apktool.yml
+            echo
+            echo '=== MATCHES ==='
+            grep -RniE 'startForeground|startForegroundService|stopForeground|Notification(Channel|Manager|Compat)?|FOREGROUND_SERVICE|WakeLock|PARTIAL_WAKE_LOCK|WebSocket|wss://|websocket|Service;' /tmp/fx2275 --exclude='*.png' --exclude='*.jpg' --exclude='*.webp' | head -n 3000 || true
+          } > repair-2.276/analysis/report.txt
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1 || true)"
+          if [ -n "$APKSIGNER" ]; then "$APKSIGNER" verify --verbose --print-certs FX-Souba-Yosou-2.275.apk > repair-2.276/analysis/signature.txt 2>&1 || true; fi
+          {
+            echo '=== SMALI FILES MATCHING LIKELY SERVICES ==='
+            find /tmp/fx2275 -type f \( -name '*.smali' -o -name '*.xml' -o -name '*.html' -o -name '*.js' \) | while read -r f; do
+              if grep -qiE 'startForeground|NotificationChannel|WakeLock|WebSocket|foreground|monitor|service' "$f"; then echo "$f"; fi
+            done
+          } > repair-2.276/analysis/matching-files.txt
+          tar -czf /tmp/matches.tgz $(cat repair-2.276/analysis/matching-files.txt | sed '/^===/d' | sed 's#^/tmp/fx2275/##' | head -n 150) -C /tmp/fx2275 2>/dev/null || true
+      - name: Copy likely app smali and assets as text-safe base64
+        shell: bash
+        run: |
+          set -euo pipefail
+          find /tmp/fx2275 -type f \( -name '*.smali' -o -name '*.xml' -o -name '*.html' -o -name '*.js' \) | while read -r f; do
+            if grep -qiE 'startForeground|startForegroundService|NotificationChannel|WakeLock|WebSocket|foreground|monitor|service' "$f"; then
+              rel="${f#/tmp/fx2275/}"
+              safe="$(echo "$rel" | tr '/ ' '__')"
+              { echo "SOURCE: $rel"; echo; cat "$f"; } > "repair-2.276/analysis/${safe}.txt"
+            fi
+          done
+      - name: Commit analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add repair-2.276/analysis
+          git commit -m "Analyze FX 2.275 foreground notification"
+          git push
