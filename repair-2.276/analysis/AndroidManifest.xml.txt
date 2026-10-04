@@ -1,0 +1,35 @@
+SOURCE: AndroidManifest.xml
+
+<?xml version="1.0" encoding="utf-8" standalone="no"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" android:compileSdkVersion="35" android:compileSdkVersionCodename="15" package="com.konchan.chappyfx" platformBuildVersionCode="35" platformBuildVersionName="15">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <application android:allowBackup="true" android:extractNativeLibs="false" android:icon="@drawable/ic_launcher" android:label="@string/app_name" android:theme="@style/AppTheme" android:usesCleartextTraffic="false">
+        <activity android:exported="false" android:name="com.konchan.chappyfx.SettingsActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.konchan.chappyfx.DemoTradeActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.konchan.chappyfx.DemoTradeActivity$TradeHistoryActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.konchan.chappyfx.DemoTradeActivity$ResearchLabActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.konchan.chappyfx.ImportantInfoActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="false" android:name="com.konchan.chappyfx.EventDetailActivity" android:screenOrientation="portrait"/>
+        <activity android:exported="true" android:name="com.konchan.chappyfx.MainActivity" android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <receiver android:enabled="true" android:exported="true" android:name="com.konchan.chappyfx.MonitoringBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+            </intent-filter>
+        </receiver>
+        <service android:exported="false" android:foregroundServiceType="" android:name="com.konchan.chappyfx.MonitoringService">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Continuous user-requested USDJPY market monitoring and local paper-trading simulation with persistent notification"/>
+        </service>
+    </application>
+</manifest>

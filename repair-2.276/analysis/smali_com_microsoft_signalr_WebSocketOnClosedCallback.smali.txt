@@ -1,0 +1,10 @@
+SOURCE: smali/com/microsoft/signalr/WebSocketOnClosedCallback.smali
+
+.class interface abstract Lcom/microsoft/signalr/WebSocketOnClosedCallback;
+.super Ljava/lang/Object;
+.source "WebsocketWrapperOnClosed.java"
+
+
+# virtual methods
+.method public abstract invoke(Ljava/lang/Integer;Ljava/lang/String;)V
+.end method

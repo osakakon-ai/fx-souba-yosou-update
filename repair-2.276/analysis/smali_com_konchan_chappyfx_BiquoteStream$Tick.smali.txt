@@ -1,0 +1,74 @@
+SOURCE: smali/com/konchan/chappyfx/BiquoteStream$Tick.smali
+
+.class final Lcom/konchan/chappyfx/BiquoteStream$Tick;
+.super Ljava/lang/Object;
+.source "MonitoringService.java"
+
+
+# annotations
+.annotation system Ldalvik/annotation/EnclosingClass;
+    value = Lcom/konchan/chappyfx/BiquoteStream;
+.end annotation
+
+.annotation system Ldalvik/annotation/InnerClass;
+    accessFlags = 0x18
+    name = "Tick"
+.end annotation
+
+
+# instance fields
+.field public ask:D
+
+.field public bid:D
+
+.field public marketState:Ljava/lang/String;
+
+.field public mid:D
+
+.field public quoteAgeSeconds:J
+
+.field transient receivedAt:J
+
+.field public symbol:Ljava/lang/String;
+
+.field public timestamp:Ljava/lang/String;
+
+
+# direct methods
+.method constructor <init>()V
+    .locals 3
+
+    .line 337
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    .line 338
+    const-string v0, ""
+
+    iput-object v0, p0, Lcom/konchan/chappyfx/BiquoteStream$Tick;->symbol:Ljava/lang/String;
+
+    const-wide/high16 v1, 0x7ff8000000000000L    # Double.NaN
+
+    .line 339
+    iput-wide v1, p0, Lcom/konchan/chappyfx/BiquoteStream$Tick;->bid:D
+
+    iput-wide v1, p0, Lcom/konchan/chappyfx/BiquoteStream$Tick;->ask:D
+
+    iput-wide v1, p0, Lcom/konchan/chappyfx/BiquoteStream$Tick;->mid:D
+
+    .line 340
+    iput-object v0, p0, Lcom/konchan/chappyfx/BiquoteStream$Tick;->timestamp:Ljava/lang/String;
+
+    iput-object v0, p0, Lcom/konchan/chappyfx/BiquoteStream$Tick;->marketState:Ljava/lang/String;
+
+    const-wide/16 v0, -0x1
+
+    .line 341
+    iput-wide v0, p0, Lcom/konchan/chappyfx/BiquoteStream$Tick;->quoteAgeSeconds:J
+
+    const-wide/16 v0, 0x0
+
+    .line 342
+    iput-wide v0, p0, Lcom/konchan/chappyfx/BiquoteStream$Tick;->receivedAt:J
+
+    return-void
+.end method

@@ -1,0 +1,37 @@
+SOURCE: smali/com/konchan/chappyfx/MonitoringService$TickSample.smali
+
+.class final Lcom/konchan/chappyfx/MonitoringService$TickSample;
+.super Ljava/lang/Object;
+.source "MonitoringService.java"
+
+
+# annotations
+.annotation system Ldalvik/annotation/EnclosingClass;
+    value = Lcom/konchan/chappyfx/MonitoringService;
+.end annotation
+
+.annotation system Ldalvik/annotation/InnerClass;
+    accessFlags = 0x1a
+    name = "TickSample"
+.end annotation
+
+
+# instance fields
+.field final mid:D
+
+.field final t:J
+
+
+# direct methods
+.method constructor <init>(JD)V
+    .locals 0
+
+    .line 36
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    iput-wide p1, p0, Lcom/konchan/chappyfx/MonitoringService$TickSample;->t:J
+
+    iput-wide p3, p0, Lcom/konchan/chappyfx/MonitoringService$TickSample;->mid:D
+
+    return-void
+.end method

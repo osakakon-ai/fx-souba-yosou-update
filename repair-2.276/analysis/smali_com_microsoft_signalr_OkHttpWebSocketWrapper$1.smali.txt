@@ -1,0 +1,16 @@
+SOURCE: smali/com/microsoft/signalr/OkHttpWebSocketWrapper$1.smali
+
+.class synthetic Lcom/microsoft/signalr/OkHttpWebSocketWrapper$1;
+.super Ljava/lang/Object;
+.source "OkHttpWebSocketWrapper.java"
+
+
+# annotations
+.annotation system Ldalvik/annotation/EnclosingClass;
+    value = Lcom/microsoft/signalr/OkHttpWebSocketWrapper;
+.end annotation
+
+.annotation system Ldalvik/annotation/InnerClass;
+    accessFlags = 0x1008
+    name = null
+.end annotation

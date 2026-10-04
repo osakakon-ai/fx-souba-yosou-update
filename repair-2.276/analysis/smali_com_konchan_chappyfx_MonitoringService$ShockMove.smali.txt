@@ -1,0 +1,41 @@
+SOURCE: smali/com/konchan/chappyfx/MonitoringService$ShockMove.smali
+
+.class final Lcom/konchan/chappyfx/MonitoringService$ShockMove;
+.super Ljava/lang/Object;
+.source "MonitoringService.java"
+
+
+# annotations
+.annotation system Ldalvik/annotation/EnclosingClass;
+    value = Lcom/konchan/chappyfx/MonitoringService;
+.end annotation
+
+.annotation system Ldalvik/annotation/InnerClass;
+    accessFlags = 0x1a
+    name = "ShockMove"
+.end annotation
+
+
+# instance fields
+.field final delta:D
+
+.field final ratio:D
+
+.field final sec:I
+
+
+# direct methods
+.method constructor <init>(DID)V
+    .locals 0
+
+    .line 40
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    iput-wide p1, p0, Lcom/konchan/chappyfx/MonitoringService$ShockMove;->delta:D
+
+    iput p3, p0, Lcom/konchan/chappyfx/MonitoringService$ShockMove;->sec:I
+
+    iput-wide p4, p0, Lcom/konchan/chappyfx/MonitoringService$ShockMove;->ratio:D
+
+    return-void
+.end method

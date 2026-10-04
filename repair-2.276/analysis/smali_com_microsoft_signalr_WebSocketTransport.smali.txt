@@ -1,0 +1,402 @@
+SOURCE: smali/com/microsoft/signalr/WebSocketTransport.smali
+
+.class Lcom/microsoft/signalr/WebSocketTransport;
+.super Ljava/lang/Object;
+.source "WebSocketTransport.java"
+
+# interfaces
+.implements Lcom/microsoft/signalr/Transport;
+
+
+# static fields
+.field private static final HTTP:Ljava/lang/String; = "http"
+
+.field private static final HTTPS:Ljava/lang/String; = "https"
+
+.field private static final WS:Ljava/lang/String; = "ws"
+
+.field private static final WSS:Ljava/lang/String; = "wss"
+
+
+# instance fields
+.field private client:Lcom/microsoft/signalr/HttpClient;
+
+.field private headers:Ljava/util/Map;
+    .annotation system Ldalvik/annotation/Signature;
+        value = {
+            "Ljava/util/Map<",
+            "Ljava/lang/String;",
+            "Ljava/lang/String;",
+            ">;"
+        }
+    .end annotation
+.end field
+
+.field private final logger:Lorg/slf4j/Logger;
+
+.field private onClose:Lcom/microsoft/signalr/TransportOnClosedCallback;
+
+.field private onReceiveCallBack:Lcom/microsoft/signalr/OnReceiveCallBack;
+
+.field private url:Ljava/lang/String;
+
+.field private webSocketClient:Lcom/microsoft/signalr/WebSocketWrapper;
+
+
+# direct methods
+.method public constructor <init>(Ljava/util/Map;Lcom/microsoft/signalr/HttpClient;)V
+    .locals 1
+    .annotation system Ldalvik/annotation/Signature;
+        value = {
+            "(",
+            "Ljava/util/Map<",
+            "Ljava/lang/String;",
+            "Ljava/lang/String;",
+            ">;",
+            "Lcom/microsoft/signalr/HttpClient;",
+            ")V"
+        }
+    .end annotation
+
+    .line 28
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    .line 21
+    const-class v0, Lcom/microsoft/signalr/WebSocketTransport;
+
+    invoke-static {v0}, Lorg/slf4j/LoggerFactory;->getLogger(Ljava/lang/Class;)Lorg/slf4j/Logger;
+
+    move-result-object v0
+
+    iput-object v0, p0, Lcom/microsoft/signalr/WebSocketTransport;->logger:Lorg/slf4j/Logger;
+
+    .line 29
+    iput-object p2, p0, Lcom/microsoft/signalr/WebSocketTransport;->client:Lcom/microsoft/signalr/HttpClient;
+
+    .line 30
+    iput-object p1, p0, Lcom/microsoft/signalr/WebSocketTransport;->headers:Ljava/util/Map;
+
+    return-void
+.end method
+
+.method private formatUrl(Ljava/lang/String;)Ljava/lang/String;
+    .locals 2
+
+    .line 38
+    const-string v0, "https"
+
+    invoke-virtual {p1, v0}, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
+
+    move-result v1
+
+    if-eqz v1, :cond_0
+
+    .line 39
+    invoke-virtual {v0}, Ljava/lang/String;->length()I
+
+    move-result v0
+
+    invoke-virtual {p1, v0}, Ljava/lang/String;->substring(I)Ljava/lang/String;
+
+    move-result-object p1
+
+    new-instance v0, Ljava/lang/StringBuilder;
+
+    const-string v1, "wss"
+
+    invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v0, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p1
+
+    goto :goto_0
+
+    .line 40
+    :cond_0
+    const-string v0, "http"
+
+    invoke-virtual {p1, v0}, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
+
+    move-result v1
+
+    if-eqz v1, :cond_1
+
+    .line 41
+    invoke-virtual {v0}, Ljava/lang/String;->length()I
+
+    move-result v0
+
+    invoke-virtual {p1, v0}, Ljava/lang/String;->substring(I)Ljava/lang/String;
+
+    move-result-object p1
+
+    new-instance v0, Ljava/lang/StringBuilder;
+
+    const-string v1, "ws"
+
+    invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v0, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p1
+
+    :cond_1
+    :goto_0
+    return-object p1
+.end method
+
+
+# virtual methods
+.method getUrl()Ljava/lang/String;
+    .locals 1
+
+    .line 34
+    iget-object v0, p0, Lcom/microsoft/signalr/WebSocketTransport;->url:Ljava/lang/String;
+
+    return-object v0
+.end method
+
+.method synthetic lambda$start$0$com-microsoft-signalr-WebSocketTransport(Ljava/nio/ByteBuffer;)V
+    .locals 0
+
+    .line 52
+    invoke-virtual {p0, p1}, Lcom/microsoft/signalr/WebSocketTransport;->onReceive(Ljava/nio/ByteBuffer;)V
+
+    return-void
+.end method
+
+.method synthetic lambda$start$1$com-microsoft-signalr-WebSocketTransport(Ljava/lang/Integer;Ljava/lang/String;)V
+    .locals 1
+
+    .line 54
+    iget-object v0, p0, Lcom/microsoft/signalr/WebSocketTransport;->onClose:Lcom/microsoft/signalr/TransportOnClosedCallback;
+
+    if-eqz v0, :cond_0
+
+    .line 55
+    invoke-virtual {p0, p1, p2}, Lcom/microsoft/signalr/WebSocketTransport;->onClose(Ljava/lang/Integer;Ljava/lang/String;)V
+
+    :cond_0
+    return-void
+.end method
+
+.method synthetic lambda$start$2$com-microsoft-signalr-WebSocketTransport()V
+    .locals 3
+    .annotation system Ldalvik/annotation/Throws;
+        value = {
+            Ljava/lang/Throwable;
+        }
+    .end annotation
+
+    .line 59
+    iget-object v0, p0, Lcom/microsoft/signalr/WebSocketTransport;->logger:Lorg/slf4j/Logger;
+
+    const-string v1, "WebSocket transport connected to: {}."
+
+    iget-object v2, p0, Lcom/microsoft/signalr/WebSocketTransport;->url:Ljava/lang/String;
+
+    invoke-interface {v0, v1, v2}, Lorg/slf4j/Logger;->info(Ljava/lang/String;Ljava/lang/Object;)V
+
+    return-void
+.end method
+
+.method synthetic lambda$stop$0$com-microsoft-signalr-WebSocketTransport()V
+    .locals 2
+    .annotation system Ldalvik/annotation/Throws;
+        value = {
+            Ljava/lang/Throwable;
+        }
+    .end annotation
+
+    .line 86
+    iget-object v0, p0, Lcom/microsoft/signalr/WebSocketTransport;->logger:Lorg/slf4j/Logger;
+
+    const-string v1, "WebSocket connection stopped."
+
+    invoke-interface {v0, v1}, Lorg/slf4j/Logger;->info(Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method onClose(Ljava/lang/Integer;Ljava/lang/String;)V
+    .locals 1
+
+    if-eqz p1, :cond_1
+
+    .line 91
+    invoke-virtual {p1}, Ljava/lang/Integer;->intValue()I
+
+    move-result p1
+
+    const/16 v0, 0x3e8
+
+    if-eq p1, v0, :cond_0
+
+    goto :goto_0
+
+    .line 95
+    :cond_0
+    iget-object p1, p0, Lcom/microsoft/signalr/WebSocketTransport;->onClose:Lcom/microsoft/signalr/TransportOnClosedCallback;
+
+    const/4 p2, 0x0
+
+    invoke-interface {p1, p2}, Lcom/microsoft/signalr/TransportOnClosedCallback;->invoke(Ljava/lang/String;)V
+
+    goto :goto_1
+
+    .line 92
+    :cond_1
+    :goto_0
+    iget-object p1, p0, Lcom/microsoft/signalr/WebSocketTransport;->onClose:Lcom/microsoft/signalr/TransportOnClosedCallback;
+
+    invoke-interface {p1, p2}, Lcom/microsoft/signalr/TransportOnClosedCallback;->invoke(Ljava/lang/String;)V
+
+    :goto_1
+    return-void
+.end method
+
+.method public onReceive(Ljava/nio/ByteBuffer;)V
+    .locals 1
+
+    .line 75
+    iget-object v0, p0, Lcom/microsoft/signalr/WebSocketTransport;->onReceiveCallBack:Lcom/microsoft/signalr/OnReceiveCallBack;
+
+    invoke-interface {v0, p1}, Lcom/microsoft/signalr/OnReceiveCallBack;->invoke(Ljava/nio/ByteBuffer;)V
+
+    return-void
+.end method
+
+.method public send(Ljava/nio/ByteBuffer;)Lio/reactivex/rxjava3/core/Completable;
+    .locals 1
+
+    .line 64
+    iget-object v0, p0, Lcom/microsoft/signalr/WebSocketTransport;->webSocketClient:Lcom/microsoft/signalr/WebSocketWrapper;
+
+    invoke-virtual {v0, p1}, Lcom/microsoft/signalr/WebSocketWrapper;->send(Ljava/nio/ByteBuffer;)Lio/reactivex/rxjava3/core/Completable;
+
+    move-result-object p1
+
+    return-object p1
+.end method
+
+.method public setOnClose(Lcom/microsoft/signalr/TransportOnClosedCallback;)V
+    .locals 0
+
+    .line 80
+    iput-object p1, p0, Lcom/microsoft/signalr/WebSocketTransport;->onClose:Lcom/microsoft/signalr/TransportOnClosedCallback;
+
+    return-void
+.end method
+
+.method public setOnReceive(Lcom/microsoft/signalr/OnReceiveCallBack;)V
+    .locals 1
+
+    .line 69
+    iput-object p1, p0, Lcom/microsoft/signalr/WebSocketTransport;->onReceiveCallBack:Lcom/microsoft/signalr/OnReceiveCallBack;
+
+    .line 70
+    iget-object p1, p0, Lcom/microsoft/signalr/WebSocketTransport;->logger:Lorg/slf4j/Logger;
+
+    const-string v0, "OnReceived callback has been set."
+
+    invoke-interface {p1, v0}, Lorg/slf4j/Logger;->debug(Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method public start(Ljava/lang/String;)Lio/reactivex/rxjava3/core/Completable;
+    .locals 2
+
+    .line 49
+    invoke-direct {p0, p1}, Lcom/microsoft/signalr/WebSocketTransport;->formatUrl(Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object p1
+
+    iput-object p1, p0, Lcom/microsoft/signalr/WebSocketTransport;->url:Ljava/lang/String;
+
+    .line 50
+    iget-object p1, p0, Lcom/microsoft/signalr/WebSocketTransport;->logger:Lorg/slf4j/Logger;
+
+    const-string v0, "Starting Websocket connection."
+
+    invoke-interface {p1, v0}, Lorg/slf4j/Logger;->debug(Ljava/lang/String;)V
+
+    .line 51
+    iget-object p1, p0, Lcom/microsoft/signalr/WebSocketTransport;->client:Lcom/microsoft/signalr/HttpClient;
+
+    iget-object v0, p0, Lcom/microsoft/signalr/WebSocketTransport;->url:Ljava/lang/String;
+
+    iget-object v1, p0, Lcom/microsoft/signalr/WebSocketTransport;->headers:Ljava/util/Map;
+
+    invoke-virtual {p1, v0, v1}, Lcom/microsoft/signalr/HttpClient;->createWebSocket(Ljava/lang/String;Ljava/util/Map;)Lcom/microsoft/signalr/WebSocketWrapper;
+
+    move-result-object p1
+
+    iput-object p1, p0, Lcom/microsoft/signalr/WebSocketTransport;->webSocketClient:Lcom/microsoft/signalr/WebSocketWrapper;
+
+    .line 52
+    new-instance v0, Lcom/microsoft/signalr/WebSocketTransport$$ExternalSyntheticLambda0;
+
+    invoke-direct {v0, p0}, Lcom/microsoft/signalr/WebSocketTransport$$ExternalSyntheticLambda0;-><init>(Lcom/microsoft/signalr/WebSocketTransport;)V
+
+    invoke-virtual {p1, v0}, Lcom/microsoft/signalr/WebSocketWrapper;->setOnReceive(Lcom/microsoft/signalr/OnReceiveCallBack;)V
+
+    .line 53
+    iget-object p1, p0, Lcom/microsoft/signalr/WebSocketTransport;->webSocketClient:Lcom/microsoft/signalr/WebSocketWrapper;
+
+    new-instance v0, Lcom/microsoft/signalr/WebSocketTransport$$ExternalSyntheticLambda1;
+
+    invoke-direct {v0, p0}, Lcom/microsoft/signalr/WebSocketTransport$$ExternalSyntheticLambda1;-><init>(Lcom/microsoft/signalr/WebSocketTransport;)V
+
+    invoke-virtual {p1, v0}, Lcom/microsoft/signalr/WebSocketWrapper;->setOnClose(Lcom/microsoft/signalr/WebSocketOnClosedCallback;)V
+
+    .line 59
+    iget-object p1, p0, Lcom/microsoft/signalr/WebSocketTransport;->webSocketClient:Lcom/microsoft/signalr/WebSocketWrapper;
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/WebSocketWrapper;->start()Lio/reactivex/rxjava3/core/Completable;
+
+    move-result-object p1
+
+    new-instance v0, Lcom/microsoft/signalr/WebSocketTransport$$ExternalSyntheticLambda2;
+
+    invoke-direct {v0, p0}, Lcom/microsoft/signalr/WebSocketTransport$$ExternalSyntheticLambda2;-><init>(Lcom/microsoft/signalr/WebSocketTransport;)V
+
+    invoke-virtual {p1, v0}, Lio/reactivex/rxjava3/core/Completable;->doOnComplete(Lio/reactivex/rxjava3/functions/Action;)Lio/reactivex/rxjava3/core/Completable;
+
+    move-result-object p1
+
+    return-object p1
+.end method
+
+.method public stop()Lio/reactivex/rxjava3/core/Completable;
+    .locals 3
+
+    .line 85
+    iget-object v0, p0, Lcom/microsoft/signalr/WebSocketTransport;->webSocketClient:Lcom/microsoft/signalr/WebSocketWrapper;
+
+    invoke-virtual {v0}, Lcom/microsoft/signalr/WebSocketWrapper;->stop()Lio/reactivex/rxjava3/core/Completable;
+
+    move-result-object v0
+
+    .line 86
+    invoke-virtual {v0}, Lio/reactivex/rxjava3/core/Completable;->onErrorComplete()Lio/reactivex/rxjava3/core/Completable;
+
+    move-result-object v1
+
+    new-instance v2, Lcom/microsoft/signalr/WebSocketTransport$$ExternalSyntheticLambda3;
+
+    invoke-direct {v2, p0}, Lcom/microsoft/signalr/WebSocketTransport$$ExternalSyntheticLambda3;-><init>(Lcom/microsoft/signalr/WebSocketTransport;)V
+
+    invoke-virtual {v1, v2}, Lio/reactivex/rxjava3/core/Completable;->subscribe(Lio/reactivex/rxjava3/functions/Action;)Lio/reactivex/rxjava3/disposables/Disposable;
+
+    return-object v0
+.end method

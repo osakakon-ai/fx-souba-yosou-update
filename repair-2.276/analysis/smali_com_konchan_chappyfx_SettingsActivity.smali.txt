@@ -1,0 +1,3133 @@
+SOURCE: smali/com/konchan/chappyfx/SettingsActivity.smali
+
+.class public Lcom/konchan/chappyfx/SettingsActivity;
+.super Landroid/app/Activity;
+.source "SettingsActivity.java"
+
+
+# static fields
+.field private static final UPDATE_MANIFEST_URL:Ljava/lang/String; = "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/latest.json"
+
+
+# instance fields
+.field private final ACCENT:I
+
+.field private final BG:I
+
+.field private final DOWN:I
+
+.field private final MUTED:I
+
+.field private final PANEL:I
+
+.field private final PANEL2:I
+
+.field private final TEXT:I
+
+.field private pendingApkUrl:Ljava/lang/String;
+
+.field private pendingInstallPermission:Z
+
+.field private pendingSha256:Ljava/lang/String;
+
+.field private pendingVersion:Ljava/lang/String;
+
+.field private store:Lcom/konchan/chappyfx/DemoStore;
+
+.field private updateBtn:Landroid/widget/Button;
+
+.field private updateBusy:Z
+
+.field private updateStatus:Landroid/widget/TextView;
+
+
+# direct methods
+.method public static synthetic $r8$lambda$5kHh4hHWfNIY_3daYdR2hfy5rys(Lcom/konchan/chappyfx/SettingsActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+    .locals 0
+
+    invoke-direct {p0, p1, p2, p3}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$checkForUpdate$8(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$Aal3Dlre6kdpMhzOUA-G2oiykdY(Lcom/konchan/chappyfx/SettingsActivity;Ljava/lang/String;)V
+    .locals 0
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$waitForDownload$13(Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$AyovvAhQlUbyvmt46xt86JAmLDg(Lcom/konchan/chappyfx/SettingsActivity;Landroid/view/View;)V
+    .locals 0
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$buildUi$1(Landroid/view/View;)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$EdBn5xv2_RJNWFKbDc0CarZlj74(Lcom/konchan/chappyfx/SettingsActivity;Landroid/view/View;)V
+    .locals 0
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$buildUi$2(Landroid/view/View;)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$I5EvhnXGfUNAFC5skMdK4fTn0-E(Lcom/konchan/chappyfx/SettingsActivity;Ljava/lang/String;)V
+    .locals 0
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$checkForUpdate$7(Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$KzxuMS9uCJjhtuKVd4Kk2DlparI(Lcom/konchan/chappyfx/SettingsActivity;Landroid/content/DialogInterface;I)V
+    .locals 0
+
+    invoke-direct {p0, p1, p2}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$confirmReset$14(Landroid/content/DialogInterface;I)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$OTtT6iTFVjOIm5JfWN_3dsybogI(Lcom/konchan/chappyfx/SettingsActivity;Landroid/content/DialogInterface;I)V
+    .locals 0
+
+    invoke-direct {p0, p1, p2}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$checkForUpdate$5(Landroid/content/DialogInterface;I)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$QCw-sLtCyX2-cvtElRuuDVo2RoA(Lcom/konchan/chappyfx/SettingsActivity;Landroid/view/View;)V
+    .locals 0
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$buildUi$0(Landroid/view/View;)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$WLRdBWbOKQKPgAikikdNjO1lYlU(Lcom/konchan/chappyfx/SettingsActivity;Landroid/app/AlertDialog;Landroid/content/DialogInterface;)V
+    .locals 0
+
+    invoke-direct {p0, p1, p2}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$showFinalResetConfirmation$17(Landroid/app/AlertDialog;Landroid/content/DialogInterface;)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$Z96ZZcwkKCQ13pgnz4oEY4SFb7A(Lcom/konchan/chappyfx/SettingsActivity;Ljava/lang/String;)V
+    .locals 0
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$checkForUpdate$9(Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$_LswQMiN6fOWg8u3PEKwPVzi0tA(Lcom/konchan/chappyfx/SettingsActivity;)V
+    .locals 0
+
+    invoke-direct {p0}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$checkForUpdate$10()V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$bvSwH0COwkaRFONmgSf-Q-qCzEU(Lcom/konchan/chappyfx/SettingsActivity;Landroid/app/AlertDialog;Landroid/view/View;)V
+    .locals 0
+
+    invoke-direct {p0, p1, p2}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$showFinalResetConfirmation$16(Landroid/app/AlertDialog;Landroid/view/View;)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$jeJNuzYbibExcUKYH2UOyoj0idg(Lcom/konchan/chappyfx/SettingsActivity;Ljava/lang/String;Landroid/net/Uri;)V
+    .locals 0
+
+    invoke-direct {p0, p1, p2}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$waitForDownload$12(Ljava/lang/String;Landroid/net/Uri;)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$mSi5g4CEhwCCJlSR6lHKEbGCRw0(Lcom/konchan/chappyfx/SettingsActivity;Landroid/app/DownloadManager;JLjava/lang/String;Ljava/lang/String;)V
+    .locals 0
+
+    invoke-direct/range {p0 .. p5}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$downloadAndInstall$11(Landroid/app/DownloadManager;JLjava/lang/String;Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$oTto6pGYgGkw4wYSgqCJehALaaM(Lcom/konchan/chappyfx/SettingsActivity;Landroid/content/DialogInterface;I)V
+    .locals 0
+
+    invoke-direct {p0, p1, p2}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$checkForUpdate$6(Landroid/content/DialogInterface;I)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$pAmgegW9zLv9_3ivVX7AHgWihMQ(Lcom/konchan/chappyfx/SettingsActivity;Landroid/view/View;)V
+    .locals 0
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$buildUi$3(Landroid/view/View;)V
+
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$sNdtOrvwaMxweLFnAY5kqoMFcHw(Lcom/konchan/chappyfx/SettingsActivity;)V
+    .locals 0
+
+    invoke-direct {p0}, Lcom/konchan/chappyfx/SettingsActivity;->lambda$checkForUpdate$4()V
+
+    return-void
+.end method
+
+.method public constructor <init>()V
+    .locals 3
+
+    .line 21
+    invoke-direct {p0}, Landroid/app/Activity;-><init>()V
+
+    const/16 v0, 0x11
+
+    const/16 v1, 0x18
+
+    const/16 v2, 0xb
+
+    .line 22
+    invoke-static {v2, v0, v1}, Landroid/graphics/Color;->rgb(III)I
+
+    move-result v0
+
+    iput v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->BG:I
+
+    const/16 v0, 0x1d
+
+    const/16 v1, 0x27
+
+    const/16 v2, 0x14
+
+    invoke-static {v2, v0, v1}, Landroid/graphics/Color;->rgb(III)I
+
+    move-result v0
+
+    iput v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->PANEL:I
+
+    const/16 v0, 0x25
+
+    const/16 v1, 0x31
+
+    const/16 v2, 0x1a
+
+    invoke-static {v2, v0, v1}, Landroid/graphics/Color;->rgb(III)I
+
+    move-result v0
+
+    iput v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->PANEL2:I
+
+    const/16 v0, 0xf4
+
+    const/16 v1, 0xf9
+
+    const/16 v2, 0xee
+
+    invoke-static {v2, v0, v1}, Landroid/graphics/Color;->rgb(III)I
+
+    move-result v0
+
+    iput v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->TEXT:I
+
+    const/16 v0, 0xa4
+
+    const/16 v1, 0xb7
+
+    const/16 v2, 0x91
+
+    invoke-static {v2, v0, v1}, Landroid/graphics/Color;->rgb(III)I
+
+    move-result v0
+
+    iput v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->MUTED:I
+
+    const/16 v0, 0x66
+
+    const/16 v1, 0x76
+
+    const/16 v2, 0xff
+
+    invoke-static {v2, v0, v1}, Landroid/graphics/Color;->rgb(III)I
+
+    move-result v0
+
+    iput v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->DOWN:I
+
+    const/16 v0, 0x68
+
+    const/16 v1, 0xaa
+
+    invoke-static {v0, v1, v2}, Landroid/graphics/Color;->rgb(III)I
+
+    move-result v0
+
+    iput v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->ACCENT:I
+
+    const/4 v0, 0x0
+
+    .line 26
+    iput-boolean v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateBusy:Z
+
+    .line 27
+    iput-boolean v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->pendingInstallPermission:Z
+
+    return-void
+.end method
+
+.method private applySystemBarInsets(Landroid/view/View;Landroid/view/View;IIII)V
+    .locals 6
+
+    .line 325
+    invoke-direct {p0, p3}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v2
+
+    invoke-direct {p0, p4}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v3
+
+    invoke-direct {p0, p5}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v4
+
+    invoke-direct {p0, p6}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v5
+
+    .line 326
+    invoke-virtual {p2, v2, v3, v4, v5}, Landroid/view/View;->setPadding(IIII)V
+
+    .line 327
+    new-instance p3, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda8;
+
+    move-object v0, p3
+
+    move-object v1, p2
+
+    invoke-direct/range {v0 .. v5}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda8;-><init>(Landroid/view/View;IIII)V
+
+    invoke-virtual {p1, p3}, Landroid/view/View;->setOnApplyWindowInsetsListener(Landroid/view/View$OnApplyWindowInsetsListener;)V
+
+    .line 341
+    invoke-virtual {p1}, Landroid/view/View;->requestApplyInsets()V
+
+    return-void
+.end method
+
+.method private buildUi()V
+    .locals 17
+
+    move-object/from16 v8, p0
+
+    .line 48
+    new-instance v1, Landroid/widget/ScrollView;
+
+    invoke-direct {v1, v8}, Landroid/widget/ScrollView;-><init>(Landroid/content/Context;)V
+
+    const/4 v9, 0x1
+
+    invoke-virtual {v1, v9}, Landroid/widget/ScrollView;->setFillViewport(Z)V
+
+    iget v0, v8, Lcom/konchan/chappyfx/SettingsActivity;->BG:I
+
+    invoke-virtual {v1, v0}, Landroid/widget/ScrollView;->setBackgroundColor(I)V
+
+    .line 49
+    new-instance v10, Landroid/widget/LinearLayout;
+
+    invoke-direct {v10, v8}, Landroid/widget/LinearLayout;-><init>(Landroid/content/Context;)V
+
+    invoke-virtual {v10, v9}, Landroid/widget/LinearLayout;->setOrientation(I)V
+
+    const/16 v0, 0xc
+
+    invoke-direct {v8, v0}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v2
+
+    const/16 v7, 0x10
+
+    invoke-direct {v8, v7}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v3
+
+    invoke-direct {v8, v0}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v0
+
+    const/16 v4, 0x1c
+
+    invoke-direct {v8, v4}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v4
+
+    invoke-virtual {v10, v2, v3, v0, v4}, Landroid/widget/LinearLayout;->setPadding(IIII)V
+
+    .line 50
+    new-instance v0, Landroid/widget/FrameLayout$LayoutParams;
+
+    const/4 v2, -0x1
+
+    const/4 v3, -0x2
+
+    invoke-direct {v0, v2, v3}, Landroid/widget/FrameLayout$LayoutParams;-><init>(II)V
+
+    invoke-virtual {v1, v10, v0}, Landroid/widget/ScrollView;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    invoke-virtual {v8, v1}, Lcom/konchan/chappyfx/SettingsActivity;->setContentView(Landroid/view/View;)V
+
+    const/16 v5, 0xc
+
+    const/16 v6, 0x1c
+
+    const/16 v3, 0xc
+
+    const/16 v4, 0x10
+
+    move-object/from16 v0, p0
+
+    move-object v2, v10
+
+    invoke-direct/range {v0 .. v6}, Lcom/konchan/chappyfx/SettingsActivity;->applySystemBarInsets(Landroid/view/View;Landroid/view/View;IIII)V
+
+    .line 52
+    new-instance v11, Landroid/widget/LinearLayout;
+
+    invoke-direct {v11, v8}, Landroid/widget/LinearLayout;-><init>(Landroid/content/Context;)V
+
+    const/4 v12, 0x0
+
+    invoke-virtual {v11, v12}, Landroid/widget/LinearLayout;->setOrientation(I)V
+
+    invoke-virtual {v11, v7}, Landroid/widget/LinearLayout;->setGravity(I)V
+
+    .line 53
+    const-string v0, "\u2190 \u623b\u308b"
+
+    invoke-direct {v8, v0}, Lcom/konchan/chappyfx/SettingsActivity;->button(Ljava/lang/String;)Landroid/widget/Button;
+
+    move-result-object v13
+
+    new-instance v0, Landroid/widget/LinearLayout$LayoutParams;
+
+    const/16 v1, 0x52
+
+    invoke-direct {v8, v1}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v1
+
+    const/16 v2, 0x2a
+
+    invoke-direct {v8, v2}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v2
+
+    invoke-direct {v0, v1, v2}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+
+    invoke-virtual {v11, v13, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    const/16 v0, 0x18
+
+    .line 54
+    iget v1, v8, Lcom/konchan/chappyfx/SettingsActivity;->TEXT:I
+
+    const-string v2, "\u8a2d\u5b9a"
+
+    invoke-direct {v8, v2, v0, v1, v9}, Lcom/konchan/chappyfx/SettingsActivity;->txt(Ljava/lang/String;IIZ)Landroid/widget/TextView;
+
+    move-result-object v14
+
+    const/4 v6, 0x0
+
+    const/4 v7, 0x1
+
+    const/4 v1, 0x0
+
+    const/4 v2, -0x2
+
+    const/16 v3, 0xa
+
+    const/4 v4, 0x0
+
+    const/4 v5, 0x0
+
+    move-object/from16 v0, p0
+
+    invoke-direct/range {v0 .. v7}, Lcom/konchan/chappyfx/SettingsActivity;->lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+
+    move-result-object v0
+
+    invoke-virtual {v11, v14, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    const/16 v6, 0xe
+
+    const/4 v7, 0x0
+
+    const/4 v1, -0x1
+
+    const/4 v3, 0x0
+
+    move-object/from16 v0, p0
+
+    .line 55
+    invoke-direct/range {v0 .. v7}, Lcom/konchan/chappyfx/SettingsActivity;->lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+
+    move-result-object v0
+
+    invoke-virtual {v10, v11, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    .line 56
+    new-instance v0, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda17;
+
+    invoke-direct {v0, v8}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda17;-><init>(Lcom/konchan/chappyfx/SettingsActivity;)V
+
+    invoke-virtual {v13, v0}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    .line 58
+    invoke-direct/range {p0 .. p0}, Lcom/konchan/chappyfx/SettingsActivity;->card()Landroid/widget/LinearLayout;
+
+    move-result-object v11
+
+    .line 59
+    iget v0, v8, Lcom/konchan/chappyfx/SettingsActivity;->TEXT:I
+
+    const-string v1, "\u30d0\u30c3\u30c6\u30ea\u30fc / \u30d0\u30c3\u30af\u30b0\u30e9\u30a6\u30f3\u30c9\u76e3\u8996"
+
+    const/16 v13, 0xe
+
+    invoke-direct {v8, v1, v13, v0, v9}, Lcom/konchan/chappyfx/SettingsActivity;->txt(Ljava/lang/String;IIZ)Landroid/widget/TextView;
+
+    move-result-object v0
+
+    invoke-virtual {v11, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    .line 60
+    iget v0, v8, Lcom/konchan/chappyfx/SettingsActivity;->MUTED:I
+
+    const-string v1, "Android\u306e\u7701\u96fb\u529b\u6a5f\u80fd\u3067\u76e3\u8996\u304c\u6b62\u307e\u308a\u306b\u304f\u3044\u3088\u3046\u3001FX\u76f8\u5834\u4e88\u60f3\u306e\u30d0\u30c3\u30c6\u30ea\u30fc\u4f7f\u7528\u3092\u300e\u5236\u9650\u306a\u3057\u300f\u306b\u8a2d\u5b9a\u3059\u308b\u5834\u5408\u306b\u4f7f\u3044\u307e\u3059\u3002"
+
+    const/16 v14, 0xb
+
+    invoke-direct {v8, v1, v14, v0, v12}, Lcom/konchan/chappyfx/SettingsActivity;->txt(Ljava/lang/String;IIZ)Landroid/widget/TextView;
+
+    move-result-object v15
+
+    const/4 v6, 0x0
+
+    const/4 v1, -0x1
+
+    const/4 v4, 0x7
+
+    move-object/from16 v0, p0
+
+    invoke-direct/range {v0 .. v7}, Lcom/konchan/chappyfx/SettingsActivity;->lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+
+    move-result-object v0
+
+    invoke-virtual {v11, v15, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    .line 61
+    const-string v0, "\u30d0\u30c3\u30c6\u30ea\u30fc\u6700\u9069\u5316\u8a2d\u5b9a\u3092\u958b\u304f"
+
+    invoke-direct {v8, v0}, Lcom/konchan/chappyfx/SettingsActivity;->button(Ljava/lang/String;)Landroid/widget/Button;
+
+    move-result-object v15
+
+    const/16 v7, 0x30
+
+    invoke-direct {v8, v7}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v2
+
+    const/16 v16, 0x0
+
+    const/16 v4, 0xa
+
+    move-object/from16 v0, p0
+
+    move/from16 v7, v16
+
+    invoke-direct/range {v0 .. v7}, Lcom/konchan/chappyfx/SettingsActivity;->lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+
+    move-result-object v0
+
+    invoke-virtual {v11, v15, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    .line 62
+    new-instance v0, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda18;
+
+    invoke-direct {v0, v8}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda18;-><init>(Lcom/konchan/chappyfx/SettingsActivity;)V
+
+    invoke-virtual {v15, v0}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    const/16 v6, 0xc
+
+    const/4 v7, 0x0
+
+    const/4 v2, -0x2
+
+    const/4 v4, 0x0
+
+    move-object/from16 v0, p0
+
+    .line 63
+    invoke-direct/range {v0 .. v7}, Lcom/konchan/chappyfx/SettingsActivity;->lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+
+    move-result-object v0
+
+    invoke-virtual {v10, v11, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    .line 65
+    invoke-direct/range {p0 .. p0}, Lcom/konchan/chappyfx/SettingsActivity;->card()Landroid/widget/LinearLayout;
+
+    move-result-object v11
+
+    .line 66
+    const-string v0, "\u30a2\u30d7\u30ea\u306e\u66f4\u65b0"
+
+    iget v1, v8, Lcom/konchan/chappyfx/SettingsActivity;->TEXT:I
+
+    invoke-direct {v8, v0, v13, v1, v9}, Lcom/konchan/chappyfx/SettingsActivity;->txt(Ljava/lang/String;IIZ)Landroid/widget/TextView;
+
+    move-result-object v0
+
+    invoke-virtual {v11, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    .line 67
+    new-instance v0, Ljava/lang/StringBuilder;
+
+    const-string v1, "\u73fe\u5728\u306e\u30d0\u30fc\u30b8\u30e7\u30f3: Ver "
+
+    invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-direct/range {p0 .. p0}, Lcom/konchan/chappyfx/SettingsActivity;->currentVersion()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    const-string v1, "\n\u30dc\u30bf\u30f3\u3092\u62bc\u3059\u3068\u6700\u65b0\u7248\u3092\u78ba\u8a8d\u3057\u3001\u66f4\u65b0\u304c\u3042\u308c\u3070APK\u3092\u81ea\u52d5\u53d6\u5f97\u3057\u307e\u3059\u3002"
+
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    iget v1, v8, Lcom/konchan/chappyfx/SettingsActivity;->MUTED:I
+
+    invoke-direct {v8, v0, v14, v1, v12}, Lcom/konchan/chappyfx/SettingsActivity;->txt(Ljava/lang/String;IIZ)Landroid/widget/TextView;
+
+    move-result-object v15
+
+    iput-object v15, v8, Lcom/konchan/chappyfx/SettingsActivity;->updateStatus:Landroid/widget/TextView;
+
+    const/4 v6, 0x0
+
+    const/4 v1, -0x1
+
+    const/4 v4, 0x7
+
+    move-object/from16 v0, p0
+
+    .line 68
+    invoke-direct/range {v0 .. v7}, Lcom/konchan/chappyfx/SettingsActivity;->lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+
+    move-result-object v0
+
+    invoke-virtual {v11, v15, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    .line 69
+    const-string v0, "\u30a2\u30c3\u30d7\u30c7\u30fc\u30c8\u3092\u78ba\u8a8d\u30fb\u5b9f\u884c"
+
+    invoke-direct {v8, v0}, Lcom/konchan/chappyfx/SettingsActivity;->button(Ljava/lang/String;)Landroid/widget/Button;
+
+    move-result-object v15
+
+    iput-object v15, v8, Lcom/konchan/chappyfx/SettingsActivity;->updateBtn:Landroid/widget/Button;
+
+    const/16 v7, 0x30
+
+    invoke-direct {v8, v7}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v2
+
+    const/16 v4, 0xa
+
+    move-object/from16 v0, p0
+
+    move/from16 v7, v16
+
+    invoke-direct/range {v0 .. v7}, Lcom/konchan/chappyfx/SettingsActivity;->lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+
+    move-result-object v0
+
+    invoke-virtual {v11, v15, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    .line 70
+    iget-object v0, v8, Lcom/konchan/chappyfx/SettingsActivity;->updateBtn:Landroid/widget/Button;
+
+    new-instance v1, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda1;
+
+    invoke-direct {v1, v8}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda1;-><init>(Lcom/konchan/chappyfx/SettingsActivity;)V
+
+    invoke-virtual {v0, v1}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    const/16 v6, 0xc
+
+    const/4 v7, 0x0
+
+    const/4 v1, -0x1
+
+    const/4 v2, -0x2
+
+    const/4 v4, 0x0
+
+    move-object/from16 v0, p0
+
+    .line 71
+    invoke-direct/range {v0 .. v7}, Lcom/konchan/chappyfx/SettingsActivity;->lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+
+    move-result-object v0
+
+    invoke-virtual {v10, v11, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    .line 74
+    invoke-direct/range {p0 .. p0}, Lcom/konchan/chappyfx/SettingsActivity;->card()Landroid/widget/LinearLayout;
+
+    move-result-object v11
+
+    .line 75
+    const-string v0, "\u30c7\u30e2\u53e3\u5ea7"
+
+    iget v1, v8, Lcom/konchan/chappyfx/SettingsActivity;->TEXT:I
+
+    invoke-direct {v8, v0, v13, v1, v9}, Lcom/konchan/chappyfx/SettingsActivity;->txt(Ljava/lang/String;IIZ)Landroid/widget/TextView;
+
+    move-result-object v0
+
+    invoke-virtual {v11, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    .line 76
+    const-string v0, "\u6b8b\u9ad8\u30fb\u52dd\u6557\u30fb\u53d6\u5f15\u5c65\u6b74\u3092\u6d88\u3057\u3066\u3001\u30c7\u30e2\u8cc7\u91d110\u4e07\u5186\u304b\u3089\u518d\u30b9\u30bf\u30fc\u30c8\u3057\u307e\u3059\u3002\u8aa4\u64cd\u4f5c\u9632\u6b62\u306e\u305f\u30812\u6bb5\u968e\u3067\u78ba\u8a8d\u3057\u307e\u3059\u3002"
+
+    iget v1, v8, Lcom/konchan/chappyfx/SettingsActivity;->MUTED:I
+
+    invoke-direct {v8, v0, v14, v1, v12}, Lcom/konchan/chappyfx/SettingsActivity;->txt(Ljava/lang/String;IIZ)Landroid/widget/TextView;
+
+    move-result-object v15
+
+    const/4 v6, 0x0
+
+    const/4 v1, -0x1
+
+    const/4 v4, 0x7
+
+    move-object/from16 v0, p0
+
+    invoke-direct/range {v0 .. v7}, Lcom/konchan/chappyfx/SettingsActivity;->lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+
+    move-result-object v0
+
+    invoke-virtual {v11, v15, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    .line 77
+    const-string v0, "\u30c7\u30e2\u53e3\u5ea7\u309210\u4e07\u5186\u306b\u30ea\u30bb\u30c3\u30c8"
+
+    invoke-direct {v8, v0}, Lcom/konchan/chappyfx/SettingsActivity;->button(Ljava/lang/String;)Landroid/widget/Button;
+
+    move-result-object v15
+
+    iget v0, v8, Lcom/konchan/chappyfx/SettingsActivity;->DOWN:I
+
+    invoke-virtual {v15, v0}, Landroid/widget/Button;->setTextColor(I)V
+
+    const/16 v0, 0x30
+
+    invoke-direct {v8, v0}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v2
+
+    const/16 v4, 0xa
+
+    move-object/from16 v0, p0
+
+    invoke-direct/range {v0 .. v7}, Lcom/konchan/chappyfx/SettingsActivity;->lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+
+    move-result-object v0
+
+    invoke-virtual {v11, v15, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    .line 78
+    new-instance v0, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda2;
+
+    invoke-direct {v0, v8}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda2;-><init>(Lcom/konchan/chappyfx/SettingsActivity;)V
+
+    invoke-virtual {v15, v0}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    const/16 v6, 0xc
+
+    const/4 v2, -0x2
+
+    const/4 v4, 0x0
+
+    move-object/from16 v0, p0
+
+    .line 79
+    invoke-direct/range {v0 .. v7}, Lcom/konchan/chappyfx/SettingsActivity;->lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+
+    move-result-object v0
+
+    invoke-virtual {v10, v11, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    .line 81
+    invoke-direct/range {p0 .. p0}, Lcom/konchan/chappyfx/SettingsActivity;->card()Landroid/widget/LinearLayout;
+
+    move-result-object v11
+
+    .line 82
+    const-string v0, "\u3053\u306e\u30a2\u30d7\u30ea\u306b\u3064\u3044\u3066"
+
+    iget v1, v8, Lcom/konchan/chappyfx/SettingsActivity;->TEXT:I
+
+    invoke-direct {v8, v0, v13, v1, v9}, Lcom/konchan/chappyfx/SettingsActivity;->txt(Ljava/lang/String;IIZ)Landroid/widget/TextView;
+
+    move-result-object v0
+
+    invoke-virtual {v11, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    .line 83
+    const-string v0, "USD/JPY\u5c02\u7528\u306e\u30c7\u30e2\u30c8\u30ec\u30fc\u30c9\u3067\u3059\u3002\u5b9f\u969b\u306eFX\u6ce8\u6587\u306f\u884c\u3044\u307e\u305b\u3093\u3002"
+
+    iget v1, v8, Lcom/konchan/chappyfx/SettingsActivity;->MUTED:I
+
+    invoke-direct {v8, v0, v14, v1, v12}, Lcom/konchan/chappyfx/SettingsActivity;->txt(Ljava/lang/String;IIZ)Landroid/widget/TextView;
+
+    move-result-object v9
+
+    const/4 v6, 0x0
+
+    const/4 v1, -0x1
+
+    const/4 v4, 0x7
+
+    move-object/from16 v0, p0
+
+    invoke-direct/range {v0 .. v7}, Lcom/konchan/chappyfx/SettingsActivity;->lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+
+    move-result-object v0
+
+    invoke-virtual {v11, v9, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    const/4 v4, 0x0
+
+    move-object/from16 v0, p0
+
+    .line 84
+    invoke-direct/range {v0 .. v7}, Lcom/konchan/chappyfx/SettingsActivity;->lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+
+    move-result-object v0
+
+    invoke-virtual {v10, v11, v0}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    return-void
+.end method
+
+.method private button(Ljava/lang/String;)Landroid/widget/Button;
+    .locals 2
+
+    .line 345
+    new-instance v0, Landroid/widget/Button;
+
+    invoke-direct {v0, p0}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
+
+    invoke-virtual {v0, p1}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
+
+    iget p1, p0, Lcom/konchan/chappyfx/SettingsActivity;->TEXT:I
+
+    invoke-virtual {v0, p1}, Landroid/widget/Button;->setTextColor(I)V
+
+    const/high16 p1, 0x41300000    # 11.0f
+
+    invoke-virtual {v0, p1}, Landroid/widget/Button;->setTextSize(F)V
+
+    const/4 p1, 0x0
+
+    invoke-virtual {v0, p1}, Landroid/widget/Button;->setAllCaps(Z)V
+
+    iget p1, p0, Lcom/konchan/chappyfx/SettingsActivity;->PANEL2:I
+
+    const/16 v1, 0xc
+
+    invoke-direct {p0, v1}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v1
+
+    invoke-direct {p0, p1, v1}, Lcom/konchan/chappyfx/SettingsActivity;->makeBg(II)Landroid/graphics/drawable/Drawable;
+
+    move-result-object p1
+
+    invoke-virtual {v0, p1}, Landroid/widget/Button;->setBackground(Landroid/graphics/drawable/Drawable;)V
+
+    return-object v0
+.end method
+
+.method private cacheBustedUrl(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    .locals 2
+
+    if-eqz p1, :cond_2
+
+    .line 200
+    invoke-virtual {p1}, Ljava/lang/String;->trim()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Ljava/lang/String;->isEmpty()Z
+
+    move-result v0
+
+    if-eqz v0, :cond_0
+
+    goto :goto_0
+
+    .line 201
+    :cond_0
+    new-instance v0, Ljava/lang/StringBuilder;
+
+    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+
+    invoke-virtual {v0, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    const-string v1, "?"
+
+    invoke-virtual {p1, v1}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+
+    move-result p1
+
+    if-eqz p1, :cond_1
+
+    const-string v1, "&"
+
+    :cond_1
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    invoke-virtual {p1, p2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p1
+
+    :cond_2
+    :goto_0
+    return-object p1
+.end method
+
+.method private canInstallPackages()Z
+    .locals 1
+
+    .line 106
+    invoke-virtual {p0}, Lcom/konchan/chappyfx/SettingsActivity;->getPackageManager()Landroid/content/pm/PackageManager;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Landroid/content/pm/PackageManager;->canRequestPackageInstalls()Z
+
+    move-result v0
+
+    return v0
+.end method
+
+.method private card()Landroid/widget/LinearLayout;
+    .locals 5
+
+    .line 344
+    new-instance v0, Landroid/widget/LinearLayout;
+
+    invoke-direct {v0, p0}, Landroid/widget/LinearLayout;-><init>(Landroid/content/Context;)V
+
+    const/4 v1, 0x1
+
+    invoke-virtual {v0, v1}, Landroid/widget/LinearLayout;->setOrientation(I)V
+
+    const/16 v1, 0xc
+
+    invoke-direct {p0, v1}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v2
+
+    invoke-direct {p0, v1}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v3
+
+    invoke-direct {p0, v1}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v4
+
+    invoke-direct {p0, v1}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v1
+
+    invoke-virtual {v0, v2, v3, v4, v1}, Landroid/widget/LinearLayout;->setPadding(IIII)V
+
+    iget v1, p0, Lcom/konchan/chappyfx/SettingsActivity;->PANEL:I
+
+    const/16 v2, 0x10
+
+    invoke-direct {p0, v2}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result v2
+
+    invoke-direct {p0, v1, v2}, Lcom/konchan/chappyfx/SettingsActivity;->makeBg(II)Landroid/graphics/drawable/Drawable;
+
+    move-result-object v1
+
+    invoke-virtual {v0, v1}, Landroid/widget/LinearLayout;->setBackground(Landroid/graphics/drawable/Drawable;)V
+
+    return-object v0
+.end method
+
+.method private checkForUpdate()V
+    .locals 2
+
+    .line 110
+    iget-boolean v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateBusy:Z
+
+    if-eqz v0, :cond_0
+
+    return-void
+
+    :cond_0
+    const/4 v0, 0x1
+
+    .line 111
+    iput-boolean v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateBusy:Z
+
+    .line 112
+    iget-object v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateBtn:Landroid/widget/Button;
+
+    const/4 v1, 0x0
+
+    invoke-virtual {v0, v1}, Landroid/widget/Button;->setEnabled(Z)V
+
+    .line 113
+    iget-object v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateStatus:Landroid/widget/TextView;
+
+    const-string v1, "\u6700\u65b0\u7248\u3092\u78ba\u8a8d\u4e2d\u2026"
+
+    invoke-virtual {v0, v1}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    .line 114
+    new-instance v0, Ljava/lang/Thread;
+
+    new-instance v1, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda0;
+
+    invoke-direct {v1, p0}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda0;-><init>(Lcom/konchan/chappyfx/SettingsActivity;)V
+
+    invoke-direct {v0, v1}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
+
+    .line 168
+    invoke-virtual {v0}, Ljava/lang/Thread;->start()V
+
+    return-void
+.end method
+
+.method private confirmReset()V
+    .locals 3
+
+    .line 290
+    new-instance v0, Landroid/app/AlertDialog$Builder;
+
+    invoke-direct {v0, p0}, Landroid/app/AlertDialog$Builder;-><init>(Landroid/content/Context;)V
+
+    const-string v1, "\u30c7\u30e2\u53e3\u5ea7\u3092\u30ea\u30bb\u30c3\u30c8\u3057\u307e\u3059\u304b\uff1f"
+
+    .line 291
+    invoke-virtual {v0, v1}, Landroid/app/AlertDialog$Builder;->setTitle(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
+
+    move-result-object v0
+
+    const-string v1, "\u3053\u306e\u30dc\u30bf\u30f3\u3092\u62bc\u3057\u305f\u3060\u3051\u3067\u306f\u30ea\u30bb\u30c3\u30c8\u3055\u308c\u307e\u305b\u3093\u3002\n\n\u6b8b\u9ad8\u30fb\u52dd\u6557\u30fb\u53d6\u5f15\u5c65\u6b74\u30fb\u30c1\u30e3\u30c3\u30d4\u30fc\u306e\u691c\u8a3c\u30c7\u30fc\u30bf\u3092\u6d88\u3057\u3066\u3001\u30c7\u30e2\u8cc7\u91d110\u4e07\u5186\u304b\u3089\u3084\u308a\u76f4\u3057\u307e\u3059\u3002"
+
+    .line 292
+    invoke-virtual {v0, v1}, Landroid/app/AlertDialog$Builder;->setMessage(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
+
+    move-result-object v0
+
+    const-string v1, "\u30ad\u30e3\u30f3\u30bb\u30eb"
+
+    const/4 v2, 0x0
+
+    .line 293
+    invoke-virtual {v0, v1, v2}, Landroid/app/AlertDialog$Builder;->setNegativeButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+
+    move-result-object v0
+
+    new-instance v1, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda12;
+
+    invoke-direct {v1, p0}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda12;-><init>(Lcom/konchan/chappyfx/SettingsActivity;)V
+
+    .line 294
+    const-string v2, "\u6b21\u306e\u78ba\u8a8d\u3078"
+
+    invoke-virtual {v0, v2, v1}, Landroid/app/AlertDialog$Builder;->setPositiveButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+
+    move-result-object v0
+
+    .line 295
+    invoke-virtual {v0}, Landroid/app/AlertDialog$Builder;->show()Landroid/app/AlertDialog;
+
+    return-void
+.end method
+
+.method private currentVersion()Ljava/lang/String;
+    .locals 4
+
+    .line 89
+    const-string v0, "--"
+
+    :try_start_0
+    invoke-virtual {p0}, Lcom/konchan/chappyfx/SettingsActivity;->getPackageManager()Landroid/content/pm/PackageManager;
+
+    move-result-object v1
+
+    invoke-virtual {p0}, Lcom/konchan/chappyfx/SettingsActivity;->getPackageName()Ljava/lang/String;
+
+    move-result-object v2
+
+    const/4 v3, 0x0
+
+    invoke-virtual {v1, v2, v3}, Landroid/content/pm/PackageManager;->getPackageInfo(Ljava/lang/String;I)Landroid/content/pm/PackageInfo;
+
+    move-result-object v1
+
+    iget-object v1, v1, Landroid/content/pm/PackageInfo;->versionName:Ljava/lang/String;
+    :try_end_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+
+    if-nez v1, :cond_0
+
+    goto :goto_0
+
+    :cond_0
+    move-object v0, v1
+
+    :catch_0
+    :goto_0
+    return-object v0
+.end method
+
+.method private currentVersionCode()J
+    .locals 3
+
+    .line 98
+    :try_start_0
+    invoke-virtual {p0}, Lcom/konchan/chappyfx/SettingsActivity;->getPackageManager()Landroid/content/pm/PackageManager;
+
+    move-result-object v0
+
+    invoke-virtual {p0}, Lcom/konchan/chappyfx/SettingsActivity;->getPackageName()Ljava/lang/String;
+
+    move-result-object v1
+
+    const/4 v2, 0x0
+
+    invoke-virtual {v0, v1, v2}, Landroid/content/pm/PackageManager;->getPackageInfo(Ljava/lang/String;I)Landroid/content/pm/PackageInfo;
+
+    move-result-object v0
+
+    .line 99
+    sget v1, Landroid/os/Build$VERSION;->SDK_INT:I
+
+    const/16 v2, 0x1c
+
+    if-lt v1, v2, :cond_0
+
+    invoke-virtual {v0}, Landroid/content/pm/PackageInfo;->getLongVersionCode()J
+
+    move-result-wide v0
+
+    goto :goto_0
+
+    :cond_0
+    iget v0, v0, Landroid/content/pm/PackageInfo;->versionCode:I
+    :try_end_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+
+    int-to-long v0, v0
+
+    :goto_0
+    return-wide v0
+
+    :catch_0
+    const-wide/16 v0, 0x0
+
+    return-wide v0
+.end method
+
+.method private downloadAndInstall(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+    .locals 11
+
+    .line 172
+    const-string v0, "no-cache"
+
+    const-string v1, "FX-Souba-Yosou-update.apk"
+
+    .line 0
+    const-string v2, "FX\u76f8\u5834\u4e88\u60f3 Ver "
+
+    .line 172
+    iget-boolean v3, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateBusy:Z
+
+    if-eqz v3, :cond_0
+
+    return-void
+
+    :cond_0
+    const/4 v3, 0x1
+
+    .line 173
+    iput-boolean v3, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateBusy:Z
+
+    .line 174
+    iget-object v3, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateBtn:Landroid/widget/Button;
+
+    const/4 v4, 0x0
+
+    invoke-virtual {v3, v4}, Landroid/widget/Button;->setEnabled(Z)V
+
+    .line 175
+    iget-object v3, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateStatus:Landroid/widget/TextView;
+
+    new-instance v5, Ljava/lang/StringBuilder;
+
+    const-string v6, "Ver "
+
+    invoke-direct {v5, v6}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v5, p3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v5
+
+    const-string v6, " \u3092\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u4e2d\u2026"
+
+    invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v5
+
+    invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v5
+
+    invoke-virtual {v3, v5}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    .line 177
+    :try_start_0
+    sget-object v3, Landroid/os/Environment;->DIRECTORY_DOWNLOADS:Ljava/lang/String;
+
+    invoke-virtual {p0, v3}, Lcom/konchan/chappyfx/SettingsActivity;->getExternalFilesDir(Ljava/lang/String;)Ljava/io/File;
+
+    move-result-object v3
+
+    if-eqz v3, :cond_2
+
+    .line 179
+    new-instance v5, Ljava/io/File;
+
+    invoke-direct {v5, v3, v1}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+
+    .line 180
+    invoke-virtual {v5}, Ljava/io/File;->exists()Z
+
+    move-result v3
+
+    if-eqz v3, :cond_1
+
+    invoke-virtual {v5}, Ljava/io/File;->delete()Z
+
+    .line 182
+    :cond_1
+    new-instance v3, Landroid/app/DownloadManager$Request;
+
+    invoke-static {p1}, Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;
+
+    move-result-object p1
+
+    invoke-direct {v3, p1}, Landroid/app/DownloadManager$Request;-><init>(Landroid/net/Uri;)V
+
+    .line 183
+    const-string p1, "Cache-Control"
+
+    invoke-virtual {v3, p1, v0}, Landroid/app/DownloadManager$Request;->addRequestHeader(Ljava/lang/String;Ljava/lang/String;)Landroid/app/DownloadManager$Request;
+
+    .line 184
+    const-string p1, "Pragma"
+
+    invoke-virtual {v3, p1, v0}, Landroid/app/DownloadManager$Request;->addRequestHeader(Ljava/lang/String;Ljava/lang/String;)Landroid/app/DownloadManager$Request;
+
+    .line 185
+    new-instance p1, Ljava/lang/StringBuilder;
+
+    invoke-direct {p1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {p1, p3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-virtual {v3, p1}, Landroid/app/DownloadManager$Request;->setTitle(Ljava/lang/CharSequence;)Landroid/app/DownloadManager$Request;
+
+    .line 186
+    const-string p1, "\u30a2\u30c3\u30d7\u30c7\u30fc\u30c8\u3092\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u3057\u3066\u3044\u307e\u3059"
+
+    invoke-virtual {v3, p1}, Landroid/app/DownloadManager$Request;->setDescription(Ljava/lang/CharSequence;)Landroid/app/DownloadManager$Request;
+
+    .line 187
+    const-string p1, "application/vnd.android.package-archive"
+
+    invoke-virtual {v3, p1}, Landroid/app/DownloadManager$Request;->setMimeType(Ljava/lang/String;)Landroid/app/DownloadManager$Request;
+
+    .line 188
+    invoke-virtual {v3, v4}, Landroid/app/DownloadManager$Request;->setNotificationVisibility(I)Landroid/app/DownloadManager$Request;
+
+    .line 189
+    sget-object p1, Landroid/os/Environment;->DIRECTORY_DOWNLOADS:Ljava/lang/String;
+
+    invoke-virtual {v3, p0, p1, v1}, Landroid/app/DownloadManager$Request;->setDestinationInExternalFilesDir(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;)Landroid/app/DownloadManager$Request;
+
+    .line 191
+    const-string p1, "download"
+
+    invoke-virtual {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->getSystemService(Ljava/lang/String;)Ljava/lang/Object;
+
+    move-result-object p1
+
+    move-object v6, p1
+
+    check-cast v6, Landroid/app/DownloadManager;
+
+    .line 192
+    invoke-virtual {v6, v3}, Landroid/app/DownloadManager;->enqueue(Landroid/app/DownloadManager$Request;)J
+
+    move-result-wide v7
+
+    .line 193
+    new-instance p1, Ljava/lang/Thread;
+
+    new-instance v0, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda5;
+
+    move-object v4, v0
+
+    move-object v5, p0
+
+    move-object v9, p2
+
+    move-object v10, p3
+
+    invoke-direct/range {v4 .. v10}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda5;-><init>(Lcom/konchan/chappyfx/SettingsActivity;Landroid/app/DownloadManager;JLjava/lang/String;Ljava/lang/String;)V
+
+    invoke-direct {p1, v0}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
+
+    invoke-virtual {p1}, Ljava/lang/Thread;->start()V
+
+    goto :goto_0
+
+    .line 178
+    :cond_2
+    new-instance p1, Ljava/io/IOException;
+
+    const-string p2, "\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u4fdd\u5b58\u5148\u3092\u5229\u7528\u3067\u304d\u307e\u305b\u3093"
+
+    invoke-direct {p1, p2}, Ljava/io/IOException;-><init>(Ljava/lang/String;)V
+
+    throw p1
+    :try_end_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+
+    :catch_0
+    move-exception p1
+
+    .line 195
+    new-instance p2, Ljava/lang/StringBuilder;
+
+    const-string p3, "\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u958b\u59cb\u306b\u5931\u6557\u3057\u307e\u3057\u305f: "
+
+    invoke-direct {p2, p3}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {p1}, Ljava/lang/Exception;->getMessage()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-virtual {p2, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->finishUpdateUi(Ljava/lang/String;)V
+
+    :goto_0
+    return-void
+.end method
+
+.method private dp(I)I
+    .locals 1
+
+    int-to-float p1, p1
+
+    .line 349
+    invoke-virtual {p0}, Lcom/konchan/chappyfx/SettingsActivity;->getResources()Landroid/content/res/Resources;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Landroid/content/res/Resources;->getDisplayMetrics()Landroid/util/DisplayMetrics;
+
+    move-result-object v0
+
+    iget v0, v0, Landroid/util/DisplayMetrics;->density:F
+
+    mul-float/2addr p1, v0
+
+    const/high16 v0, 0x3f000000    # 0.5f
+
+    add-float/2addr p1, v0
+
+    float-to-int p1, p1
+
+    return p1
+.end method
+
+.method private finishUpdateUi(Ljava/lang/String;)V
+    .locals 2
+
+    const/4 v0, 0x0
+
+    .line 275
+    iput-boolean v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateBusy:Z
+
+    .line 276
+    iget-object v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateBtn:Landroid/widget/Button;
+
+    if-eqz v0, :cond_0
+
+    const/4 v1, 0x1
+
+    invoke-virtual {v0, v1}, Landroid/widget/Button;->setEnabled(Z)V
+
+    .line 277
+    :cond_0
+    iget-object v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateStatus:Landroid/widget/TextView;
+
+    if-eqz v0, :cond_1
+
+    invoke-virtual {v0, p1}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    :cond_1
+    return-void
+.end method
+
+.method static synthetic lambda$applySystemBarInsets$18(Landroid/view/View;IIIILandroid/view/View;Landroid/view/WindowInsets;)Landroid/view/WindowInsets;
+    .locals 3
+
+    .line 329
+    sget p5, Landroid/os/Build$VERSION;->SDK_INT:I
+
+    const/16 v0, 0x1e
+
+    if-lt p5, v0, :cond_0
+
+    .line 330
+    invoke-static {}, Landroid/view/WindowInsets$Type;->systemBars()I
+
+    move-result p5
+
+    invoke-static {}, Landroid/view/WindowInsets$Type;->displayCutout()I
+
+    move-result v0
+
+    or-int/2addr p5, v0
+
+    invoke-virtual {p6, p5}, Landroid/view/WindowInsets;->getInsets(I)Landroid/graphics/Insets;
+
+    move-result-object p5
+
+    .line 331
+    iget v0, p5, Landroid/graphics/Insets;->left:I
+
+    iget v1, p5, Landroid/graphics/Insets;->top:I
+
+    iget v2, p5, Landroid/graphics/Insets;->right:I
+
+    iget p5, p5, Landroid/graphics/Insets;->bottom:I
+
+    goto :goto_0
+
+    .line 333
+    :cond_0
+    invoke-virtual {p6}, Landroid/view/WindowInsets;->getSystemWindowInsetLeft()I
+
+    move-result v0
+
+    .line 334
+    invoke-virtual {p6}, Landroid/view/WindowInsets;->getSystemWindowInsetTop()I
+
+    move-result v1
+
+    .line 335
+    invoke-virtual {p6}, Landroid/view/WindowInsets;->getSystemWindowInsetRight()I
+
+    move-result v2
+
+    .line 336
+    invoke-virtual {p6}, Landroid/view/WindowInsets;->getSystemWindowInsetBottom()I
+
+    move-result p5
+
+    :goto_0
+    add-int/2addr p1, v0
+
+    add-int/2addr p2, v1
+
+    add-int/2addr p3, v2
+
+    add-int/2addr p4, p5
+
+    .line 338
+    invoke-virtual {p0, p1, p2, p3, p4}, Landroid/view/View;->setPadding(IIII)V
+
+    return-object p6
+.end method
+
+.method private synthetic lambda$buildUi$0(Landroid/view/View;)V
+    .locals 0
+
+    .line 56
+    invoke-virtual {p0}, Lcom/konchan/chappyfx/SettingsActivity;->finish()V
+
+    return-void
+.end method
+
+.method private synthetic lambda$buildUi$1(Landroid/view/View;)V
+    .locals 0
+
+    .line 62
+    invoke-direct {p0}, Lcom/konchan/chappyfx/SettingsActivity;->openBatterySettings()V
+
+    return-void
+.end method
+
+.method private synthetic lambda$buildUi$2(Landroid/view/View;)V
+    .locals 0
+
+    .line 70
+    invoke-direct {p0}, Lcom/konchan/chappyfx/SettingsActivity;->checkForUpdate()V
+
+    return-void
+.end method
+
+.method private synthetic lambda$buildUi$3(Landroid/view/View;)V
+    .locals 0
+
+    .line 78
+    invoke-direct {p0}, Lcom/konchan/chappyfx/SettingsActivity;->confirmReset()V
+
+    return-void
+.end method
+
+.method private synthetic lambda$checkForUpdate$10()V
+    .locals 9
+
+    const-string v0, "v="
+
+    const-string v1, "\u66f4\u65b0\u60c5\u5831 HTTP "
+
+    const-string v2, "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/latest.json?t="
+
+    const/4 v3, 0x0
+
+    .line 117
+    :try_start_0
+    new-instance v4, Ljava/net/URL;
+
+    new-instance v5, Ljava/lang/StringBuilder;
+
+    invoke-direct {v5, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+
+    move-result-wide v6
+
+    invoke-virtual {v5, v6, v7}, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;
+
+    move-result-object v2
+
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v2
+
+    invoke-direct {v4, v2}, Ljava/net/URL;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v4}, Ljava/net/URL;->openConnection()Ljava/net/URLConnection;
+
+    move-result-object v2
+
+    check-cast v2, Ljava/net/HttpURLConnection;
+    :try_end_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_1
+    .catchall {:try_start_0 .. :try_end_0} :catchall_1
+
+    const/16 v3, 0x2ee0
+
+    .line 118
+    :try_start_1
+    invoke-virtual {v2, v3}, Ljava/net/HttpURLConnection;->setConnectTimeout(I)V
+
+    .line 119
+    invoke-virtual {v2, v3}, Ljava/net/HttpURLConnection;->setReadTimeout(I)V
+
+    const/4 v3, 0x0
+
+    .line 120
+    invoke-virtual {v2, v3}, Ljava/net/HttpURLConnection;->setUseCaches(Z)V
+
+    .line 121
+    const-string v3, "Accept"
+
+    const-string v4, "application/json"
+
+    invoke-virtual {v2, v3, v4}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
+
+    .line 122
+    const-string v3, "Cache-Control"
+
+    const-string v4, "no-cache, no-store, max-age=0"
+
+    invoke-virtual {v2, v3, v4}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
+
+    .line 123
+    const-string v3, "Pragma"
+
+    const-string v4, "no-cache"
+
+    invoke-virtual {v2, v3, v4}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
+
+    const-wide/16 v3, 0x0
+
+    .line 124
+    invoke-virtual {v2, v3, v4}, Ljava/net/HttpURLConnection;->setIfModifiedSince(J)V
+
+    .line 125
+    invoke-virtual {v2}, Ljava/net/HttpURLConnection;->getResponseCode()I
+
+    move-result v3
+
+    const/16 v4, 0xc8
+
+    if-ne v3, v4, :cond_4
+
+    .line 127
+    invoke-virtual {v2}, Ljava/net/HttpURLConnection;->getInputStream()Ljava/io/InputStream;
+
+    move-result-object v1
+
+    invoke-direct {p0, v1}, Lcom/konchan/chappyfx/SettingsActivity;->readText(Ljava/io/InputStream;)Ljava/lang/String;
+
+    move-result-object v1
+
+    .line 128
+    new-instance v3, Lorg/json/JSONObject;
+
+    invoke-direct {v3, v1}, Lorg/json/JSONObject;-><init>(Ljava/lang/String;)V
+
+    .line 129
+    const-string v1, "versionCode"
+
+    invoke-virtual {v3, v1}, Lorg/json/JSONObject;->getLong(Ljava/lang/String;)J
+
+    move-result-wide v4
+
+    .line 130
+    const-string v1, "versionName"
+
+    invoke-virtual {v3, v1}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v1
+
+    .line 131
+    const-string v6, "apkUrl"
+
+    invoke-virtual {v3, v6}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v6
+
+    .line 132
+    const-string v7, "sha256"
+
+    const-string v8, ""
+
+    invoke-virtual {v3, v7, v8}, Lorg/json/JSONObject;->optString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v3
+
+    .line 133
+    invoke-direct {p0}, Lcom/konchan/chappyfx/SettingsActivity;->currentVersionCode()J
+
+    move-result-wide v7
+
+    cmp-long v7, v4, v7
+
+    if-gtz v7, :cond_1
+
+    .line 134
+    new-instance v0, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda13;
+
+    invoke-direct {v0, p0}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda13;-><init>(Lcom/konchan/chappyfx/SettingsActivity;)V
+
+    invoke-virtual {p0, v0}, Lcom/konchan/chappyfx/SettingsActivity;->runOnUiThread(Ljava/lang/Runnable;)V
+    :try_end_1
+    .catch Ljava/lang/Exception; {:try_start_1 .. :try_end_1} :catch_0
+    .catchall {:try_start_1 .. :try_end_1} :catchall_0
+
+    if-eqz v2, :cond_0
+
+    .line 166
+    invoke-virtual {v2}, Ljava/net/HttpURLConnection;->disconnect()V
+
+    :cond_0
+    return-void
+
+    .line 137
+    :cond_1
+    :try_start_2
+    iput-object v6, p0, Lcom/konchan/chappyfx/SettingsActivity;->pendingApkUrl:Ljava/lang/String;
+
+    .line 138
+    iput-object v3, p0, Lcom/konchan/chappyfx/SettingsActivity;->pendingSha256:Ljava/lang/String;
+
+    .line 139
+    iput-object v1, p0, Lcom/konchan/chappyfx/SettingsActivity;->pendingVersion:Ljava/lang/String;
+
+    .line 140
+    invoke-direct {p0}, Lcom/konchan/chappyfx/SettingsActivity;->canInstallPackages()Z
+
+    move-result v7
+
+    if-nez v7, :cond_3
+
+    const/4 v0, 0x1
+
+    .line 141
+    iput-boolean v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->pendingInstallPermission:Z
+
+    .line 142
+    new-instance v0, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda14;
+
+    invoke-direct {v0, p0, v1}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda14;-><init>(Lcom/konchan/chappyfx/SettingsActivity;Ljava/lang/String;)V
+
+    invoke-virtual {p0, v0}, Lcom/konchan/chappyfx/SettingsActivity;->runOnUiThread(Ljava/lang/Runnable;)V
+    :try_end_2
+    .catch Ljava/lang/Exception; {:try_start_2 .. :try_end_2} :catch_0
+    .catchall {:try_start_2 .. :try_end_2} :catchall_0
+
+    if-eqz v2, :cond_2
+
+    .line 166
+    invoke-virtual {v2}, Ljava/net/HttpURLConnection;->disconnect()V
+
+    :cond_2
+    return-void
+
+    .line 155
+    :cond_3
+    :try_start_3
+    new-instance v7, Ljava/lang/StringBuilder;
+
+    invoke-direct {v7, v0}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v7, v4, v5}, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    const-string v4, "&t="
+
+    invoke-virtual {v0, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+
+    move-result-wide v4
+
+    invoke-virtual {v0, v4, v5}, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-direct {p0, v6, v0}, Lcom/konchan/chappyfx/SettingsActivity;->cacheBustedUrl(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v0
+
+    .line 156
+    iput-object v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->pendingApkUrl:Ljava/lang/String;
+
+    .line 157
+    new-instance v4, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda15;
+
+    invoke-direct {v4, p0, v0, v3, v1}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda15;-><init>(Lcom/konchan/chappyfx/SettingsActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+
+    invoke-virtual {p0, v4}, Lcom/konchan/chappyfx/SettingsActivity;->runOnUiThread(Ljava/lang/Runnable;)V
+    :try_end_3
+    .catch Ljava/lang/Exception; {:try_start_3 .. :try_end_3} :catch_0
+    .catchall {:try_start_3 .. :try_end_3} :catchall_0
+
+    if-eqz v2, :cond_6
+
+    .line 166
+    invoke-virtual {v2}, Ljava/net/HttpURLConnection;->disconnect()V
+
+    goto :goto_2
+
+    .line 126
+    :cond_4
+    :try_start_4
+    new-instance v0, Ljava/io/IOException;
+
+    new-instance v4, Ljava/lang/StringBuilder;
+
+    invoke-direct {v4, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v4, v3}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-direct {v0, v1}, Ljava/io/IOException;-><init>(Ljava/lang/String;)V
+
+    throw v0
+    :try_end_4
+    .catch Ljava/lang/Exception; {:try_start_4 .. :try_end_4} :catch_0
+    .catchall {:try_start_4 .. :try_end_4} :catchall_0
+
+    :catchall_0
+    move-exception v0
+
+    move-object v3, v2
+
+    goto :goto_3
+
+    :catch_0
+    move-exception v0
+
+    move-object v3, v2
+
+    goto :goto_0
+
+    :catchall_1
+    move-exception v0
+
+    goto :goto_3
+
+    :catch_1
+    move-exception v0
+
+    .line 163
+    :goto_0
+    :try_start_5
+    invoke-virtual {v0}, Ljava/lang/Exception;->getMessage()Ljava/lang/String;
+
+    move-result-object v1
+
+    if-nez v1, :cond_5
+
+    invoke-virtual {v0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Ljava/lang/Class;->getSimpleName()Ljava/lang/String;
+
+    move-result-object v0
+
+    goto :goto_1
+
+    :cond_5
+    invoke-virtual {v0}, Ljava/lang/Exception;->getMessage()Ljava/lang/String;
+
+    move-result-object v0
+
+    .line 164
+    :goto_1
+    new-instance v1, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda16;
+
+    invoke-direct {v1, p0, v0}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda16;-><init>(Lcom/konchan/chappyfx/SettingsActivity;Ljava/lang/String;)V
+
+    invoke-virtual {p0, v1}, Lcom/konchan/chappyfx/SettingsActivity;->runOnUiThread(Ljava/lang/Runnable;)V
+    :try_end_5
+    .catchall {:try_start_5 .. :try_end_5} :catchall_1
+
+    if-eqz v3, :cond_6
+
+    .line 166
+    invoke-virtual {v3}, Ljava/net/HttpURLConnection;->disconnect()V
+
+    :cond_6
+    :goto_2
+    return-void
+
+    :goto_3
+    if-eqz v3, :cond_7
+
+    invoke-virtual {v3}, Ljava/net/HttpURLConnection;->disconnect()V
+
+    .line 167
+    :cond_7
+    throw v0
+.end method
+
+.method private synthetic lambda$checkForUpdate$4()V
+    .locals 2
+
+    .line 134
+    new-instance v0, Ljava/lang/StringBuilder;
+
+    const-string v1, "\u73fe\u5728\u306e Ver "
+
+    invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-direct {p0}, Lcom/konchan/chappyfx/SettingsActivity;->currentVersion()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    const-string v1, " \u304c\u6700\u65b0\u7248\u3067\u3059\u3002"
+
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-direct {p0, v0}, Lcom/konchan/chappyfx/SettingsActivity;->finishUpdateUi(Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method private synthetic lambda$checkForUpdate$5(Landroid/content/DialogInterface;I)V
+    .locals 0
+
+    const/4 p1, 0x0
+
+    .line 147
+    iput-boolean p1, p0, Lcom/konchan/chappyfx/SettingsActivity;->pendingInstallPermission:Z
+
+    return-void
+.end method
+
+.method private synthetic lambda$checkForUpdate$6(Landroid/content/DialogInterface;I)V
+    .locals 1
+
+    .line 149
+    new-instance p1, Landroid/content/Intent;
+
+    new-instance p2, Ljava/lang/StringBuilder;
+
+    const-string v0, "package:"
+
+    invoke-direct {p2, v0}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {p0}, Lcom/konchan/chappyfx/SettingsActivity;->getPackageName()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-virtual {p2, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p2
+
+    invoke-virtual {p2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p2
+
+    invoke-static {p2}, Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;
+
+    move-result-object p2
+
+    const-string v0, "android.settings.MANAGE_UNKNOWN_APP_SOURCES"
+
+    invoke-direct {p1, v0, p2}, Landroid/content/Intent;-><init>(Ljava/lang/String;Landroid/net/Uri;)V
+
+    .line 150
+    invoke-virtual {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->startActivity(Landroid/content/Intent;)V
+
+    return-void
+.end method
+
+.method private synthetic lambda$checkForUpdate$7(Ljava/lang/String;)V
+    .locals 2
+
+    .line 143
+    new-instance v0, Ljava/lang/StringBuilder;
+
+    const-string v1, "Ver "
+
+    invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v0, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    const-string v0, " \u304c\u5229\u7528\u3067\u304d\u307e\u3059\u3002\u521d\u56de\u3060\u3051\u300c\u3053\u306e\u63d0\u4f9b\u5143\u306e\u30a2\u30d7\u30ea\u3092\u8a31\u53ef\u300d\u3092ON\u306b\u3057\u3066\u304f\u3060\u3055\u3044\u3002"
+
+    invoke-virtual {p1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->finishUpdateUi(Ljava/lang/String;)V
+
+    .line 144
+    new-instance p1, Landroid/app/AlertDialog$Builder;
+
+    invoke-direct {p1, p0}, Landroid/app/AlertDialog$Builder;-><init>(Landroid/content/Context;)V
+
+    const-string v0, "\u66f4\u65b0\u306e\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u8a31\u53ef"
+
+    .line 145
+    invoke-virtual {p1, v0}, Landroid/app/AlertDialog$Builder;->setTitle(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
+
+    move-result-object p1
+
+    const-string v0, "\u30a2\u30c3\u30d7\u30c7\u30fc\u30c8APK\u3092\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u3059\u308b\u305f\u3081\u3001\u521d\u56de\u3060\u3051FX\u76f8\u5834\u4e88\u60f3\u306b\u300c\u4e0d\u660e\u306a\u30a2\u30d7\u30ea\u306e\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u300d\u3092\u8a31\u53ef\u3059\u308b\u5fc5\u8981\u304c\u3042\u308a\u307e\u3059\u3002\u8a2d\u5b9a\u5f8c\u3001\u3053\u306e\u753b\u9762\u3078\u623b\u308b\u3068\u66f4\u65b0\u3092\u7d9a\u3051\u307e\u3059\u3002"
+
+    .line 146
+    invoke-virtual {p1, v0}, Landroid/app/AlertDialog$Builder;->setMessage(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
+
+    move-result-object p1
+
+    new-instance v0, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda10;
+
+    invoke-direct {v0, p0}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda10;-><init>(Lcom/konchan/chappyfx/SettingsActivity;)V
+
+    .line 147
+    const-string v1, "\u30ad\u30e3\u30f3\u30bb\u30eb"
+
+    invoke-virtual {p1, v1, v0}, Landroid/app/AlertDialog$Builder;->setNegativeButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+
+    move-result-object p1
+
+    new-instance v0, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda11;
+
+    invoke-direct {v0, p0}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda11;-><init>(Lcom/konchan/chappyfx/SettingsActivity;)V
+
+    .line 148
+    const-string v1, "\u8a2d\u5b9a\u3092\u958b\u304f"
+
+    invoke-virtual {p1, v1, v0}, Landroid/app/AlertDialog$Builder;->setPositiveButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+
+    move-result-object p1
+
+    .line 151
+    invoke-virtual {p1}, Landroid/app/AlertDialog$Builder;->show()Landroid/app/AlertDialog;
+
+    return-void
+.end method
+
+.method private synthetic lambda$checkForUpdate$8(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+    .locals 2
+
+    const/4 v0, 0x0
+
+    .line 158
+    iput-boolean v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateBusy:Z
+
+    .line 159
+    iget-object v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateBtn:Landroid/widget/Button;
+
+    const/4 v1, 0x1
+
+    invoke-virtual {v0, v1}, Landroid/widget/Button;->setEnabled(Z)V
+
+    .line 160
+    invoke-direct {p0, p1, p2, p3}, Lcom/konchan/chappyfx/SettingsActivity;->downloadAndInstall(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method private synthetic lambda$checkForUpdate$9(Ljava/lang/String;)V
+    .locals 2
+
+    .line 164
+    new-instance v0, Ljava/lang/StringBuilder;
+
+    const-string v1, "\u66f4\u65b0\u78ba\u8a8d\u306b\u5931\u6557\u3057\u307e\u3057\u305f: "
+
+    invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v0, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->finishUpdateUi(Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method private synthetic lambda$confirmReset$14(Landroid/content/DialogInterface;I)V
+    .locals 0
+
+    .line 294
+    invoke-direct {p0}, Lcom/konchan/chappyfx/SettingsActivity;->showFinalResetConfirmation()V
+
+    return-void
+.end method
+
+.method private synthetic lambda$downloadAndInstall$11(Landroid/app/DownloadManager;JLjava/lang/String;Ljava/lang/String;)V
+    .locals 0
+
+    .line 193
+    invoke-direct/range {p0 .. p5}, Lcom/konchan/chappyfx/SettingsActivity;->waitForDownload(Landroid/app/DownloadManager;JLjava/lang/String;Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method static synthetic lambda$showFinalResetConfirmation$15(Landroid/app/AlertDialog;Landroid/widget/Button;)V
+    .locals 0
+
+    .line 310
+    invoke-virtual {p0}, Landroid/app/AlertDialog;->isShowing()Z
+
+    move-result p0
+
+    if-eqz p0, :cond_0
+
+    const/4 p0, 0x1
+
+    invoke-virtual {p1, p0}, Landroid/widget/Button;->setEnabled(Z)V
+
+    :cond_0
+    return-void
+.end method
+
+.method private synthetic lambda$showFinalResetConfirmation$16(Landroid/app/AlertDialog;Landroid/view/View;)V
+    .locals 1
+
+    .line 313
+    iget-object p2, p0, Lcom/konchan/chappyfx/SettingsActivity;->store:Lcom/konchan/chappyfx/DemoStore;
+
+    invoke-virtual {p2}, Lcom/konchan/chappyfx/DemoStore;->isRunning()Z
+
+    move-result p2
+
+    .line 314
+    iget-object v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->store:Lcom/konchan/chappyfx/DemoStore;
+
+    invoke-virtual {v0}, Lcom/konchan/chappyfx/DemoStore;->reset()V
+
+    if-eqz p2, :cond_0
+
+    .line 315
+    iget-object p2, p0, Lcom/konchan/chappyfx/SettingsActivity;->store:Lcom/konchan/chappyfx/DemoStore;
+
+    const/4 v0, 0x1
+
+    invoke-virtual {p2, v0}, Lcom/konchan/chappyfx/DemoStore;->setRunning(Z)V
+
+    .line 316
+    :cond_0
+    const-string p2, "\u30c7\u30e2\u53e3\u5ea7\u309210\u4e07\u5186\u306b\u30ea\u30bb\u30c3\u30c8\u3057\u307e\u3057\u305f"
+
+    const/4 v0, 0x0
+
+    invoke-static {p0, p2, v0}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
+
+    move-result-object p2
+
+    invoke-virtual {p2}, Landroid/widget/Toast;->show()V
+
+    .line 317
+    invoke-virtual {p1}, Landroid/app/AlertDialog;->dismiss()V
+
+    return-void
+.end method
+
+.method private synthetic lambda$showFinalResetConfirmation$17(Landroid/app/AlertDialog;Landroid/content/DialogInterface;)V
+    .locals 4
+
+    const/4 p2, -0x1
+
+    .line 306
+    invoke-virtual {p1, p2}, Landroid/app/AlertDialog;->getButton(I)Landroid/widget/Button;
+
+    move-result-object p2
+
+    .line 307
+    iget v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->DOWN:I
+
+    invoke-virtual {p2, v0}, Landroid/widget/Button;->setTextColor(I)V
+
+    const/4 v0, 0x0
+
+    .line 308
+    invoke-virtual {p2, v0}, Landroid/widget/Button;->setEnabled(Z)V
+
+    .line 309
+    new-instance v0, Landroid/os/Handler;
+
+    invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
+
+    move-result-object v1
+
+    invoke-direct {v0, v1}, Landroid/os/Handler;-><init>(Landroid/os/Looper;)V
+
+    new-instance v1, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda3;
+
+    invoke-direct {v1, p1, p2}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda3;-><init>(Landroid/app/AlertDialog;Landroid/widget/Button;)V
+
+    const-wide/16 v2, 0x4b0
+
+    invoke-virtual {v0, v1, v2, v3}, Landroid/os/Handler;->postDelayed(Ljava/lang/Runnable;J)Z
+
+    .line 312
+    new-instance v0, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda4;
+
+    invoke-direct {v0, p0, p1}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda4;-><init>(Lcom/konchan/chappyfx/SettingsActivity;Landroid/app/AlertDialog;)V
+
+    invoke-virtual {p2, v0}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    return-void
+.end method
+
+.method private synthetic lambda$waitForDownload$12(Ljava/lang/String;Landroid/net/Uri;)V
+    .locals 3
+
+    const/4 v0, 0x0
+
+    .line 219
+    iput-boolean v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateBusy:Z
+
+    .line 220
+    iget-object v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateBtn:Landroid/widget/Button;
+
+    const/4 v1, 0x1
+
+    invoke-virtual {v0, v1}, Landroid/widget/Button;->setEnabled(Z)V
+
+    .line 221
+    iget-object v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->updateStatus:Landroid/widget/TextView;
+
+    new-instance v1, Ljava/lang/StringBuilder;
+
+    const-string v2, "Ver "
+
+    invoke-direct {v1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v1, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    const-string v1, " \u306e\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u5b8c\u4e86\u3002Android\u306e\u66f4\u65b0\u78ba\u8a8d\u3092\u958b\u304d\u307e\u3059\u3002"
+
+    invoke-virtual {p1, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-virtual {v0, p1}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    .line 222
+    invoke-direct {p0, p2}, Lcom/konchan/chappyfx/SettingsActivity;->openInstaller(Landroid/net/Uri;)V
+
+    return-void
+.end method
+
+.method private synthetic lambda$waitForDownload$13(Ljava/lang/String;)V
+    .locals 2
+
+    .line 237
+    new-instance v0, Ljava/lang/StringBuilder;
+
+    const-string v1, "\u66f4\u65b0\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u306b\u5931\u6557\u3057\u307e\u3057\u305f: "
+
+    invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v0, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->finishUpdateUi(Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method private lp(IIIIIII)Landroid/widget/LinearLayout$LayoutParams;
+    .locals 1
+
+    .line 348
+    new-instance v0, Landroid/widget/LinearLayout$LayoutParams;
+
+    int-to-float p7, p7
+
+    invoke-direct {v0, p1, p2, p7}, Landroid/widget/LinearLayout$LayoutParams;-><init>(IIF)V
+
+    invoke-direct {p0, p3}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result p1
+
+    invoke-direct {p0, p4}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result p2
+
+    invoke-direct {p0, p5}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result p3
+
+    invoke-direct {p0, p6}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result p4
+
+    invoke-virtual {v0, p1, p2, p3, p4}, Landroid/widget/LinearLayout$LayoutParams;->setMargins(IIII)V
+
+    return-object v0
+.end method
+
+.method private makeBg(II)Landroid/graphics/drawable/Drawable;
+    .locals 3
+
+    .line 347
+    new-instance v0, Landroid/graphics/drawable/GradientDrawable;
+
+    invoke-direct {v0}, Landroid/graphics/drawable/GradientDrawable;-><init>()V
+
+    invoke-virtual {v0, p1}, Landroid/graphics/drawable/GradientDrawable;->setColor(I)V
+
+    int-to-float p1, p2
+
+    invoke-virtual {v0, p1}, Landroid/graphics/drawable/GradientDrawable;->setCornerRadius(F)V
+
+    const/4 p1, 0x1
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->dp(I)I
+
+    move-result p1
+
+    const/16 p2, 0x3a
+
+    const/16 v1, 0x49
+
+    const/16 v2, 0x2b
+
+    invoke-static {v2, p2, v1}, Landroid/graphics/Color;->rgb(III)I
+
+    move-result p2
+
+    invoke-virtual {v0, p1, p2}, Landroid/graphics/drawable/GradientDrawable;->setStroke(II)V
+
+    return-object v0
+.end method
+
+.method private openBatterySettings()V
+    .locals 3
+
+    .line 282
+    :try_start_0
+    new-instance v0, Landroid/content/Intent;
+
+    const-string v1, "android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS"
+
+    invoke-direct {v0, v1}, Landroid/content/Intent;-><init>(Ljava/lang/String;)V
+
+    .line 283
+    invoke-virtual {p0, v0}, Lcom/konchan/chappyfx/SettingsActivity;->startActivity(Landroid/content/Intent;)V
+    :try_end_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+
+    goto :goto_0
+
+    .line 285
+    :catch_0
+    new-instance v0, Landroid/content/Intent;
+
+    new-instance v1, Ljava/lang/StringBuilder;
+
+    const-string v2, "package:"
+
+    invoke-direct {v1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {p0}, Lcom/konchan/chappyfx/SettingsActivity;->getPackageName()Ljava/lang/String;
+
+    move-result-object v2
+
+    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-static {v1}, Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;
+
+    move-result-object v1
+
+    const-string v2, "android.settings.APPLICATION_DETAILS_SETTINGS"
+
+    invoke-direct {v0, v2, v1}, Landroid/content/Intent;-><init>(Ljava/lang/String;Landroid/net/Uri;)V
+
+    invoke-virtual {p0, v0}, Lcom/konchan/chappyfx/SettingsActivity;->startActivity(Landroid/content/Intent;)V
+
+    :goto_0
+    return-void
+.end method
+
+.method private openInstaller(Landroid/net/Uri;)V
+    .locals 2
+
+    .line 243
+    :try_start_0
+    new-instance v0, Landroid/content/Intent;
+
+    const-string v1, "android.intent.action.VIEW"
+
+    invoke-direct {v0, v1}, Landroid/content/Intent;-><init>(Ljava/lang/String;)V
+
+    .line 244
+    const-string v1, "application/vnd.android.package-archive"
+
+    invoke-virtual {v0, p1, v1}, Landroid/content/Intent;->setDataAndType(Landroid/net/Uri;Ljava/lang/String;)Landroid/content/Intent;
+
+    const p1, 0x10000001
+
+    .line 245
+    invoke-virtual {v0, p1}, Landroid/content/Intent;->addFlags(I)Landroid/content/Intent;
+
+    .line 246
+    invoke-virtual {p0, v0}, Lcom/konchan/chappyfx/SettingsActivity;->startActivity(Landroid/content/Intent;)V
+    :try_end_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+
+    goto :goto_0
+
+    :catch_0
+    move-exception p1
+
+    .line 248
+    new-instance v0, Ljava/lang/StringBuilder;
+
+    const-string v1, "Android\u306e\u66f4\u65b0\u753b\u9762\u3092\u958b\u3051\u307e\u305b\u3093\u3067\u3057\u305f: "
+
+    invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {p1}, Ljava/lang/Exception;->getMessage()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-virtual {v0, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->finishUpdateUi(Ljava/lang/String;)V
+
+    :goto_0
+    return-void
+.end method
+
+.method private readText(Ljava/io/InputStream;)Ljava/lang/String;
+    .locals 4
+    .annotation system Ldalvik/annotation/Throws;
+        value = {
+            Ljava/io/IOException;
+        }
+    .end annotation
+
+    .line 266
+    :try_start_0
+    new-instance v0, Ljava/io/ByteArrayOutputStream;
+
+    invoke-direct {v0}, Ljava/io/ByteArrayOutputStream;-><init>()V
+    :try_end_0
+    .catchall {:try_start_0 .. :try_end_0} :catchall_2
+
+    const/16 v1, 0x1000
+
+    .line 267
+    :try_start_1
+    new-array v1, v1, [B
+
+    .line 269
+    :goto_0
+    invoke-virtual {p1, v1}, Ljava/io/InputStream;->read([B)I
+
+    move-result v2
+
+    if-lez v2, :cond_0
+
+    const/4 v3, 0x0
+
+    invoke-virtual {v0, v1, v3, v2}, Ljava/io/ByteArrayOutputStream;->write([BII)V
+
+    goto :goto_0
+
+    .line 270
+    :cond_0
+    sget-object v1, Ljava/nio/charset/StandardCharsets;->UTF_8:Ljava/nio/charset/Charset;
+
+    invoke-virtual {v1}, Ljava/nio/charset/Charset;->name()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-virtual {v0, v1}, Ljava/io/ByteArrayOutputStream;->toString(Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v1
+    :try_end_1
+    .catchall {:try_start_1 .. :try_end_1} :catchall_0
+
+    .line 271
+    :try_start_2
+    invoke-virtual {v0}, Ljava/io/ByteArrayOutputStream;->close()V
+    :try_end_2
+    .catchall {:try_start_2 .. :try_end_2} :catchall_2
+
+    if-eqz p1, :cond_1
+
+    invoke-virtual {p1}, Ljava/io/InputStream;->close()V
+
+    :cond_1
+    return-object v1
+
+    :catchall_0
+    move-exception v1
+
+    .line 266
+    :try_start_3
+    invoke-virtual {v0}, Ljava/io/ByteArrayOutputStream;->close()V
+    :try_end_3
+    .catchall {:try_start_3 .. :try_end_3} :catchall_1
+
+    goto :goto_1
+
+    :catchall_1
+    move-exception v0
+
+    :try_start_4
+    invoke-virtual {v1, v0}, Ljava/lang/Throwable;->addSuppressed(Ljava/lang/Throwable;)V
+
+    :goto_1
+    throw v1
+    :try_end_4
+    .catchall {:try_start_4 .. :try_end_4} :catchall_2
+
+    :catchall_2
+    move-exception v0
+
+    if-eqz p1, :cond_2
+
+    :try_start_5
+    invoke-virtual {p1}, Ljava/io/InputStream;->close()V
+    :try_end_5
+    .catchall {:try_start_5 .. :try_end_5} :catchall_3
+
+    goto :goto_2
+
+    :catchall_3
+    move-exception p1
+
+    invoke-virtual {v0, p1}, Ljava/lang/Throwable;->addSuppressed(Ljava/lang/Throwable;)V
+
+    :cond_2
+    :goto_2
+    throw v0
+.end method
+
+.method private sha256(Landroid/net/Uri;)Ljava/lang/String;
+    .locals 6
+    .annotation system Ldalvik/annotation/Throws;
+        value = {
+            Ljava/lang/Exception;
+        }
+    .end annotation
+
+    .line 253
+    const-string v0, "SHA-256"
+
+    invoke-static {v0}, Ljava/security/MessageDigest;->getInstance(Ljava/lang/String;)Ljava/security/MessageDigest;
+
+    move-result-object v0
+
+    .line 254
+    invoke-virtual {p0}, Lcom/konchan/chappyfx/SettingsActivity;->getContentResolver()Landroid/content/ContentResolver;
+
+    move-result-object v1
+
+    invoke-virtual {v1, p1}, Landroid/content/ContentResolver;->openInputStream(Landroid/net/Uri;)Ljava/io/InputStream;
+
+    move-result-object p1
+
+    if-eqz p1, :cond_3
+
+    const/16 v1, 0x2000
+
+    .line 256
+    :try_start_0
+    new-array v1, v1, [B
+
+    .line 258
+    :goto_0
+    invoke-virtual {p1, v1}, Ljava/io/InputStream;->read([B)I
+
+    move-result v2
+
+    const/4 v3, 0x0
+
+    if-lez v2, :cond_0
+
+    invoke-virtual {v0, v1, v3, v2}, Ljava/security/MessageDigest;->update([BII)V
+    :try_end_0
+    .catchall {:try_start_0 .. :try_end_0} :catchall_0
+
+    goto :goto_0
+
+    :cond_0
+    if-eqz p1, :cond_1
+
+    .line 259
+    invoke-virtual {p1}, Ljava/io/InputStream;->close()V
+
+    .line 260
+    :cond_1
+    new-instance p1, Ljava/lang/StringBuilder;
+
+    invoke-direct {p1}, Ljava/lang/StringBuilder;-><init>()V
+
+    .line 261
+    invoke-virtual {v0}, Ljava/security/MessageDigest;->digest()[B
+
+    move-result-object v0
+
+    array-length v1, v0
+
+    :goto_1
+    if-ge v3, v1, :cond_2
+
+    aget-byte v2, v0, v3
+
+    sget-object v4, Ljava/util/Locale;->US:Ljava/util/Locale;
+
+    invoke-static {v2}, Ljava/lang/Byte;->valueOf(B)Ljava/lang/Byte;
+
+    move-result-object v2
+
+    filled-new-array {v2}, [Ljava/lang/Object;
+
+    move-result-object v2
+
+    const-string v5, "%02x"
+
+    invoke-static {v4, v5, v2}, Ljava/lang/String;->format(Ljava/util/Locale;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
+
+    move-result-object v2
+
+    invoke-virtual {p1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    add-int/lit8 v3, v3, 0x1
+
+    goto :goto_1
+
+    .line 262
+    :cond_2
+    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p1
+
+    return-object p1
+
+    :catchall_0
+    move-exception v0
+
+    goto :goto_2
+
+    .line 255
+    :cond_3
+    :try_start_1
+    new-instance v0, Ljava/io/IOException;
+
+    const-string v1, "APK\u3092\u8aad\u307f\u8fbc\u3081\u307e\u305b\u3093"
+
+    invoke-direct {v0, v1}, Ljava/io/IOException;-><init>(Ljava/lang/String;)V
+
+    throw v0
+    :try_end_1
+    .catchall {:try_start_1 .. :try_end_1} :catchall_0
+
+    :goto_2
+    if-eqz p1, :cond_4
+
+    .line 254
+    :try_start_2
+    invoke-virtual {p1}, Ljava/io/InputStream;->close()V
+    :try_end_2
+    .catchall {:try_start_2 .. :try_end_2} :catchall_1
+
+    goto :goto_3
+
+    :catchall_1
+    move-exception p1
+
+    invoke-virtual {v0, p1}, Ljava/lang/Throwable;->addSuppressed(Ljava/lang/Throwable;)V
+
+    :cond_4
+    :goto_3
+    throw v0
+.end method
+
+.method private showFinalResetConfirmation()V
+    .locals 3
+
+    .line 299
+    new-instance v0, Landroid/app/AlertDialog$Builder;
+
+    invoke-direct {v0, p0}, Landroid/app/AlertDialog$Builder;-><init>(Landroid/content/Context;)V
+
+    const-string v1, "\u6700\u7d42\u78ba\u8a8d"
+
+    .line 300
+    invoke-virtual {v0, v1}, Landroid/app/AlertDialog$Builder;->setTitle(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
+
+    move-result-object v0
+
+    const-string v1, "\u672c\u5f53\u306b\u30c7\u30e2\u53e3\u5ea7\u3092\u30ea\u30bb\u30c3\u30c8\u3057\u307e\u3059\u304b\uff1f\n\n\u3053\u306e\u64cd\u4f5c\u306f\u5143\u306b\u623b\u305b\u307e\u305b\u3093\u3002\n\u9593\u9055\u3048\u3066\u958b\u3044\u305f\u5834\u5408\u306f\u300c\u30ad\u30e3\u30f3\u30bb\u30eb\u300d\u3092\u62bc\u3057\u3066\u304f\u3060\u3055\u3044\u3002"
+
+    .line 301
+    invoke-virtual {v0, v1}, Landroid/app/AlertDialog$Builder;->setMessage(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
+
+    move-result-object v0
+
+    .line 302
+    const-string v1, "\u30ad\u30e3\u30f3\u30bb\u30eb"
+
+    const/4 v2, 0x0
+
+    invoke-virtual {v0, v1, v2}, Landroid/app/AlertDialog$Builder;->setNegativeButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+
+    move-result-object v0
+
+    const-string v1, "\u672c\u5f53\u306b\u30ea\u30bb\u30c3\u30c8\u3059\u308b"
+
+    .line 303
+    invoke-virtual {v0, v1, v2}, Landroid/app/AlertDialog$Builder;->setPositiveButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+
+    move-result-object v0
+
+    .line 304
+    invoke-virtual {v0}, Landroid/app/AlertDialog$Builder;->create()Landroid/app/AlertDialog;
+
+    move-result-object v0
+
+    .line 305
+    new-instance v1, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda9;
+
+    invoke-direct {v1, p0, v0}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda9;-><init>(Lcom/konchan/chappyfx/SettingsActivity;Landroid/app/AlertDialog;)V
+
+    invoke-virtual {v0, v1}, Landroid/app/AlertDialog;->setOnShowListener(Landroid/content/DialogInterface$OnShowListener;)V
+
+    .line 320
+    invoke-virtual {v0}, Landroid/app/AlertDialog;->show()V
+
+    return-void
+.end method
+
+.method private txt(Ljava/lang/String;IIZ)Landroid/widget/TextView;
+    .locals 1
+
+    .line 346
+    new-instance v0, Landroid/widget/TextView;
+
+    invoke-direct {v0, p0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
+
+    invoke-virtual {v0, p1}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    int-to-float p1, p2
+
+    invoke-virtual {v0, p1}, Landroid/widget/TextView;->setTextSize(F)V
+
+    invoke-virtual {v0, p3}, Landroid/widget/TextView;->setTextColor(I)V
+
+    if-eqz p4, :cond_0
+
+    sget-object p1, Landroid/graphics/Typeface;->DEFAULT:Landroid/graphics/Typeface;
+
+    const/4 p2, 0x1
+
+    invoke-virtual {v0, p1, p2}, Landroid/widget/TextView;->setTypeface(Landroid/graphics/Typeface;I)V
+
+    :cond_0
+    return-object v0
+.end method
+
+.method private waitForDownload(Landroid/app/DownloadManager;JLjava/lang/String;Ljava/lang/String;)V
+    .locals 5
+
+    const/4 v0, 0x0
+
+    move v1, v0
+
+    :goto_0
+    const/16 v2, 0xf0
+
+    if-ge v1, v2, :cond_9
+
+    .line 207
+    :try_start_0
+    new-instance v2, Landroid/app/DownloadManager$Query;
+
+    invoke-direct {v2}, Landroid/app/DownloadManager$Query;-><init>()V
+
+    const/4 v3, 0x1
+
+    new-array v3, v3, [J
+
+    aput-wide p2, v3, v0
+
+    invoke-virtual {v2, v3}, Landroid/app/DownloadManager$Query;->setFilterById([J)Landroid/app/DownloadManager$Query;
+
+    move-result-object v2
+
+    .line 208
+    invoke-virtual {p1, v2}, Landroid/app/DownloadManager;->query(Landroid/app/DownloadManager$Query;)Landroid/database/Cursor;
+
+    move-result-object v2
+    :try_end_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+
+    if-eqz v2, :cond_7
+
+    .line 209
+    :try_start_1
+    invoke-interface {v2}, Landroid/database/Cursor;->moveToFirst()Z
+
+    move-result v3
+
+    if-eqz v3, :cond_7
+
+    .line 210
+    const-string v3, "status"
+
+    invoke-interface {v2, v3}, Landroid/database/Cursor;->getColumnIndexOrThrow(Ljava/lang/String;)I
+
+    move-result v3
+
+    invoke-interface {v2, v3}, Landroid/database/Cursor;->getInt(I)I
+
+    move-result v3
+
+    const/16 v4, 0x8
+
+    if-ne v3, v4, :cond_4
+
+    .line 212
+    invoke-virtual {p1, p2, p3}, Landroid/app/DownloadManager;->getUriForDownloadedFile(J)Landroid/net/Uri;
+
+    move-result-object p1
+
+    if-eqz p1, :cond_3
+
+    if-eqz p4, :cond_1
+
+    .line 214
+    invoke-virtual {p4}, Ljava/lang/String;->isEmpty()Z
+
+    move-result p2
+
+    if-nez p2, :cond_1
+
+    .line 215
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/SettingsActivity;->sha256(Landroid/net/Uri;)Ljava/lang/String;
+
+    move-result-object p2
+
+    .line 216
+    invoke-virtual {p4, p2}, Ljava/lang/String;->equalsIgnoreCase(Ljava/lang/String;)Z
+
+    move-result p2
+
+    if-eqz p2, :cond_0
+
+    goto :goto_1
+
+    :cond_0
+    new-instance p1, Ljava/lang/SecurityException;
+
+    const-string p2, "APK\u306eSHA-256\u304c\u4e00\u81f4\u3057\u307e\u305b\u3093"
+
+    invoke-direct {p1, p2}, Ljava/lang/SecurityException;-><init>(Ljava/lang/String;)V
+
+    throw p1
+
+    .line 218
+    :cond_1
+    :goto_1
+    new-instance p2, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda6;
+
+    invoke-direct {p2, p0, p5, p1}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda6;-><init>(Lcom/konchan/chappyfx/SettingsActivity;Ljava/lang/String;Landroid/net/Uri;)V
+
+    invoke-virtual {p0, p2}, Lcom/konchan/chappyfx/SettingsActivity;->runOnUiThread(Ljava/lang/Runnable;)V
+    :try_end_1
+    .catchall {:try_start_1 .. :try_end_1} :catchall_0
+
+    if-eqz v2, :cond_2
+
+    .line 231
+    :try_start_2
+    invoke-interface {v2}, Landroid/database/Cursor;->close()V
+    :try_end_2
+    .catch Ljava/lang/Exception; {:try_start_2 .. :try_end_2} :catch_0
+
+    :cond_2
+    return-void
+
+    .line 213
+    :cond_3
+    :try_start_3
+    new-instance p1, Ljava/io/IOException;
+
+    const-string p2, "\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u6e08\u307fAPK\u3092\u958b\u3051\u307e\u305b\u3093"
+
+    invoke-direct {p1, p2}, Ljava/io/IOException;-><init>(Ljava/lang/String;)V
+
+    throw p1
+
+    :cond_4
+    const/16 v4, 0x10
+
+    if-eq v3, v4, :cond_5
+
+    goto :goto_3
+
+    .line 227
+    :cond_5
+    const-string p1, "reason"
+
+    invoke-interface {v2, p1}, Landroid/database/Cursor;->getColumnIndexOrThrow(Ljava/lang/String;)I
+
+    move-result p1
+
+    invoke-interface {v2, p1}, Landroid/database/Cursor;->getInt(I)I
+
+    move-result p1
+
+    .line 228
+    new-instance p2, Ljava/io/IOException;
+
+    new-instance p3, Ljava/lang/StringBuilder;
+
+    invoke-direct {p3}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string p4, "\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u5931\u6557 code="
+
+    invoke-virtual {p3, p4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p3
+
+    invoke-virtual {p3, p1}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-direct {p2, p1}, Ljava/io/IOException;-><init>(Ljava/lang/String;)V
+
+    throw p2
+    :try_end_3
+    .catchall {:try_start_3 .. :try_end_3} :catchall_0
+
+    :catchall_0
+    move-exception p1
+
+    if-eqz v2, :cond_6
+
+    .line 208
+    :try_start_4
+    invoke-interface {v2}, Landroid/database/Cursor;->close()V
+    :try_end_4
+    .catchall {:try_start_4 .. :try_end_4} :catchall_1
+
+    goto :goto_2
+
+    :catchall_1
+    move-exception p2
+
+    :try_start_5
+    invoke-virtual {p1, p2}, Ljava/lang/Throwable;->addSuppressed(Ljava/lang/Throwable;)V
+
+    :cond_6
+    :goto_2
+    throw p1
+
+    :cond_7
+    :goto_3
+    if-eqz v2, :cond_8
+
+    .line 231
+    invoke-interface {v2}, Landroid/database/Cursor;->close()V
+
+    :cond_8
+    const-wide/16 v2, 0x1f4
+
+    .line 232
+    invoke-static {v2, v3}, Ljava/lang/Thread;->sleep(J)V
+
+    add-int/lit8 v1, v1, 0x1
+
+    goto/16 :goto_0
+
+    .line 234
+    :cond_9
+    new-instance p1, Ljava/io/IOException;
+
+    const-string p2, "\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u304c\u30bf\u30a4\u30e0\u30a2\u30a6\u30c8\u3057\u307e\u3057\u305f"
+
+    invoke-direct {p1, p2}, Ljava/io/IOException;-><init>(Ljava/lang/String;)V
+
+    throw p1
+    :try_end_5
+    .catch Ljava/lang/Exception; {:try_start_5 .. :try_end_5} :catch_0
+
+    :catch_0
+    move-exception p1
+
+    .line 236
+    invoke-virtual {p1}, Ljava/lang/Exception;->getMessage()Ljava/lang/String;
+
+    move-result-object p2
+
+    if-nez p2, :cond_a
+
+    invoke-virtual {p1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+
+    move-result-object p1
+
+    invoke-virtual {p1}, Ljava/lang/Class;->getSimpleName()Ljava/lang/String;
+
+    move-result-object p1
+
+    goto :goto_4
+
+    :cond_a
+    invoke-virtual {p1}, Ljava/lang/Exception;->getMessage()Ljava/lang/String;
+
+    move-result-object p1
+
+    .line 237
+    :goto_4
+    new-instance p2, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda7;
+
+    invoke-direct {p2, p0, p1}, Lcom/konchan/chappyfx/SettingsActivity$$ExternalSyntheticLambda7;-><init>(Lcom/konchan/chappyfx/SettingsActivity;Ljava/lang/String;)V
+
+    invoke-virtual {p0, p2}, Lcom/konchan/chappyfx/SettingsActivity;->runOnUiThread(Ljava/lang/Runnable;)V
+
+    return-void
+.end method
+
+
+# virtual methods
+.method protected onCreate(Landroid/os/Bundle;)V
+    .locals 0
+
+    .line 34
+    invoke-super {p0, p1}, Landroid/app/Activity;->onCreate(Landroid/os/Bundle;)V
+
+    .line 35
+    new-instance p1, Lcom/konchan/chappyfx/DemoStore;
+
+    invoke-direct {p1, p0}, Lcom/konchan/chappyfx/DemoStore;-><init>(Landroid/content/Context;)V
+
+    iput-object p1, p0, Lcom/konchan/chappyfx/SettingsActivity;->store:Lcom/konchan/chappyfx/DemoStore;
+
+    .line 36
+    invoke-direct {p0}, Lcom/konchan/chappyfx/SettingsActivity;->buildUi()V
+
+    return-void
+.end method
+
+.method protected onResume()V
+    .locals 3
+
+    .line 40
+    invoke-super {p0}, Landroid/app/Activity;->onResume()V
+
+    .line 41
+    iget-boolean v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->pendingInstallPermission:Z
+
+    if-eqz v0, :cond_0
+
+    invoke-direct {p0}, Lcom/konchan/chappyfx/SettingsActivity;->canInstallPackages()Z
+
+    move-result v0
+
+    if-eqz v0, :cond_0
+
+    const/4 v0, 0x0
+
+    .line 42
+    iput-boolean v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->pendingInstallPermission:Z
+
+    .line 43
+    iget-object v0, p0, Lcom/konchan/chappyfx/SettingsActivity;->pendingApkUrl:Ljava/lang/String;
+
+    if-eqz v0, :cond_0
+
+    iget-object v1, p0, Lcom/konchan/chappyfx/SettingsActivity;->pendingSha256:Ljava/lang/String;
+
+    iget-object v2, p0, Lcom/konchan/chappyfx/SettingsActivity;->pendingVersion:Ljava/lang/String;
+
+    invoke-direct {p0, v0, v1, v2}, Lcom/konchan/chappyfx/SettingsActivity;->downloadAndInstall(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+
+    :cond_0
+    return-void
+.end method

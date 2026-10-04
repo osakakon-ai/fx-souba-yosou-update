@@ -1,0 +1,18 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v3.2 scheme (APK Signature Scheme v3.2): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+V2 Signer: certificate DN: CN=FX Souba Yosou, OU=Personal Demo, O=Konchan, L=Osaka, ST=Osaka, C=JP
+V2 Signer: certificate SHA-256 digest: b7e5437c2b23725f14f1a0164a69086be8308bbcc720854d4de420ea0ec25227
+V2 Signer: certificate SHA-1 digest: e61749630d13000666d139b05fdc4e2e2d54d954
+V2 Signer: certificate MD5 digest: 1180b2c3e9584e8c54b451a8d9920ca1
+V2 Signer: key algorithm: RSA
+V2 Signer: key size (bits): 4096
+V2 Signer: public key SHA-256 digest: 17bd0f7bad880e0c39a49fd1f8b20948252d135b5e5f078c0d6ec8607d7443a8
+V2 Signer: public key SHA-1 digest: 68f99868bf5190d30c4f8970665944bfef114fa8
+V2 Signer: public key MD5 digest: 2d5565b0192681f3038ce52809eeceb3

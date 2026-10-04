@@ -1,0 +1,1374 @@
+SOURCE: smali/com/microsoft/signalr/HubConnection$ConnectionState.smali
+
+.class final Lcom/microsoft/signalr/HubConnection$ConnectionState;
+.super Ljava/lang/Object;
+.source "HubConnection.java"
+
+# interfaces
+.implements Lcom/microsoft/signalr/InvocationBinder;
+
+
+# annotations
+.annotation system Ldalvik/annotation/EnclosingClass;
+    value = Lcom/microsoft/signalr/HubConnection;
+.end annotation
+
+.annotation system Ldalvik/annotation/InnerClass;
+    accessFlags = 0x12
+    name = "ConnectionState"
+.end annotation
+
+
+# instance fields
+.field private final connection:Lcom/microsoft/signalr/HubConnection;
+
+.field public connectionId:Ljava/lang/String;
+
+.field private handshakeReceived:Ljava/lang/Boolean;
+
+.field public final handshakeResponseSubject:Lio/reactivex/rxjava3/subjects/CompletableSubject;
+
+.field private handshakeTimeout:Ljava/util/concurrent/ScheduledExecutorService;
+
+.field public final lock:Ljava/util/concurrent/locks/Lock;
+
+.field private messages:Lio/reactivex/rxjava3/subjects/BehaviorSubject;
+    .annotation system Ldalvik/annotation/Signature;
+        value = {
+            "Lio/reactivex/rxjava3/subjects/BehaviorSubject<",
+            "Lcom/microsoft/signalr/InvocationMessage;",
+            ">;"
+        }
+    .end annotation
+.end field
+
+.field private final nextId:Ljava/util/concurrent/atomic/AtomicInteger;
+
+.field private final nextPingActivation:Ljava/util/concurrent/atomic/AtomicLong;
+
+.field private final nextServerTimeout:Ljava/util/concurrent/atomic/AtomicLong;
+
+.field private final pendingInvocations:Ljava/util/HashMap;
+    .annotation system Ldalvik/annotation/Signature;
+        value = {
+            "Ljava/util/HashMap<",
+            "Ljava/lang/String;",
+            "Lcom/microsoft/signalr/InvocationRequest;",
+            ">;"
+        }
+    .end annotation
+.end field
+
+.field private pingTimer:Ljava/util/Timer;
+
+.field private resultInvocationPool:Ljava/util/concurrent/ExecutorService;
+
+.field public startTask:Lio/reactivex/rxjava3/core/Completable;
+
+.field public stopError:Ljava/lang/String;
+
+.field final synthetic this$0:Lcom/microsoft/signalr/HubConnection;
+
+.field public transport:Lcom/microsoft/signalr/Transport;
+
+
+# direct methods
+.method public constructor <init>(Lcom/microsoft/signalr/HubConnection;Lcom/microsoft/signalr/HubConnection;)V
+    .locals 1
+    .annotation system Ldalvik/annotation/MethodParameters;
+        accessFlags = {
+            0x1010,
+            0x0
+        }
+        names = {
+            null,
+            null
+        }
+    .end annotation
+
+    .line 1400
+    iput-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    .line 1383
+    new-instance p1, Ljava/util/concurrent/atomic/AtomicInteger;
+
+    const/4 v0, 0x0
+
+    invoke-direct {p1, v0}, Ljava/util/concurrent/atomic/AtomicInteger;-><init>(I)V
+
+    iput-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->nextId:Ljava/util/concurrent/atomic/AtomicInteger;
+
+    .line 1384
+    new-instance p1, Ljava/util/HashMap;
+
+    invoke-direct {p1}, Ljava/util/HashMap;-><init>()V
+
+    iput-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->pendingInvocations:Ljava/util/HashMap;
+
+    .line 1385
+    new-instance p1, Ljava/util/concurrent/atomic/AtomicLong;
+
+    invoke-direct {p1}, Ljava/util/concurrent/atomic/AtomicLong;-><init>()V
+
+    iput-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->nextServerTimeout:Ljava/util/concurrent/atomic/AtomicLong;
+
+    .line 1386
+    new-instance p1, Ljava/util/concurrent/atomic/AtomicLong;
+
+    invoke-direct {p1}, Ljava/util/concurrent/atomic/AtomicLong;-><init>()V
+
+    iput-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->nextPingActivation:Ljava/util/concurrent/atomic/AtomicLong;
+
+    const/4 p1, 0x0
+
+    .line 1387
+    iput-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->pingTimer:Ljava/util/Timer;
+
+    .line 1388
+    invoke-static {v0}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
+
+    move-result-object v0
+
+    iput-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handshakeReceived:Ljava/lang/Boolean;
+
+    .line 1389
+    iput-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handshakeTimeout:Ljava/util/concurrent/ScheduledExecutorService;
+
+    .line 1390
+    invoke-static {}, Lio/reactivex/rxjava3/subjects/BehaviorSubject;->create()Lio/reactivex/rxjava3/subjects/BehaviorSubject;
+
+    move-result-object v0
+
+    iput-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->messages:Lio/reactivex/rxjava3/subjects/BehaviorSubject;
+
+    .line 1391
+    iput-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->resultInvocationPool:Ljava/util/concurrent/ExecutorService;
+
+    .line 1393
+    new-instance p1, Ljava/util/concurrent/locks/ReentrantLock;
+
+    invoke-direct {p1}, Ljava/util/concurrent/locks/ReentrantLock;-><init>()V
+
+    iput-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    .line 1394
+    invoke-static {}, Lio/reactivex/rxjava3/subjects/CompletableSubject;->create()Lio/reactivex/rxjava3/subjects/CompletableSubject;
+
+    move-result-object p1
+
+    iput-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handshakeResponseSubject:Lio/reactivex/rxjava3/subjects/CompletableSubject;
+
+    .line 1401
+    iput-object p2, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->connection:Lcom/microsoft/signalr/HubConnection;
+
+    return-void
+.end method
+
+.method static synthetic access$400(Lcom/microsoft/signalr/HubConnection$ConnectionState;)Ljava/util/concurrent/atomic/AtomicLong;
+    .locals 0
+
+    .line 1381
+    iget-object p0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->nextServerTimeout:Ljava/util/concurrent/atomic/AtomicLong;
+
+    return-object p0
+.end method
+
+.method static synthetic access$600(Lcom/microsoft/signalr/HubConnection$ConnectionState;)Ljava/util/concurrent/atomic/AtomicLong;
+    .locals 0
+
+    .line 1381
+    iget-object p0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->nextPingActivation:Ljava/util/concurrent/atomic/AtomicLong;
+
+    return-object p0
+.end method
+
+.method static synthetic access$900(Lcom/microsoft/signalr/HubConnection$ConnectionState;)Ljava/util/Timer;
+    .locals 0
+
+    .line 1381
+    iget-object p0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->pingTimer:Ljava/util/Timer;
+
+    return-object p0
+.end method
+
+.method private errorHandshake(Ljava/lang/Exception;)V
+    .locals 1
+
+    .line 1648
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {v0}, Ljava/util/concurrent/locks/Lock;->lock()V
+
+    .line 1651
+    :try_start_0
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handshakeResponseSubject:Lio/reactivex/rxjava3/subjects/CompletableSubject;
+
+    invoke-virtual {v0}, Lio/reactivex/rxjava3/subjects/CompletableSubject;->hasComplete()Z
+
+    move-result v0
+
+    if-nez v0, :cond_0
+
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handshakeResponseSubject:Lio/reactivex/rxjava3/subjects/CompletableSubject;
+
+    invoke-virtual {v0}, Lio/reactivex/rxjava3/subjects/CompletableSubject;->hasThrowable()Z
+
+    move-result v0
+
+    if-nez v0, :cond_0
+
+    .line 1652
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handshakeResponseSubject:Lio/reactivex/rxjava3/subjects/CompletableSubject;
+
+    invoke-virtual {v0, p1}, Lio/reactivex/rxjava3/subjects/CompletableSubject;->onError(Ljava/lang/Throwable;)V
+    :try_end_0
+    .catchall {:try_start_0 .. :try_end_0} :catchall_0
+
+    .line 1655
+    :cond_0
+    iget-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {p1}, Ljava/util/concurrent/locks/Lock;->unlock()V
+
+    return-void
+
+    :catchall_0
+    move-exception p1
+
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {v0}, Ljava/util/concurrent/locks/Lock;->unlock()V
+
+    .line 1656
+    throw p1
+.end method
+
+.method private handleInvocation(Lcom/microsoft/signalr/InvocationMessage;)V
+    .locals 14
+
+    .line 1572
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->connection:Lcom/microsoft/signalr/HubConnection;
+
+    invoke-static {v0}, Lcom/microsoft/signalr/HubConnection;->access$1100(Lcom/microsoft/signalr/HubConnection;)Lcom/microsoft/signalr/CallbackMap;
+
+    move-result-object v0
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getTarget()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-virtual {v0, v1}, Lcom/microsoft/signalr/CallbackMap;->get(Ljava/lang/String;)Ljava/util/List;
+
+    move-result-object v0
+
+    .line 1573
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getInvocationId()Ljava/lang/String;
+
+    move-result-object v1
+
+    const/4 v2, 0x1
+
+    const/4 v3, 0x0
+
+    if-eqz v1, :cond_0
+
+    move v1, v2
+
+    goto :goto_0
+
+    :cond_0
+    move v1, v3
+
+    .line 1574
+    :goto_0
+    const-string v4, "Client did not provide a result."
+
+    const-string v5, "Failed to find a value returning handler for \'{}\' method. Sending error to server."
+
+    const/4 v6, 0x0
+
+    if-nez v0, :cond_2
+
+    if-eqz v1, :cond_1
+
+    .line 1576
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    invoke-static {v0}, Lcom/microsoft/signalr/HubConnection;->access$800(Lcom/microsoft/signalr/HubConnection;)Lorg/slf4j/Logger;
+
+    move-result-object v0
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getTarget()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-interface {v0, v5, v1}, Lorg/slf4j/Logger;->warn(Ljava/lang/String;Ljava/lang/Object;)V
+
+    .line 1577
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    new-instance v1, Lcom/microsoft/signalr/CompletionMessage;
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getInvocationId()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-direct {v1, v6, p1, v6, v4}, Lcom/microsoft/signalr/CompletionMessage;-><init>(Ljava/util/Map;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/String;)V
+
+    invoke-static {v0, v1}, Lcom/microsoft/signalr/HubConnection;->access$700(Lcom/microsoft/signalr/HubConnection;Lcom/microsoft/signalr/HubMessage;)V
+
+    goto :goto_1
+
+    .line 1580
+    :cond_1
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    invoke-static {v0}, Lcom/microsoft/signalr/HubConnection;->access$800(Lcom/microsoft/signalr/HubConnection;)Lorg/slf4j/Logger;
+
+    move-result-object v0
+
+    const-string v1, "Failed to find handler for \'{}\' method."
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getTarget()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-interface {v0, v1, p1}, Lorg/slf4j/Logger;->warn(Ljava/lang/String;Ljava/lang/Object;)V
+
+    :goto_1
+    return-void
+
+    .line 1586
+    :cond_2
+    invoke-static {v3}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
+
+    move-result-object v3
+
+    .line 1587
+    invoke-interface {v0}, Ljava/util/List;->iterator()Ljava/util/Iterator;
+
+    move-result-object v0
+
+    move-object v7, v6
+
+    move-object v8, v7
+
+    :cond_3
+    :goto_2
+    invoke-interface {v0}, Ljava/util/Iterator;->hasNext()Z
+
+    move-result v9
+
+    if-eqz v9, :cond_5
+
+    invoke-interface {v0}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+
+    move-result-object v9
+
+    check-cast v9, Lcom/microsoft/signalr/InvocationHandler;
+
+    .line 1589
+    :try_start_0
+    invoke-virtual {v9}, Lcom/microsoft/signalr/InvocationHandler;->getAction()Ljava/lang/Object;
+
+    move-result-object v10
+
+    .line 1590
+    invoke-virtual {v9}, Lcom/microsoft/signalr/InvocationHandler;->getHasResult()Z
+
+    move-result v11
+
+    if-eqz v11, :cond_4
+
+    .line 1591
+    check-cast v10, Lcom/microsoft/signalr/FunctionBase;
+
+    .line 1592
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getArguments()[Ljava/lang/Object;
+
+    move-result-object v11
+
+    invoke-interface {v10, v11}, Lcom/microsoft/signalr/FunctionBase;->invoke([Ljava/lang/Object;)Lio/reactivex/rxjava3/core/Single;
+
+    move-result-object v10
+
+    invoke-virtual {v10}, Lio/reactivex/rxjava3/core/Single;->blockingGet()Ljava/lang/Object;
+
+    move-result-object v8
+
+    .line 1593
+    invoke-static {v2}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
+
+    move-result-object v3
+
+    goto :goto_2
+
+    .line 1595
+    :cond_4
+    check-cast v10, Lcom/microsoft/signalr/ActionBase;
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getArguments()[Ljava/lang/Object;
+
+    move-result-object v11
+
+    invoke-interface {v10, v11}, Lcom/microsoft/signalr/ActionBase;->invoke([Ljava/lang/Object;)Lio/reactivex/rxjava3/core/Completable;
+
+    move-result-object v10
+
+    invoke-virtual {v10}, Lio/reactivex/rxjava3/core/Completable;->blockingAwait()V
+    :try_end_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+
+    goto :goto_2
+
+    :catch_0
+    move-exception v10
+
+    .line 1598
+    iget-object v11, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    invoke-static {v11}, Lcom/microsoft/signalr/HubConnection;->access$800(Lcom/microsoft/signalr/HubConnection;)Lorg/slf4j/Logger;
+
+    move-result-object v11
+
+    const-string v12, "Invoking client side method \'{}\' failed:"
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getTarget()Ljava/lang/String;
+
+    move-result-object v13
+
+    invoke-interface {v11, v12, v13, v10}, Lorg/slf4j/Logger;->error(Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V
+
+    .line 1599
+    invoke-virtual {v9}, Lcom/microsoft/signalr/InvocationHandler;->getHasResult()Z
+
+    move-result v9
+
+    if-eqz v9, :cond_3
+
+    move-object v7, v10
+
+    goto :goto_2
+
+    :cond_5
+    if-eqz v1, :cond_8
+
+    if-eqz v7, :cond_6
+
+    .line 1607
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    new-instance v1, Lcom/microsoft/signalr/CompletionMessage;
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getInvocationId()Ljava/lang/String;
+
+    move-result-object p1
+
+    .line 1608
+    invoke-virtual {v7}, Ljava/lang/Exception;->getMessage()Ljava/lang/String;
+
+    move-result-object v2
+
+    invoke-direct {v1, v6, p1, v6, v2}, Lcom/microsoft/signalr/CompletionMessage;-><init>(Ljava/util/Map;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/String;)V
+
+    .line 1607
+    invoke-static {v0, v1}, Lcom/microsoft/signalr/HubConnection;->access$700(Lcom/microsoft/signalr/HubConnection;Lcom/microsoft/signalr/HubMessage;)V
+
+    goto :goto_3
+
+    .line 1609
+    :cond_6
+    invoke-virtual {v3}, Ljava/lang/Boolean;->booleanValue()Z
+
+    move-result v0
+
+    if-eqz v0, :cond_7
+
+    .line 1610
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    new-instance v1, Lcom/microsoft/signalr/CompletionMessage;
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getInvocationId()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-direct {v1, v6, p1, v8, v6}, Lcom/microsoft/signalr/CompletionMessage;-><init>(Ljava/util/Map;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/String;)V
+
+    invoke-static {v0, v1}, Lcom/microsoft/signalr/HubConnection;->access$700(Lcom/microsoft/signalr/HubConnection;Lcom/microsoft/signalr/HubMessage;)V
+
+    goto :goto_3
+
+    .line 1613
+    :cond_7
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    invoke-static {v0}, Lcom/microsoft/signalr/HubConnection;->access$800(Lcom/microsoft/signalr/HubConnection;)Lorg/slf4j/Logger;
+
+    move-result-object v0
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getTarget()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-interface {v0, v5, v1}, Lorg/slf4j/Logger;->warn(Ljava/lang/String;Ljava/lang/Object;)V
+
+    .line 1614
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    new-instance v1, Lcom/microsoft/signalr/CompletionMessage;
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getInvocationId()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-direct {v1, v6, p1, v6, v4}, Lcom/microsoft/signalr/CompletionMessage;-><init>(Ljava/util/Map;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/String;)V
+
+    invoke-static {v0, v1}, Lcom/microsoft/signalr/HubConnection;->access$700(Lcom/microsoft/signalr/HubConnection;Lcom/microsoft/signalr/HubMessage;)V
+
+    goto :goto_3
+
+    .line 1617
+    :cond_8
+    invoke-virtual {v3}, Ljava/lang/Boolean;->booleanValue()Z
+
+    move-result v0
+
+    if-eqz v0, :cond_9
+
+    .line 1618
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    invoke-static {v0}, Lcom/microsoft/signalr/HubConnection;->access$800(Lcom/microsoft/signalr/HubConnection;)Lorg/slf4j/Logger;
+
+    move-result-object v0
+
+    const-string v1, "Result given for \'{}\' method but server is not expecting a result."
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getTarget()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-interface {v0, v1, p1}, Lorg/slf4j/Logger;->warn(Ljava/lang/String;Ljava/lang/Object;)V
+
+    :cond_9
+    :goto_3
+    return-void
+.end method
+
+.method static synthetic lambda$startInvocationProcessing$3()V
+    .locals 0
+    .annotation system Ldalvik/annotation/Throws;
+        value = {
+            Ljava/lang/Throwable;
+        }
+    .end annotation
+
+    return-void
+.end method
+
+.method private startInvocationProcessing()V
+    .locals 4
+
+    .line 1556
+    invoke-static {}, Ljava/util/concurrent/Executors;->newCachedThreadPool()Ljava/util/concurrent/ExecutorService;
+
+    move-result-object v0
+
+    iput-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->resultInvocationPool:Ljava/util/concurrent/ExecutorService;
+
+    .line 1557
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->messages:Lio/reactivex/rxjava3/subjects/BehaviorSubject;
+
+    invoke-static {}, Lio/reactivex/rxjava3/schedulers/Schedulers;->io()Lio/reactivex/rxjava3/core/Scheduler;
+
+    move-result-object v1
+
+    invoke-virtual {v0, v1}, Lio/reactivex/rxjava3/subjects/BehaviorSubject;->observeOn(Lio/reactivex/rxjava3/core/Scheduler;)Lio/reactivex/rxjava3/core/Observable;
+
+    move-result-object v0
+
+    new-instance v1, Lcom/microsoft/signalr/HubConnection$ConnectionState$$ExternalSyntheticLambda0;
+
+    invoke-direct {v1, p0}, Lcom/microsoft/signalr/HubConnection$ConnectionState$$ExternalSyntheticLambda0;-><init>(Lcom/microsoft/signalr/HubConnection$ConnectionState;)V
+
+    new-instance v2, Lcom/microsoft/signalr/HubConnection$ConnectionState$$ExternalSyntheticLambda1;
+
+    invoke-direct {v2, p0}, Lcom/microsoft/signalr/HubConnection$ConnectionState$$ExternalSyntheticLambda1;-><init>(Lcom/microsoft/signalr/HubConnection$ConnectionState;)V
+
+    new-instance v3, Lcom/microsoft/signalr/HubConnection$ConnectionState$$ExternalSyntheticLambda2;
+
+    invoke-direct {v3}, Lcom/microsoft/signalr/HubConnection$ConnectionState$$ExternalSyntheticLambda2;-><init>()V
+
+    invoke-virtual {v0, v1, v2, v3}, Lio/reactivex/rxjava3/core/Observable;->subscribe(Lio/reactivex/rxjava3/functions/Consumer;Lio/reactivex/rxjava3/functions/Consumer;Lio/reactivex/rxjava3/functions/Action;)Lio/reactivex/rxjava3/disposables/Disposable;
+
+    return-void
+.end method
+
+
+# virtual methods
+.method public activatePingTimer()V
+    .locals 5
+
+    .line 1467
+    new-instance v0, Ljava/util/Timer;
+
+    invoke-direct {v0}, Ljava/util/Timer;-><init>()V
+
+    iput-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->pingTimer:Ljava/util/Timer;
+
+    .line 1468
+    new-instance v1, Lcom/microsoft/signalr/HubConnection$ConnectionState$1;
+
+    invoke-direct {v1, p0}, Lcom/microsoft/signalr/HubConnection$ConnectionState$1;-><init>(Lcom/microsoft/signalr/HubConnection$ConnectionState;)V
+
+    new-instance v2, Ljava/util/Date;
+
+    const-wide/16 v3, 0x0
+
+    invoke-direct {v2, v3, v4}, Ljava/util/Date;-><init>(J)V
+
+    iget-object v3, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    .line 1487
+    invoke-static {v3}, Lcom/microsoft/signalr/HubConnection;->access$1000(Lcom/microsoft/signalr/HubConnection;)J
+
+    move-result-wide v3
+
+    .line 1468
+    invoke-virtual {v0, v1, v2, v3, v4}, Ljava/util/Timer;->schedule(Ljava/util/TimerTask;Ljava/util/Date;J)V
+
+    return-void
+.end method
+
+.method public addInvocation(Lcom/microsoft/signalr/InvocationRequest;)V
+    .locals 2
+
+    .line 1428
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {v0}, Ljava/util/concurrent/locks/Lock;->lock()V
+
+    .line 1430
+    :try_start_0
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->pendingInvocations:Ljava/util/HashMap;
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationRequest;->getInvocationId()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-virtual {v0, v1}, Ljava/util/HashMap;->containsKey(Ljava/lang/Object;)Z
+
+    move-result v0
+
+    if-nez v0, :cond_0
+
+    .line 1433
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->pendingInvocations:Ljava/util/HashMap;
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationRequest;->getInvocationId()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-virtual {v0, v1, p1}, Ljava/util/HashMap;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    :try_end_0
+    .catchall {:try_start_0 .. :try_end_0} :catchall_0
+
+    .line 1436
+    iget-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {p1}, Ljava/util/concurrent/locks/Lock;->unlock()V
+
+    return-void
+
+    .line 1431
+    :cond_0
+    :try_start_1
+    new-instance p1, Ljava/lang/IllegalStateException;
+
+    const-string v0, "Invocation Id is already used"
+
+    invoke-direct {p1, v0}, Ljava/lang/IllegalStateException;-><init>(Ljava/lang/String;)V
+
+    throw p1
+    :try_end_1
+    .catchall {:try_start_1 .. :try_end_1} :catchall_0
+
+    :catchall_0
+    move-exception p1
+
+    .line 1436
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {v0}, Ljava/util/concurrent/locks/Lock;->unlock()V
+
+    .line 1437
+    throw p1
+.end method
+
+.method public cancelOutstandingInvocations(Ljava/lang/Exception;)V
+    .locals 3
+
+    .line 1410
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {v0}, Ljava/util/concurrent/locks/Lock;->lock()V
+
+    .line 1412
+    :try_start_0
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->pendingInvocations:Ljava/util/HashMap;
+
+    invoke-virtual {v0}, Ljava/util/HashMap;->keySet()Ljava/util/Set;
+
+    move-result-object v0
+
+    .line 1413
+    invoke-interface {v0}, Ljava/util/Collection;->iterator()Ljava/util/Iterator;
+
+    move-result-object v0
+
+    :goto_0
+    invoke-interface {v0}, Ljava/util/Iterator;->hasNext()Z
+
+    move-result v1
+
+    if-eqz v1, :cond_1
+
+    invoke-interface {v0}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+
+    move-result-object v1
+
+    check-cast v1, Ljava/lang/String;
+
+    if-nez p1, :cond_0
+
+    .line 1415
+    iget-object v2, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->pendingInvocations:Ljava/util/HashMap;
+
+    invoke-virtual {v2, v1}, Ljava/util/HashMap;->get(Ljava/lang/Object;)Ljava/lang/Object;
+
+    move-result-object v1
+
+    check-cast v1, Lcom/microsoft/signalr/InvocationRequest;
+
+    invoke-virtual {v1}, Lcom/microsoft/signalr/InvocationRequest;->cancel()V
+
+    goto :goto_0
+
+    .line 1417
+    :cond_0
+    iget-object v2, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->pendingInvocations:Ljava/util/HashMap;
+
+    invoke-virtual {v2, v1}, Ljava/util/HashMap;->get(Ljava/lang/Object;)Ljava/lang/Object;
+
+    move-result-object v1
+
+    check-cast v1, Lcom/microsoft/signalr/InvocationRequest;
+
+    invoke-virtual {v1, p1}, Lcom/microsoft/signalr/InvocationRequest;->fail(Ljava/lang/Exception;)V
+
+    goto :goto_0
+
+    .line 1421
+    :cond_1
+    iget-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->pendingInvocations:Ljava/util/HashMap;
+
+    invoke-virtual {p1}, Ljava/util/HashMap;->clear()V
+    :try_end_0
+    .catchall {:try_start_0 .. :try_end_0} :catchall_0
+
+    .line 1423
+    iget-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {p1}, Ljava/util/concurrent/locks/Lock;->unlock()V
+
+    return-void
+
+    :catchall_0
+    move-exception p1
+
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {v0}, Ljava/util/concurrent/locks/Lock;->unlock()V
+
+    .line 1424
+    throw p1
+.end method
+
+.method public close()V
+    .locals 1
+
+    .line 1535
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handshakeResponseSubject:Lio/reactivex/rxjava3/subjects/CompletableSubject;
+
+    invoke-virtual {v0}, Lio/reactivex/rxjava3/subjects/CompletableSubject;->onComplete()V
+
+    .line 1536
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->messages:Lio/reactivex/rxjava3/subjects/BehaviorSubject;
+
+    invoke-virtual {v0}, Lio/reactivex/rxjava3/subjects/BehaviorSubject;->onComplete()V
+
+    .line 1538
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->pingTimer:Ljava/util/Timer;
+
+    if-eqz v0, :cond_0
+
+    .line 1539
+    invoke-virtual {v0}, Ljava/util/Timer;->cancel()V
+
+    .line 1542
+    :cond_0
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handshakeTimeout:Ljava/util/concurrent/ScheduledExecutorService;
+
+    if-eqz v0, :cond_1
+
+    .line 1543
+    invoke-interface {v0}, Ljava/util/concurrent/ScheduledExecutorService;->shutdownNow()Ljava/util/List;
+
+    .line 1546
+    :cond_1
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->resultInvocationPool:Ljava/util/concurrent/ExecutorService;
+
+    if-eqz v0, :cond_2
+
+    .line 1547
+    invoke-interface {v0}, Ljava/util/concurrent/ExecutorService;->shutdownNow()Ljava/util/List;
+
+    :cond_2
+    return-void
+.end method
+
+.method public dispatchInvocation(Lcom/microsoft/signalr/InvocationMessage;)V
+    .locals 1
+
+    .line 1552
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->messages:Lio/reactivex/rxjava3/subjects/BehaviorSubject;
+
+    invoke-virtual {v0, p1}, Lio/reactivex/rxjava3/subjects/BehaviorSubject;->onNext(Ljava/lang/Object;)V
+
+    return-void
+.end method
+
+.method public getInvocation(Ljava/lang/String;)Lcom/microsoft/signalr/InvocationRequest;
+    .locals 1
+
+    .line 1441
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {v0}, Ljava/util/concurrent/locks/Lock;->lock()V
+
+    .line 1443
+    :try_start_0
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->pendingInvocations:Ljava/util/HashMap;
+
+    invoke-virtual {v0, p1}, Ljava/util/HashMap;->get(Ljava/lang/Object;)Ljava/lang/Object;
+
+    move-result-object p1
+
+    check-cast p1, Lcom/microsoft/signalr/InvocationRequest;
+    :try_end_0
+    .catchall {:try_start_0 .. :try_end_0} :catchall_0
+
+    .line 1445
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {v0}, Ljava/util/concurrent/locks/Lock;->unlock()V
+
+    return-object p1
+
+    :catchall_0
+    move-exception p1
+
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {v0}, Ljava/util/concurrent/locks/Lock;->unlock()V
+
+    .line 1446
+    throw p1
+.end method
+
+.method public getNextInvocationId()Ljava/lang/String;
+    .locals 1
+
+    .line 1405
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->nextId:Ljava/util/concurrent/atomic/AtomicInteger;
+
+    invoke-virtual {v0}, Ljava/util/concurrent/atomic/AtomicInteger;->incrementAndGet()I
+
+    move-result v0
+
+    .line 1406
+    invoke-static {v0}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
+
+    move-result-object v0
+
+    return-object v0
+.end method
+
+.method public getParameterTypes(Ljava/lang/String;)Ljava/util/List;
+    .locals 2
+    .annotation system Ldalvik/annotation/Signature;
+        value = {
+            "(",
+            "Ljava/lang/String;",
+            ")",
+            "Ljava/util/List<",
+            "Ljava/lang/reflect/Type;",
+            ">;"
+        }
+    .end annotation
+
+    .line 1634
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->connection:Lcom/microsoft/signalr/HubConnection;
+
+    invoke-static {v0}, Lcom/microsoft/signalr/HubConnection;->access$1100(Lcom/microsoft/signalr/HubConnection;)Lcom/microsoft/signalr/CallbackMap;
+
+    move-result-object v0
+
+    invoke-virtual {v0, p1}, Lcom/microsoft/signalr/CallbackMap;->get(Ljava/lang/String;)Ljava/util/List;
+
+    move-result-object v0
+
+    if-nez v0, :cond_0
+
+    .line 1636
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    invoke-static {v0}, Lcom/microsoft/signalr/HubConnection;->access$800(Lcom/microsoft/signalr/HubConnection;)Lorg/slf4j/Logger;
+
+    move-result-object v0
+
+    const-string v1, "Failed to find handler for \'{}\' method."
+
+    invoke-interface {v0, v1, p1}, Lorg/slf4j/Logger;->warn(Ljava/lang/String;Ljava/lang/Object;)V
+
+    .line 1637
+    invoke-static {}, Lcom/microsoft/signalr/HubConnection;->access$1200()Ljava/util/List;
+
+    move-result-object p1
+
+    return-object p1
+
+    .line 1640
+    :cond_0
+    invoke-interface {v0}, Ljava/util/List;->isEmpty()Z
+
+    move-result v1
+
+    if-nez v1, :cond_1
+
+    const/4 p1, 0x0
+
+    .line 1644
+    invoke-interface {v0, p1}, Ljava/util/List;->get(I)Ljava/lang/Object;
+
+    move-result-object p1
+
+    check-cast p1, Lcom/microsoft/signalr/InvocationHandler;
+
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationHandler;->getTypes()Ljava/util/List;
+
+    move-result-object p1
+
+    return-object p1
+
+    .line 1641
+    :cond_1
+    new-instance v0, Ljava/lang/RuntimeException;
+
+    const-string v1, "There are no callbacks registered for the method \'%s\'."
+
+    filled-new-array {p1}, [Ljava/lang/Object;
+
+    move-result-object p1
+
+    invoke-static {v1, p1}, Ljava/lang/String;->format(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-direct {v0, p1}, Ljava/lang/RuntimeException;-><init>(Ljava/lang/String;)V
+
+    throw v0
+.end method
+
+.method public getReturnType(Ljava/lang/String;)Ljava/lang/reflect/Type;
+    .locals 0
+
+    .line 1624
+    invoke-virtual {p0, p1}, Lcom/microsoft/signalr/HubConnection$ConnectionState;->getInvocation(Ljava/lang/String;)Lcom/microsoft/signalr/InvocationRequest;
+
+    move-result-object p1
+
+    if-nez p1, :cond_0
+
+    const/4 p1, 0x0
+
+    return-object p1
+
+    .line 1629
+    :cond_0
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationRequest;->getReturnType()Ljava/lang/reflect/Type;
+
+    move-result-object p1
+
+    return-object p1
+.end method
+
+.method public handleHandshake(Ljava/nio/ByteBuffer;)V
+    .locals 4
+
+    .line 1491
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handshakeReceived:Ljava/lang/Boolean;
+
+    invoke-virtual {v0}, Ljava/lang/Boolean;->booleanValue()Z
+
+    move-result v0
+
+    if-nez v0, :cond_3
+
+    .line 1492
+    new-instance v0, Ljava/util/ArrayList;
+
+    invoke-direct {v0}, Ljava/util/ArrayList;-><init>()V
+
+    .line 1493
+    invoke-virtual {p1}, Ljava/nio/ByteBuffer;->get()B
+
+    move-result v1
+
+    :goto_0
+    const/16 v2, 0x1e
+
+    if-eq v1, v2, :cond_0
+
+    .line 1496
+    invoke-static {v1}, Ljava/lang/Byte;->valueOf(B)Ljava/lang/Byte;
+
+    move-result-object v1
+
+    invoke-interface {v0, v1}, Ljava/util/List;->add(Ljava/lang/Object;)Z
+
+    .line 1497
+    invoke-virtual {p1}, Ljava/nio/ByteBuffer;->get()B
+
+    move-result v1
+
+    goto :goto_0
+
+    .line 1499
+    :cond_0
+    invoke-interface {v0}, Ljava/util/List;->size()I
+
+    move-result p1
+
+    .line 1500
+    new-array v1, p1, [B
+
+    const/4 v2, 0x0
+
+    :goto_1
+    if-ge v2, p1, :cond_1
+
+    .line 1502
+    invoke-interface {v0, v2}, Ljava/util/List;->get(I)Ljava/lang/Object;
+
+    move-result-object v3
+
+    check-cast v3, Ljava/lang/Byte;
+
+    invoke-virtual {v3}, Ljava/lang/Byte;->byteValue()B
+
+    move-result v3
+
+    aput-byte v3, v1, v2
+
+    add-int/lit8 v2, v2, 0x1
+
+    goto :goto_1
+
+    .line 1505
+    :cond_1
+    new-instance p1, Ljava/lang/String;
+
+    sget-object v0, Ljava/nio/charset/StandardCharsets;->UTF_8:Ljava/nio/charset/Charset;
+
+    invoke-direct {p1, v1, v0}, Ljava/lang/String;-><init>([BLjava/nio/charset/Charset;)V
+
+    .line 1508
+    :try_start_0
+    invoke-static {p1}, Lcom/microsoft/signalr/HandshakeProtocol;->parseHandshakeResponse(Ljava/lang/String;)Lcom/microsoft/signalr/HandshakeResponseMessage;
+
+    move-result-object p1
+    :try_end_0
+    .catch Ljava/lang/RuntimeException; {:try_start_0 .. :try_end_0} :catch_0
+
+    .line 1514
+    invoke-virtual {p1}, Lcom/microsoft/signalr/HandshakeResponseMessage;->getHandshakeError()Ljava/lang/String;
+
+    move-result-object v0
+
+    if-nez v0, :cond_2
+
+    const/4 p1, 0x1
+
+    .line 1521
+    invoke-static {p1}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
+
+    move-result-object p1
+
+    iput-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handshakeReceived:Ljava/lang/Boolean;
+
+    .line 1522
+    iget-object p1, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handshakeResponseSubject:Lio/reactivex/rxjava3/subjects/CompletableSubject;
+
+    invoke-virtual {p1}, Lio/reactivex/rxjava3/subjects/CompletableSubject;->onComplete()V
+
+    .line 1523
+    invoke-direct {p0}, Lcom/microsoft/signalr/HubConnection$ConnectionState;->startInvocationProcessing()V
+
+    goto :goto_2
+
+    .line 1515
+    :cond_2
+    invoke-virtual {p1}, Lcom/microsoft/signalr/HandshakeResponseMessage;->getHandshakeError()Ljava/lang/String;
+
+    move-result-object p1
+
+    new-instance v0, Ljava/lang/StringBuilder;
+
+    const-string v1, "Error in handshake "
+
+    invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v0, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p1
+
+    invoke-virtual {p1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p1
+
+    .line 1516
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    invoke-static {v0}, Lcom/microsoft/signalr/HubConnection;->access$800(Lcom/microsoft/signalr/HubConnection;)Lorg/slf4j/Logger;
+
+    move-result-object v0
+
+    invoke-interface {v0, p1}, Lorg/slf4j/Logger;->error(Ljava/lang/String;)V
+
+    .line 1517
+    new-instance v0, Ljava/lang/RuntimeException;
+
+    invoke-direct {v0, p1}, Ljava/lang/RuntimeException;-><init>(Ljava/lang/String;)V
+
+    .line 1518
+    invoke-direct {p0, v0}, Lcom/microsoft/signalr/HubConnection$ConnectionState;->errorHandshake(Ljava/lang/Exception;)V
+
+    .line 1519
+    throw v0
+
+    :catch_0
+    move-exception p1
+
+    .line 1510
+    new-instance v0, Ljava/lang/RuntimeException;
+
+    const-string v1, "An invalid handshake response was received from the server."
+
+    invoke-direct {v0, v1, p1}, Ljava/lang/RuntimeException;-><init>(Ljava/lang/String;Ljava/lang/Throwable;)V
+
+    .line 1511
+    invoke-direct {p0, v0}, Lcom/microsoft/signalr/HubConnection$ConnectionState;->errorHandshake(Ljava/lang/Exception;)V
+
+    .line 1512
+    throw v0
+
+    :cond_3
+    :goto_2
+    return-void
+.end method
+
+.method synthetic lambda$startInvocationProcessing$0$com-microsoft-signalr-HubConnection$ConnectionState(Lcom/microsoft/signalr/InvocationMessage;)V
+    .locals 2
+    .annotation system Ldalvik/annotation/Throws;
+        value = {
+            Ljava/lang/Throwable;
+        }
+    .end annotation
+
+    .line 1559
+    invoke-virtual {p1}, Lcom/microsoft/signalr/InvocationMessage;->getInvocationId()Ljava/lang/String;
+
+    move-result-object v0
+
+    if-eqz v0, :cond_0
+
+    .line 1560
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->resultInvocationPool:Ljava/util/concurrent/ExecutorService;
+
+    new-instance v1, Lcom/microsoft/signalr/HubConnection$ConnectionState$$ExternalSyntheticLambda4;
+
+    invoke-direct {v1, p0, p1}, Lcom/microsoft/signalr/HubConnection$ConnectionState$$ExternalSyntheticLambda4;-><init>(Lcom/microsoft/signalr/HubConnection$ConnectionState;Lcom/microsoft/signalr/InvocationMessage;)V
+
+    invoke-interface {v0, v1}, Ljava/util/concurrent/ExecutorService;->submit(Ljava/lang/Runnable;)Ljava/util/concurrent/Future;
+
+    goto :goto_0
+
+    .line 1562
+    :cond_0
+    invoke-direct {p0, p1}, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handleInvocation(Lcom/microsoft/signalr/InvocationMessage;)V
+
+    :goto_0
+    return-void
+.end method
+
+.method synthetic lambda$startInvocationProcessing$1$com-microsoft-signalr-HubConnection$ConnectionState(Lcom/microsoft/signalr/InvocationMessage;)V
+    .locals 0
+
+    .line 1560
+    invoke-direct {p0, p1}, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handleInvocation(Lcom/microsoft/signalr/InvocationMessage;)V
+
+    return-void
+.end method
+
+.method synthetic lambda$startInvocationProcessing$2$com-microsoft-signalr-HubConnection$ConnectionState(Ljava/lang/Throwable;)V
+    .locals 1
+    .annotation system Ldalvik/annotation/Throws;
+        value = {
+            Ljava/lang/Throwable;
+        }
+    .end annotation
+
+    .line 1565
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    invoke-virtual {p1}, Ljava/lang/Throwable;->getMessage()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-static {v0, p1}, Lcom/microsoft/signalr/HubConnection;->access$500(Lcom/microsoft/signalr/HubConnection;Ljava/lang/String;)Lio/reactivex/rxjava3/core/Completable;
+
+    return-void
+.end method
+
+.method synthetic lambda$timeoutHandshakeResponse$0$com-microsoft-signalr-HubConnection$ConnectionState()V
+    .locals 2
+
+    .line 1530
+    new-instance v0, Ljava/util/concurrent/TimeoutException;
+
+    const-string v1, "Timed out waiting for the server to respond to the handshake message."
+
+    invoke-direct {v0, v1}, Ljava/util/concurrent/TimeoutException;-><init>(Ljava/lang/String;)V
+
+    invoke-direct {p0, v0}, Lcom/microsoft/signalr/HubConnection$ConnectionState;->errorHandshake(Ljava/lang/Exception;)V
+
+    return-void
+.end method
+
+.method public resetKeepAlive()V
+    .locals 5
+
+    .line 1463
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->nextPingActivation:Ljava/util/concurrent/atomic/AtomicLong;
+
+    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+
+    move-result-wide v1
+
+    iget-object v3, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    invoke-static {v3}, Lcom/microsoft/signalr/HubConnection;->access$300(Lcom/microsoft/signalr/HubConnection;)J
+
+    move-result-wide v3
+
+    add-long/2addr v1, v3
+
+    invoke-virtual {v0, v1, v2}, Ljava/util/concurrent/atomic/AtomicLong;->set(J)V
+
+    return-void
+.end method
+
+.method public resetServerTimeout()V
+    .locals 5
+
+    .line 1459
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->nextServerTimeout:Ljava/util/concurrent/atomic/AtomicLong;
+
+    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+
+    move-result-wide v1
+
+    iget-object v3, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->this$0:Lcom/microsoft/signalr/HubConnection;
+
+    invoke-static {v3}, Lcom/microsoft/signalr/HubConnection;->access$200(Lcom/microsoft/signalr/HubConnection;)J
+
+    move-result-wide v3
+
+    add-long/2addr v1, v3
+
+    invoke-virtual {v0, v1, v2}, Ljava/util/concurrent/atomic/AtomicLong;->set(J)V
+
+    return-void
+.end method
+
+.method public timeoutHandshakeResponse(JLjava/util/concurrent/TimeUnit;)V
+    .locals 2
+
+    .line 1528
+    invoke-static {}, Ljava/util/concurrent/Executors;->newSingleThreadScheduledExecutor()Ljava/util/concurrent/ScheduledExecutorService;
+
+    move-result-object v0
+
+    iput-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->handshakeTimeout:Ljava/util/concurrent/ScheduledExecutorService;
+
+    .line 1529
+    new-instance v1, Lcom/microsoft/signalr/HubConnection$ConnectionState$$ExternalSyntheticLambda3;
+
+    invoke-direct {v1, p0}, Lcom/microsoft/signalr/HubConnection$ConnectionState$$ExternalSyntheticLambda3;-><init>(Lcom/microsoft/signalr/HubConnection$ConnectionState;)V
+
+    invoke-interface {v0, v1, p1, p2, p3}, Ljava/util/concurrent/ScheduledExecutorService;->schedule(Ljava/lang/Runnable;JLjava/util/concurrent/TimeUnit;)Ljava/util/concurrent/ScheduledFuture;
+
+    return-void
+.end method
+
+.method public tryRemoveInvocation(Ljava/lang/String;)Lcom/microsoft/signalr/InvocationRequest;
+    .locals 1
+
+    .line 1450
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {v0}, Ljava/util/concurrent/locks/Lock;->lock()V
+
+    .line 1452
+    :try_start_0
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->pendingInvocations:Ljava/util/HashMap;
+
+    invoke-virtual {v0, p1}, Ljava/util/HashMap;->remove(Ljava/lang/Object;)Ljava/lang/Object;
+
+    move-result-object p1
+
+    check-cast p1, Lcom/microsoft/signalr/InvocationRequest;
+    :try_end_0
+    .catchall {:try_start_0 .. :try_end_0} :catchall_0
+
+    .line 1454
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {v0}, Ljava/util/concurrent/locks/Lock;->unlock()V
+
+    return-object p1
+
+    :catchall_0
+    move-exception p1
+
+    iget-object v0, p0, Lcom/microsoft/signalr/HubConnection$ConnectionState;->lock:Ljava/util/concurrent/locks/Lock;
+
+    invoke-interface {v0}, Ljava/util/concurrent/locks/Lock;->unlock()V
+
+    .line 1455
+    throw p1
+.end method

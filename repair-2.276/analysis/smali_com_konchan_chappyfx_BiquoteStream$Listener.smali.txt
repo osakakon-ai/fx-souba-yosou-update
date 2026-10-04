@@ -1,0 +1,24 @@
+SOURCE: smali/com/konchan/chappyfx/BiquoteStream$Listener.smali
+
+.class interface abstract Lcom/konchan/chappyfx/BiquoteStream$Listener;
+.super Ljava/lang/Object;
+.source "MonitoringService.java"
+
+
+# annotations
+.annotation system Ldalvik/annotation/EnclosingClass;
+    value = Lcom/konchan/chappyfx/BiquoteStream;
+.end annotation
+
+.annotation system Ldalvik/annotation/InnerClass;
+    accessFlags = 0x608
+    name = "Listener"
+.end annotation
+
+
+# virtual methods
+.method public abstract onState(ZLjava/lang/String;)V
+.end method
+
+.method public abstract onTick(Lcom/konchan/chappyfx/BiquoteStream$Tick;)V
+.end method
