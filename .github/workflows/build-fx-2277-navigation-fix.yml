@@ -25,13 +25,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch canonical FX source
+      - name: Reconstruct canonical FX source
         shell: bash
         run: |
           set -euo pipefail
-          git clone --depth 1 https://github.com/osakakon-ai/blender-project.git /tmp/fx-src
-
-          cat             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_00_0.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_00_1.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_00_2.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_00_3.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_01.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_02.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_03.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_04.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_05.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_06.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_07.txt             > /tmp/chappy_fx.zip.b64
+          SRC=repair-2.277/source
+          cat             "$SRC/build-input/part_00_0.txt"             "$SRC/build-input/part_00_1.txt"             "$SRC/build-input/part_00_2.txt"             "$SRC/build-input/part_00_3.txt"             "$SRC/build-input/part_01.txt"             "$SRC/build-input/part_02.txt"             "$SRC/build-input/part_03.txt"             "$SRC/build-input/part_04.txt"             "$SRC/build-input/part_05.txt"             "$SRC/build-input/part_06.txt"             "$SRC/build-input/part_07.txt"             > /tmp/chappy_fx.zip.b64
           test "$(wc -c < /tmp/chappy_fx.zip.b64)" -eq 50864
           base64 --decode /tmp/chappy_fx.zip.b64 > /tmp/chappy_fx.zip
           unzip -t /tmp/chappy_fx.zip >/dev/null
@@ -40,10 +39,11 @@ jobs:
           unzip -q /tmp/chappy_fx.zip -d /tmp/chappy_fx_android
 
           APP=/tmp/chappy_fx_android/chappy_fx_android/app
-          cp /tmp/fx-src/tools/chappy-fx-demo-android/overrides/*.java "$APP/src/main/java/com/konchan/chappyfx/"
-          cp /tmp/fx-src/tools/chappy-fx-demo-android/overrides/AndroidManifest.xml "$APP/src/main/AndroidManifest.xml"
-          cp /tmp/fx-src/tools/chappy-fx-demo-android/overrides/app-build.gradle "$APP/build.gradle"
+          cp "$SRC"/overrides/*.java "$APP/src/main/java/com/konchan/chappyfx/"
+          cp "$SRC/overrides/AndroidManifest.xml" "$APP/src/main/AndroidManifest.xml"
+          cp "$SRC/overrides/app-build.gradle" "$APP/build.gradle"
 
+      - name: Apply stable foreground-only lifecycle
       - name: Apply stable foreground-only lifecycle
         shell: python
         run: |
@@ -220,19 +220,54 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Prepare fixed signing key
+      - name: Create ephemeral signing transfer key
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p repair-2.277/secure
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out /tmp/fx2277-transfer-private.pem
+          openssl pkey -in /tmp/fx2277-transfer-private.pem -pubout -out repair-2.277/secure/public.pem
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add repair-2.277/secure/public.pem
+          git commit -m "Publish ephemeral FX 2.277 transfer key"
+          git push
+
+      - name: Wait for encrypted signing payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 90); do
+            git fetch origin main >/dev/null 2>&1 || true
+            if git cat-file -e origin/main:repair-2.277/secure/payload.enc.b64 2>/dev/null && git cat-file -e origin/main:repair-2.277/secure/secret.enc.b64 2>/dev/null; then
+              git show origin/main:repair-2.277/secure/payload.enc.b64 > /tmp/payload.enc.b64
+              git show origin/main:repair-2.277/secure/secret.enc.b64 > /tmp/secret.enc.b64
+              break
+            fi
+            sleep 3
+          done
+          test -s /tmp/payload.enc.b64
+          test -s /tmp/secret.enc.b64
+
+      - name: Decrypt fixed signing key in runner memory
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 --decode /tmp/secret.enc.b64 > /tmp/secret.enc
+          openssl pkeyutl -decrypt             -inkey /tmp/fx2277-transfer-private.pem             -in /tmp/secret.enc             -pkeyopt rsa_padding_mode:oaep             -pkeyopt rsa_oaep_md:sha256             -pkeyopt rsa_mgf1_md:sha256             -out /tmp/transfer-secret
+          base64 --decode /tmp/payload.enc.b64 > /tmp/payload.enc
+          openssl enc -d -aes-256-cbc -pbkdf2             -pass file:/tmp/transfer-secret             -in /tmp/payload.enc -out /tmp/signing-payload.tar.gz
           mkdir -p /tmp/fx-signing
-          base64 --decode /tmp/fx-src/tools/chappy-fx-demo-android/signing/fx-demo-release.jks.b64 > /tmp/fx-signing/fx-demo-release.jks
-          FX_SIGNING_PASSWORD="$(awk '/FX_SIGNING_PASSWORD:/{print $2; exit}' /tmp/fx-src/.github/workflows/chappy-fx-demo-apk.yml)"
-          test -n "$FX_SIGNING_PASSWORD"
+          tar -xzf /tmp/signing-payload.tar.gz -C /tmp/fx-signing
+          test -s /tmp/fx-signing/fx-demo-release.jks
+          test -s /tmp/fx-signing/password.txt
+          FX_SIGNING_PASSWORD="$(cat /tmp/fx-signing/password.txt)"
           echo "FX_SIGNING_STORE=/tmp/fx-signing/fx-demo-release.jks" >> "$GITHUB_ENV"
           echo "FX_SIGNING_PASSWORD=$FX_SIGNING_PASSWORD" >> "$GITHUB_ENV"
           CERT_SHA256="$(keytool -list -v -keystore /tmp/fx-signing/fx-demo-release.jks -storepass "$FX_SIGNING_PASSWORD" -alias fxdemo | awk '/SHA256:/{print $2; exit}')"
           test "$CERT_SHA256" = "B7:E5:43:7C:2B:23:72:5F:14:F1:A0:16:4A:69:08:6B:E8:30:8B:BC:C7:20:85:4D:4D:E4:20:EA:0E:C2:52:27"
 
+      - name: Set up Gradle
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -271,6 +306,12 @@ jobs:
           set -euo pipefail
           APK=/tmp/chappy_fx_android/chappy_fx_android/app/build/outputs/apk/release/app-release.apk
           SHA="$(sha256sum "$APK" | awk '{print $1}')"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git reset --hard origin/main
+
           cp "$APK" FX-Souba-Yosou-2.277.apk
           cp "$APK" FX-Souba-Yosou.apk
           cat > latest.json <<EOF
@@ -281,8 +322,8 @@ jobs:
             "sha256": "$SHA"
           }
           EOF
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git rm -f --ignore-unmatch repair-2.277/secure/public.pem repair-2.277/secure/payload.enc.b64 repair-2.277/secure/secret.enc.b64
           git add FX-Souba-Yosou-2.277.apk FX-Souba-Yosou.apk latest.json
           git commit -m "Publish FX updater payload Ver 2.277"
           git push
