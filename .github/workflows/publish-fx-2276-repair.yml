@@ -19,65 +19,60 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Reconstruct signed 2.276 from 2.275
+      - name: Decode, patch, and rebuild 2.276
         shell: bash
         run: |
           set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq zstd
+          curl -fsSL --retry 4 --retry-delay 2             https://github.com/iBotPeaches/Apktool/releases/download/v3.0.3/apktool_3.0.3.jar             -o /tmp/apktool.jar
+          echo "dbf930b076c6b9be08d57c449cacefc3bdd6b71ebd59b3066fc0e1f5b14f9423  /tmp/apktool.jar" | sha256sum -c -
+
           rm -rf /tmp/fx2276
-          mkdir -p /tmp/fx2276/old /tmp/fx2276/new/META-INF
-          cd /tmp/fx2276/old
-          unzip -q "$GITHUB_WORKSPACE/FX-Souba-Yosou-2.275.apk"
-          cd "$GITHUB_WORKSPACE"
+          java -jar /tmp/apktool.jar d -f -o /tmp/fx2276 FX-Souba-Yosou-2.275.apk
+          FX_WORK=/tmp/fx2276 python3 repair-2.276/publish/patch_fx2276.py
+          java -jar /tmp/apktool.jar b /tmp/fx2276 -o /tmp/FX-Souba-Yosou-2.276-unsigned.apk
 
-          cat repair-2.276/publish/classes_chunk_* > /tmp/classes.patch.b64
-          base64 --decode /tmp/classes.patch.b64 > /tmp/classes.patch.zst
-          base64 --decode repair-2.276/publish/manifest.patch.b64 > /tmp/manifest.patch.zst
-          zstd -d --patch-from=/tmp/fx2276/old/classes.dex /tmp/classes.patch.zst -o /tmp/fx2276/new/classes.dex
-          zstd -d --patch-from=/tmp/fx2276/old/AndroidManifest.xml /tmp/manifest.patch.zst -o /tmp/fx2276/new/AndroidManifest.xml
+      - name: Verify rebuilt payload before signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -p /tmp/FX-Souba-Yosou-2.276-unsigned.apk classes.dex | sha256sum | grep -q '^c1aefda91e620828d81542a033d3d64a18800f5305771a741d1e319a552f21b3'
+          unzip -p /tmp/FX-Souba-Yosou-2.276-unsigned.apk AndroidManifest.xml | sha256sum | grep -q '^feb53ec9b6540eca258fe61fd9ef219797ad978ae29df1e51ae5c983f46d8b84'
+          unzip -p /tmp/FX-Souba-Yosou-2.276-unsigned.apk resources.arsc | sha256sum | grep -q '^a9ef7d6f5dff36882b2f29dd77bf9a5187122a865e58f7c8a9c9d13fe6dd5e99'
+          unzip -p /tmp/FX-Souba-Yosou-2.276-unsigned.apk res/drawable/ic_launcher.xml | sha256sum | grep -q '^63c2bcb065a5c361c46256185cdaf86d9d1a288c9890ebf9d79fff6d9db998ed'
 
-          base64 --decode repair-2.276/publish/jar_manifest.b64 > /tmp/fx2276/new/META-INF/MANIFEST.MF
-          base64 --decode repair-2.276/publish/fxdemo_sf.b64 > /tmp/fx2276/new/META-INF/FXDEMO.SF
-          base64 --decode repair-2.276/publish/fxdemo_rsa.b64 > /tmp/fx2276/new/META-INF/FXDEMO.RSA
+      - name: Apply existing signing certificate metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/fxsig
+          mkdir -p /tmp/fxsig/META-INF
+          base64 --decode repair-2.276/publish/jar_manifest.b64 > /tmp/fxsig/META-INF/MANIFEST.MF
+          base64 --decode repair-2.276/publish/fxdemo_sf.b64 > /tmp/fxsig/META-INF/FXDEMO.SF
+          base64 --decode repair-2.276/publish/fxdemo_rsa.b64 > /tmp/fxsig/META-INF/FXDEMO.RSA
 
-          test "$(sha256sum /tmp/fx2276/new/classes.dex | awk '{print $1}')" = "c1aefda91e620828d81542a033d3d64a18800f5305771a741d1e319a552f21b3"
-          test "$(sha256sum /tmp/fx2276/new/AndroidManifest.xml | awk '{print $1}')" = "feb53ec9b6540eca258fe61fd9ef219797ad978ae29df1e51ae5c983f46d8b84"
+          cp /tmp/FX-Souba-Yosou-2.276-unsigned.apk /tmp/FX-Souba-Yosou-2.276-signed-unaligned.apk
+          (
+            cd /tmp/fxsig
+            zip -q -9 /tmp/FX-Souba-Yosou-2.276-signed-unaligned.apk               META-INF/MANIFEST.MF META-INF/FXDEMO.SF META-INF/FXDEMO.RSA
+          )
 
-          python3 - <<'PY'
-          import zipfile
-          old='FX-Souba-Yosou-2.275.apk'
-          out='/tmp/FX-Souba-Yosou-2.276.apk'
-          replacements={
-              'AndroidManifest.xml':'/tmp/fx2276/new/AndroidManifest.xml',
-              'classes.dex':'/tmp/fx2276/new/classes.dex',
-          }
-          skip={'META-INF/MANIFEST.MF','META-INF/FXDEMO.SF','META-INF/FXDEMO.RSA'}
-          with zipfile.ZipFile(old,'r') as zin, zipfile.ZipFile(out,'w') as zout:
-              for info in zin.infolist():
-                  if info.filename in replacements or info.filename in skip:
-                      continue
-                  data=zin.read(info.filename)
-                  zout.writestr(info,data)
-              for name,path in replacements.items():
-                  old_info=zin.getinfo(name)
-                  with open(path,'rb') as f:
-                      zout.writestr(old_info,f.read())
-              for name in ['META-INF/MANIFEST.MF','META-INF/FXDEMO.SF','META-INF/FXDEMO.RSA']:
-                  with open('/tmp/fx2276/new/'+name,'rb') as f:
-                      zout.writestr(name,f.read(),compress_type=zipfile.ZIP_DEFLATED)
-          PY
+          ZIPALIGN="$(find "$ANDROID_HOME/build-tools" -type f -name zipalign | sort -V | tail -1)"
+          "$ZIPALIGN" -p -f 4 /tmp/FX-Souba-Yosou-2.276-signed-unaligned.apk /tmp/FX-Souba-Yosou-2.276.apk
 
-      - name: Verify version and signing certificate
+      - name: Verify signature, certificate, and version
         shell: bash
         run: |
           set -euo pipefail
           APK=/tmp/FX-Souba-Yosou-2.276.apk
-          jarsigner -verify "$APK" | grep -q "jar verified"
+          jarsigner -verify "$APK" 2>&1 | grep -q "jar verified"
+
           CERT="$(keytool -printcert -jarfile "$APK" | awk '/SHA256:/{print $2; exit}')"
+          echo "Signing certificate SHA256: $CERT"
           test "$CERT" = "B7:E5:43:7C:2B:23:72:5F:14:F1:A0:16:4A:69:08:6B:E8:30:8B:BC:C7:20:85:4D:4D:E4:20:EA:0E:C2:52:27"
+
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
           "$APKSIGNER" verify --verbose --print-certs "$APK"
+
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
           "$AAPT" dump badging "$APK" | head -1 | tee /tmp/badging.txt
           grep -q "versionCode='200276'" /tmp/badging.txt
@@ -89,6 +84,7 @@ jobs:
           set -euo pipefail
           APK=/tmp/FX-Souba-Yosou-2.276.apk
           SHA="$(sha256sum "$APK" | awk '{print $1}')"
+          test -s "$APK"
           cp "$APK" FX-Souba-Yosou-2.276.apk
           cp "$APK" FX-Souba-Yosou.apk
           cat > latest.json <<EOF
@@ -99,6 +95,7 @@ jobs:
             "sha256": "$SHA"
           }
           EOF
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add FX-Souba-Yosou-2.276.apk FX-Souba-Yosou.apk latest.json
