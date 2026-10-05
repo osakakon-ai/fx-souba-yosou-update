@@ -1,0 +1,94 @@
+name: Publish staged FX APK
+
+on:
+  push:
+    paths:
+      - 'staging-fx-oanda/PUBLISH_READY'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-staged-fx
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Read staged metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_ENV"
+          import json,re
+          m=json.load(open("staging-fx-oanda/meta.json",encoding="utf-8"))
+          vc=int(m["versionCode"])
+          vn=str(m["versionName"])
+          sha=str(m["sha256"]).lower()
+          if not re.fullmatch(r"2\.[0-9]+",vn): raise SystemExit("bad versionName")
+          if vc < 200000: raise SystemExit("bad versionCode")
+          if not re.fullmatch(r"[0-9a-f]{64}",sha): raise SystemExit("bad sha256")
+          print(f"FX_VERSION_CODE={vc}")
+          print(f"FX_VERSION_NAME={vn}")
+          print(f"FX_SHA256={sha}")
+          PY
+
+      - name: Reconstruct staged APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat staging-fx-oanda/apk.part*.b64 > /tmp/fx.apk.b64
+          base64 --decode /tmp/fx.apk.b64 > /tmp/FX-Souba-Yosou.apk
+          test -s /tmp/FX-Souba-Yosou.apk
+          ACTUAL="$(sha256sum /tmp/FX-Souba-Yosou.apk | awk '{print $1}')"
+          test "$ACTUAL" = "$FX_SHA256"
+
+      - name: Verify package, version, and fixed signer
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "build-tools;35.0.0"
+          BT="$ANDROID_HOME/build-tools/35.0.0"
+          "$BT/apksigner" verify --verbose --print-certs /tmp/FX-Souba-Yosou.apk | tee /tmp/apksigner.txt
+          grep -Eq 'Verified using v2 scheme.*true|Verified using v3 scheme.*true' /tmp/apksigner.txt
+          grep -qi 'Signer #1 certificate SHA-256 digest: b7e5437c2b23725f14f1a0164a69086be8308bbcc720854d4de420ea0ec25227' /tmp/apksigner.txt
+          "$BT/aapt" dump badging /tmp/FX-Souba-Yosou.apk | head -1 | tee /tmp/badging.txt
+          grep -q "name='com.konchan.chappyfx'" /tmp/badging.txt
+          grep -q "versionCode='$FX_VERSION_CODE'" /tmp/badging.txt
+          grep -q "versionName='$FX_VERSION_NAME'" /tmp/badging.txt
+
+      - name: Publish updater payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSIONED="FX-Souba-Yosou-${FX_VERSION_NAME}.apk"
+          cp /tmp/FX-Souba-Yosou.apk "$VERSIONED"
+          cp /tmp/FX-Souba-Yosou.apk FX-Souba-Yosou.apk
+          cat > latest.json <<EOF
+          {
+            "versionCode": ${FX_VERSION_CODE},
+            "versionName": "${FX_VERSION_NAME}",
+            "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/${VERSIONED}",
+            "sha256": "${FX_SHA256}"
+          }
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f staging-fx-oanda/apk.part*.b64 staging-fx-oanda/meta.json staging-fx-oanda/PUBLISH_READY
+          git add "$VERSIONED" FX-Souba-Yosou.apk latest.json
+          git commit -m "Publish FX updater payload Ver ${FX_VERSION_NAME}"
+          git push origin HEAD:main
