@@ -1,0 +1,657 @@
+name: Build and publish FX 2.279 event learning
+
+on:
+  push:
+    paths:
+      - 'repair-2.279/BUILD_READY'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fx-2279-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      FX_VERSION_CODE: 200279
+      FX_VERSION_NAME: 2.279
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct canonical FX source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/fx-stage
+          git archive 4b09b3381d7aaaf1fcd51f7f8f7321eb93bff467 repair-2.277/source | tar -x -C /tmp/fx-stage
+          SRC=/tmp/fx-stage/repair-2.277/source
+          cat \
+            "$SRC/build-input/part_00_0.txt" \
+            "$SRC/build-input/part_00_1.txt" \
+            "$SRC/build-input/part_00_2.txt" \
+            "$SRC/build-input/part_00_3.txt" \
+            "$SRC/build-input/part_01.txt" \
+            "$SRC/build-input/part_02.txt" \
+            "$SRC/build-input/part_03.txt" \
+            "$SRC/build-input/part_04.txt" \
+            "$SRC/build-input/part_05.txt" \
+            "$SRC/build-input/part_06.txt" \
+            "$SRC/build-input/part_07.txt" \
+            > /tmp/chappy_fx.zip.b64
+          test "$(wc -c < /tmp/chappy_fx.zip.b64)" -eq 50864
+          base64 --decode /tmp/chappy_fx.zip.b64 > /tmp/chappy_fx.zip
+          unzip -t /tmp/chappy_fx.zip >/dev/null
+          rm -rf /tmp/chappy_fx_android
+          mkdir -p /tmp/chappy_fx_android
+          unzip -q /tmp/chappy_fx.zip -d /tmp/chappy_fx_android
+          APP=/tmp/chappy_fx_android/chappy_fx_android/app
+          cp "$SRC"/overrides/*.java "$APP/src/main/java/com/konchan/chappyfx/"
+          cp "$SRC/overrides/AndroidManifest.xml" "$APP/src/main/AndroidManifest.xml"
+          cp "$SRC/overrides/app-build.gradle" "$APP/build.gradle"
+
+      - name: Apply stable foreground-only lifecycle
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          app=Path('/tmp/chappy_fx_android/chappy_fx_android/app')
+          java=app/'src/main/java/com/konchan/chappyfx'
+
+          p=java/'MainActivity.java'
+          s=p.read_text(encoding='utf-8')
+          old='@Override protected void onCreate(Bundle b){super.onCreate(b);store=new DemoStore(this);requestNotifications();buildUi();setupSwipe();startMonitor(false);}'
+          new='@Override protected void onCreate(Bundle b){super.onCreate(b);store=new DemoStore(this);requestNotifications();buildUi();setupSwipe();}'
+          if old not in s: raise SystemExit('MainActivity onCreate anchor missing')
+          s=s.replace(old,new,1)
+          s=s.replace('startBtn=button("監視を再起動");stopBtn=button("バックグラウンド監視：ON");stopBtn.setEnabled(false);refreshBtn=button("今すぐ解析");',
+                      'startBtn=button("通信を再開");stopBtn=button("表示中のみ通信");stopBtn.setEnabled(false);refreshBtn=button("今すぐ解析");',1)
+          s=s.replace('TextView note=txt("実売買は行いません。アプリを閉じても監視を継続し、端末再起動後も自動で監視を再開します。Android設定でアプリを強制停止した場合だけ、再開には一度アプリを起動してください。",11,MUTED,false);root.addView(note);',
+                      'TextView note=txt("実売買は行いません。通信はアプリを表示している間だけ行います。ページ移動中は通信を維持し、ホームへ戻る・画面OFF・アプリ終了時に停止します。",11,MUTED,false);root.addView(note);',1)
+          old='private void startMonitor(boolean now){Intent i=new Intent(this,MonitoringService.class);i.setAction(now&&store.isRunning()?MonitoringService.ACTION_RUN_NOW:MonitoringService.ACTION_START);if(Build.VERSION.SDK_INT>=26)startForegroundService(i);else startService(i);}'
+          new='private void startMonitor(boolean now){Intent i=new Intent(this,MonitoringService.class);i.setAction(now&&store.isRunning()?MonitoringService.ACTION_RUN_NOW:MonitoringService.ACTION_START);startService(i);}'
+          if old not in s: raise SystemExit('MainActivity startMonitor anchor missing')
+          s=s.replace(old,new,1)
+          s=s.replace('String monitorText=!running?"現在：監視停止":ws?"現在：WebSocketリアルタイム（価格受信 / 軽量解析15秒 / 全足同期5分）":"現在：WebSocket再接続中（全足同期5分）";',
+                      'String monitorText=!running?"現在：通信停止":ws?"現在：アプリ表示中のみリアルタイム接続":"現在：アプリ表示中・接続準備中";',1)
+          s=s.replace('status.setText(monitorText);status.setTextColor(!running?WARN:rapid?DOWN:ws?UP:WARN);startBtn.setEnabled(!running);stopBtn.setEnabled(running);',
+                      'status.setText(monitorText);status.setTextColor(!running?WARN:rapid?DOWN:ws?UP:WARN);startBtn.setEnabled(!running);stopBtn.setEnabled(false);',1)
+          p.write_text(s,encoding='utf-8')
+
+          p=java/'MonitoringService.java'
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('import android.content.pm.ServiceInfo;\n','',1)
+          s=s.replace('    private PowerManager.WakeLock wakeLock;\n','',1)
+          old='''        PowerManager pm=(PowerManager)getSystemService(POWER_SERVICE);
+                  wakeLock=pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"ChappyFX:AnalysisWakeLock");
+                  wakeLock.setReferenceCounted(false);
+          '''
+          if old not in s: raise SystemExit('wake lock init anchor missing')
+          s=s.replace(old,'',1)
+          old='''        // Continuous monitoring is the default for this app. ACTION_STOP is intentionally treated as restart
+                  // because the UI exposes monitoring as always-on.
+                  if(ACTION_STOP.equals(a))a=ACTION_START;
+                  ensureForeground();store.setRunning(true);
+          '''
+          new='''        if(ACTION_STOP.equals(a)){stopMonitoring();return START_NOT_STICKY;}
+                  store.setRunning(true);
+          '''
+          if old not in s: raise SystemExit('onStartCommand anchor missing')
+          s=s.replace(old,new,1)
+          s=s.replace('        return START_STICKY;','        return START_NOT_STICKY;',1)
+          s=s.replace('''        boolean locked=false;
+                  try{
+                      if(wakeLock!=null&&!wakeLock.isHeld()){wakeLock.acquire(90_000L);locked=true;}
+          ''','''        try{
+          ''',1)
+          s=s.replace('''        }finally{
+                      if(locked&&wakeLock!=null&&wakeLock.isHeld())try{wakeLock.release();}catch(Exception ignored){}
+                      cycleRunning.set(false);
+                  }
+          ''','''        }finally{
+                      cycleRunning.set(false);
+                  }
+          ''',1)
+          s=re.sub(r'\n    private void ensureForeground\(\)\{.*?\n    \}\n','\n',s,count=1,flags=re.S)
+          s=re.sub(r'    private void updateOngoing\(\)\{.*?\n    \}',
+                   '    private void updateOngoing(){\n        // No persistent status notification.\n    }',s,count=1,flags=re.S)
+          old='''            NotificationChannel c=new NotificationChannel(CH_MONITOR,"FXデモ監視",NotificationManager.IMPORTANCE_LOW);c.setDescription("USD/JPYのWebSocket継続監視状態");nm.createNotificationChannel(c);
+                      NotificationChannel e=new NotificationChannel(CH_EVENTS,"FXデモ取引",NotificationManager.IMPORTANCE_DEFAULT);e.setDescription("デモエントリー・決済・急変通知");nm.createNotificationChannel(e);
+          '''
+          new='''            NotificationChannel e=new NotificationChannel(CH_EVENTS,"FXデモ取引",NotificationManager.IMPORTANCE_DEFAULT);e.setDescription("アプリ表示中のデモエントリー・決済・急変通知");nm.createNotificationChannel(e);
+          '''
+          if old not in s: raise SystemExit('notification channel anchor missing')
+          s=s.replace(old,new,1)
+          s=s.replace('        if(wakeLock!=null&&wakeLock.isHeld())try{wakeLock.release();}catch(Exception ignored){}\n','')
+          s=s.replace('        stopForeground(STOP_FOREGROUND_REMOVE);stopSelf();','        stopSelf();',1)
+          p.write_text(s,encoding='utf-8')
+
+          p=app/'src/main/AndroidManifest.xml'
+          s=p.read_text(encoding='utf-8')
+          for line in [
+              '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n',
+              '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />\n',
+              '    <uses-permission android:name="android.permission.WAKE_LOCK" />\n',
+              '    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n',
+          ]:
+              if line not in s: raise SystemExit('Manifest permission anchor missing: '+line.strip())
+              s=s.replace(line,'',1)
+          s=s.replace('    <application\n        android:allowBackup="true"\n',
+                      '    <application\n        android:name=".FxApplication"\n        android:allowBackup="true"\n',1)
+          s=re.sub(r'\n        <receiver\s+android:name="\.MonitoringBootReceiver".*?</receiver>\n','\n',s,count=1,flags=re.S)
+          s=re.sub(r'        <service\s+android:name="\.MonitoringService".*?</service>',
+                   '        <service\n            android:name=".MonitoringService"\n            android:exported="false" />',s,count=1,flags=re.S)
+          p.write_text(s,encoding='utf-8')
+
+          (java/'FxApplication.java').write_text(r'''package com.konchan.chappyfx;
+
+          import android.app.*;
+          import android.content.*;
+          import android.os.*;
+
+          public class FxApplication extends Application implements Application.ActivityLifecycleCallbacks {
+              private final Handler handler=new Handler(Looper.getMainLooper());
+              private int started=0;
+              private int generation=0;
+
+              @Override public void onCreate(){
+                  super.onCreate();
+                  registerActivityLifecycleCallbacks(this);
+              }
+
+              @Override public void onActivityStarted(Activity activity){
+                  started++;
+                  generation++;
+                  if(started==1){
+                      Intent i=new Intent(this,MonitoringService.class);
+                      i.setAction(MonitoringService.ACTION_START);
+                      try{startService(i);}catch(Exception ignored){}
+                  }
+              }
+
+              @Override public void onActivityStopped(Activity activity){
+                  if(started>0)started--;
+                  if(started!=0)return;
+                  final int token=++generation;
+                  handler.postDelayed(()->{
+                      if(started==0&&token==generation){
+                          try{stopService(new Intent(this,MonitoringService.class));}catch(Exception ignored){}
+                      }
+                  },1200L);
+              }
+
+              @Override public void onActivityCreated(Activity activity,Bundle state){}
+              @Override public void onActivityResumed(Activity activity){}
+              @Override public void onActivityPaused(Activity activity){}
+              @Override public void onActivitySaveInstanceState(Activity activity,Bundle outState){}
+              @Override public void onActivityDestroyed(Activity activity){}
+          }
+          ''',encoding='utf-8')
+
+      - name: Apply pre-release-only prediction and event learning
+        shell: python
+        run: |
+          from pathlib import Path
+          app=Path('/tmp/chappy_fx_android/chappy_fx_android/app')
+          java=app/'src/main/java/com/konchan/chappyfx'
+
+          # ---- DemoStore: hidden forecast/result history + gradual category correction ----
+          p=java/'DemoStore.java'
+          s=p.read_text(encoding='utf-8')
+          anchor='    public double employmentCalibrationK(){JSONArray a=employmentHistory();double sum=0;int n=0;for(int i=0;i<a.length()&&n<6;i++){JSONObject x=a.optJSONObject(i);if(x!=null&&x.has("actualK")){sum+=x.optDouble("errorK",0);n++;}}if(n<3)return 0;return Math.max(-25,Math.min(25,sum/n));}\n'
+          if anchor not in s: raise SystemExit('DemoStore employment calibration anchor missing')
+          addition=r'''
+              public void saveEventForecast(String source,String title,String context,long releaseMs,int score,int confidence){
+                  long now=System.currentTimeMillis();
+                  if(releaseMs<=now)return;
+                  try{
+                      String type=normalizeEventType((context==null?"":context)+" "+(title==null?"":title));
+                      String id=eventForecastId(source,title,releaseMs);
+                      JSONObject rec=new JSONObject();
+                      rec.put("id",id).put("source",source==null?"":source).put("title",title==null?"":title).put("type",type)
+                         .put("releaseMs",releaseMs).put("score",Math.max(-100,Math.min(100,score))).put("confidence",Math.max(0,Math.min(100,confidence)))
+                         .put("predictedDir",score>=15?"up":score<=-15?"down":"neutral").put("savedAt",now);
+                      double mid=lastMid();if(!Double.isNaN(mid))rec.put("preMid",mid);
+                      JSONArray old=eventForecastHistory(),out=new JSONArray();out.put(rec);
+                      for(int i=0;i<old.length()&&out.length()<80;i++){
+                          JSONObject x=old.optJSONObject(i);if(x==null||id.equals(x.optString("id","")))continue;out.put(x);
+                      }
+                      market.edit().putString("eventForecastHistory",out.toString()).apply();
+                  }catch(Exception ignored){}
+              }
+              public JSONArray eventForecastHistory(){try{return new JSONArray(market.getString("eventForecastHistory","[]"));}catch(Exception e){return new JSONArray();}}
+              private String eventForecastId(String source,String title,long releaseMs){
+                  return releaseMs+"|"+(source==null?"":source)+"|"+(title==null?"":title);
+              }
+              private String normalizeEventType(String raw){
+                  String q=raw==null?"":raw.toLowerCase(Locale.US);
+                  if(q.contains("雇用")||q.contains("employment")||q.contains("payroll")||q.contains("失業")||q.contains("jolts")||q.contains("labor"))return "employment";
+                  if(q.contains("cpi")||q.contains("pce")||q.contains("物価")||q.contains("inflation")||q.contains("インフレ"))return "inflation";
+                  if(q.contains("fomc")||q.contains("金融政策")||q.contains("政策金利")||q.contains("interest rate")||q.contains("treasury")||q.contains("金利"))return "rates";
+                  if(q.contains("gdp")||q.contains("景気")||q.contains("growth")||q.contains("経済見通し"))return "growth";
+                  if(q.contains("為替")||q.contains("foreign exchange")||q.contains("currency")||q.contains("介入"))return "fx";
+                  return "other";
+              }
+              private double eventPriceNear(List<MarketEngine.Candle> rows,long target,long toleranceMs){
+                  if(rows==null||rows.isEmpty())return Double.NaN;
+                  long best=Long.MAX_VALUE;double price=Double.NaN;
+                  for(MarketEngine.Candle c:rows){
+                      long d=Math.abs(c.timeMs-target);
+                      if(d<=toleranceMs&&d<best){best=d;price=c.c;}
+                  }
+                  return price;
+              }
+              private String directionFromMove(double move){
+                  if(Double.isNaN(move)||Math.abs(move)<0.03)return "neutral";
+                  return move>0?"up":"down";
+              }
+              private String eventReadMistake(String predicted,String actual,double move15,double move30){
+                  if(predicted.equals(actual))return "";
+                  if("neutral".equals(actual))return "方向感を強く見積もりすぎた";
+                  if("neutral".equals(predicted))return "発表後の値動きの強さを過小評価した";
+                  String p="up".equals(predicted)?"上昇":"下落",a="up".equals(actual)?"上昇":"下落";
+                  return p+"予想に対して実際は"+a+"。材料の方向評価を見直す";
+              }
+              public void resolveEventForecasts(List<MarketEngine.Candle> m5){
+                  if(m5==null||m5.isEmpty())return;
+                  long now=System.currentTimeMillis();
+                  JSONArray hist=eventForecastHistory();boolean changed=false;
+                  try{
+                      for(int i=0;i<hist.length();i++){
+                          JSONObject x=hist.optJSONObject(i);if(x==null||x.has("resolvedAt"))continue;
+                          long release=x.optLong("releaseMs",0);
+                          if(release<=0||now<release+30L*60_000L)continue;
+                          double p0=eventPriceNear(m5,release,7L*60_000L);
+                          double p5=eventPriceNear(m5,release+5L*60_000L,7L*60_000L);
+                          double p15=eventPriceNear(m5,release+15L*60_000L,7L*60_000L);
+                          double p30=eventPriceNear(m5,release+30L*60_000L,7L*60_000L);
+                          if(Double.isNaN(p0)||Double.isNaN(p15)||Double.isNaN(p30))continue;
+                          double d5=Double.isNaN(p5)?Double.NaN:p5-p0,d15=p15-p0,d30=p30-p0;
+                          double judged=Math.abs(d15)>=0.03?d15:d30;
+                          String actual=directionFromMove(judged),pred=x.optString("predictedDir","neutral");
+                          boolean hit=pred.equals(actual);
+                          x.put("actualDir",actual).put("hit",hit).put("resolvedAt",now).put("basePrice",p0)
+                           .put("move15",d15).put("move30",d30).put("readMistake",eventReadMistake(pred,actual,d15,d30));
+                          if(!Double.isNaN(d5))x.put("move5",d5);
+                          changed=true;
+                      }
+                      if(changed)market.edit().putString("eventForecastHistory",hist.toString()).apply();
+                  }catch(Exception ignored){}
+              }
+              public int eventPredictionAdjustment(String context){
+                  String type=normalizeEventType(context);JSONArray a=eventForecastHistory();
+                  double sum=0,weight=0;int n=0;
+                  for(int i=0;i<a.length()&&n<12;i++){
+                      JSONObject x=a.optJSONObject(i);if(x==null||!x.has("resolvedAt")||!type.equals(x.optString("type","")))continue;
+                      String actual=x.optString("actualDir","neutral");
+                      int target="up".equals(actual)?55:"down".equals(actual)?-55:0;
+                      int pred=x.optInt("score",0);
+                      double w=Math.max(.45,1.0-n*.06);
+                      sum+=(target-pred)*w;weight+=w;n++;
+                  }
+                  if(n<3||weight<=0)return 0;
+                  int adj=(int)Math.round((sum/weight)*0.30);
+                  return Math.max(-15,Math.min(15,adj));
+              }
+          '''
+          s=s.replace(anchor,anchor+addition,1)
+          p.write_text(s,encoding='utf-8')
+
+          # ---- ImportantInfoActivity: prediction is strictly pre-release ----
+          p=java/'ImportantInfoActivity.java'
+          s=p.read_text(encoding='utf-8')
+
+          old='''        int employmentPredictionScore=employmentChappyPredictionScore(employment);
+                  chappyPrediction.setVisibility(View.VISIBLE);
+                  chappyPrediction.setTextColor(chappyPredictionColor(employmentPredictionScore));
+                  chappyPrediction.setText(chappyPredictionText(employmentPredictionScore));
+          '''
+          new='''        boolean employmentPreRelease=employment.nextReleaseMs>System.currentTimeMillis();
+                  int employmentPredictionScore=employmentChappyPredictionScore(employment);
+                  if(employmentPreRelease){
+                      chappyPrediction.setVisibility(View.VISIBLE);
+                      chappyPrediction.setTextColor(chappyPredictionColor(employmentPredictionScore));
+                      chappyPrediction.setText(chappyPredictionText(employmentPredictionScore));
+                      store.saveEventForecast("BLS","米雇用統計","employment",employment.nextReleaseMs,employmentPredictionScore,employment.confidence);
+                  }else{
+                      chappyPrediction.setVisibility(View.GONE);
+                  }
+          '''
+          if old not in s: raise SystemExit('employment prediction render anchor missing')
+          s=s.replace(old,new,1)
+
+          old='''        employmentSummary.setText("【独自推定】非農業部門雇用者数 "+center+"\\n推定レンジ "+range+" / 失業率 "+ur+"\\n雇用の勢い："+employment.bias+" / 信頼度 "+employment.confidence+"%\\n※市場コンセンサスではなく、取得できた先行データからの実験的推定です。");
+                  StringBuilder b=new StringBuilder("【判断材料】");
+                  for(int i=0;i<employment.factors.size();i++){b.append("\\n・").append(employment.factors.get(i));if(i>=5)break;}
+                  employmentFactors.setText(b.toString());
+          '''
+          new='''        if(employmentPreRelease){
+                      employmentSummary.setText("【独自推定】非農業部門雇用者数 "+center+"\\n推定レンジ "+range+" / 失業率 "+ur+"\\n雇用の勢い："+employment.bias+" / 信頼度 "+employment.confidence+"%\\n※市場コンセンサスではなく、取得できた先行データからの実験的推定です。");
+                      StringBuilder b=new StringBuilder("【判断材料】");
+                      for(int i=0;i<employment.factors.size();i++){b.append("\\n・").append(employment.factors.get(i));if(i>=5)break;}
+                      employmentFactors.setText(b.toString());
+                  }else{
+                      employmentSummary.setText("発表済みです。事前予想の表示は終了しました。次回イベントの日程・データ更新を待ちます。");
+                      employmentFactors.setText("");
+                  }
+          '''
+          if old not in s: raise SystemExit('employment summary anchor missing')
+          s=s.replace(old,new,1)
+
+          old='''        chappyPrediction.setVisibility(View.VISIBLE);
+                  chappyPrediction.setTextColor(ACCENT);
+                  chappyPrediction.setText("チャッピー予想：ドル円の方向を分析中…");
+                  employmentSummary.setText("関連データと現在のドル円を分析中…");
+          '''
+          new='''        boolean preRelease=selectedEvent.dateMs>System.currentTimeMillis();
+                  chappyPrediction.setVisibility(preRelease?View.VISIBLE:View.GONE);
+                  if(preRelease){
+                      chappyPrediction.setTextColor(ACCENT);
+                      chappyPrediction.setText("チャッピー予想：ドル円の方向を分析中…");
+                      employmentSummary.setText("関連データと現在のドル円を分析中…");
+                  }else{
+                      employmentSummary.setText("発表済みです。事前予想の表示は終了しました。");
+                  }
+          '''
+          if old not in s: raise SystemExit('selected loading anchor missing')
+          s=s.replace(old,new,1)
+
+          old='''    private void refreshSelectedEvent(boolean manual){
+                  final OfficialInfoClient.Item x=selectedEvent;if(x==null)return;
+                  employmentRefreshBtn.setEnabled(false);employmentRefreshBtn.setText("分析中…");
+          '''
+          new='''    private void refreshSelectedEvent(boolean manual){
+                  final OfficialInfoClient.Item x=selectedEvent;if(x==null)return;
+                  if(x.dateMs<=System.currentTimeMillis()){
+                      employmentRefreshBtn.setEnabled(false);employmentRefreshBtn.setText("発表済み");
+                      chappyPrediction.setVisibility(View.GONE);
+                      employmentSummary.setText("発表済みです。事前予想の表示は終了しました。");
+                      employmentFactors.setText("");employmentLearning.setText("");
+                      return;
+                  }
+                  employmentRefreshBtn.setEnabled(false);employmentRefreshBtn.setText("分析中…");
+          '''
+          if old not in s: raise SystemExit('refreshSelectedEvent anchor missing')
+          s=s.replace(old,new,1)
+
+          old='''        int predictionScore=chappyPredictionScore(cs,free);
+                  chappyPrediction.setVisibility(View.VISIBLE);
+                  chappyPrediction.setTextColor(chappyPredictionColor(predictionScore));
+                  chappyPrediction.setText(chappyPredictionText(predictionScore));
+          '''
+          new='''        boolean preRelease=x.dateMs>System.currentTimeMillis();
+                  int predictionScore=chappyPredictionScore(x,cs,free);
+                  if(preRelease){
+                      chappyPrediction.setVisibility(View.VISIBLE);
+                      chappyPrediction.setTextColor(chappyPredictionColor(predictionScore));
+                      chappyPrediction.setText(chappyPredictionText(predictionScore));
+                      store.saveEventForecast(x.source,OfficialInfoClient.displayTitle(x),x.category+" "+r.eventType,x.dateMs,predictionScore,r.confidence);
+                  }else{
+                      chappyPrediction.setVisibility(View.GONE);
+                  }
+          '''
+          if old not in s: raise SystemExit('selected result prediction anchor missing')
+          s=s.replace(old,new,1)
+
+          old='''        employmentSummary.setText("【"+r.eventType+"】分析信頼度 "+r.confidence+"%\\n"+r.headline+"\\n"+r.outlook);
+                  String composite="";
+          '''
+          new='''        if(preRelease)employmentSummary.setText("【"+r.eventType+"】分析信頼度 "+r.confidence+"%\\n"+r.headline+"\\n"+r.outlook);
+                  else employmentSummary.setText("発表済みです。事前予想の表示は終了しました。");
+                  String composite="";
+          '''
+          if old not in s: raise SystemExit('selected result summary anchor missing')
+          s=s.replace(old,new,1)
+
+          s=s.replace('    private int chappyPredictionScore(CompositeSignalEngine.Result cs,FreeOfficialDataEngine.Result free){',
+                      '    private int chappyPredictionScore(OfficialInfoClient.Item x,CompositeSignalEngine.Result cs,FreeOfficialDataEngine.Result free){',1)
+          old='''        if(weight<=0)return 0;
+                  return (int)Math.max(-100,Math.min(100,Math.round(total/weight)));
+          '''
+          new='''        int base=weight<=0?0:(int)Math.round(total/weight);
+                  int learned=store.eventPredictionAdjustment((x==null?"":x.category+" "+OfficialInfoClient.displayTitle(x)));
+                  return Math.max(-100,Math.min(100,base+learned));
+          '''
+          if old not in s: raise SystemExit('selected prediction score return anchor missing')
+          s=s.replace(old,new,1)
+
+          old='''        return (int)Math.max(-100,Math.min(100,Math.round(total/Math.max(.01,weight))));
+              }
+          '''
+          new='''        int base=(int)Math.round(total/Math.max(.01,weight));
+                  return Math.max(-100,Math.min(100,base+store.eventPredictionAdjustment("employment")));
+              }
+          '''
+          if old not in s: raise SystemExit('employment prediction score return anchor missing')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+
+          # ---- MonitoringService: resolve hidden results whenever full M5 history is refreshed ----
+          p=java/'MonitoringService.java'
+          s=p.read_text(encoding='utf-8')
+          anchor='            ResearchLabEngine.step(this,raw);'
+          if anchor not in s: raise SystemExit('MonitoringService learning anchor missing')
+          s=s.replace(anchor,anchor+'\n\n            store.resolveEventForecasts(raw.get("M5"));',1)
+          p.write_text(s,encoding='utf-8')
+
+      - name: Fix H8 candle history depth
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('/tmp/chappy_fx_android/chappy_fx_android/app/src/main/java/com/konchan/chappyfx/BiquoteClient.java')
+          s=p.read_text(encoding='utf-8')
+
+          s=s.replace(
+              'List<MarketEngine.Candle> h1=fetch("1h",500);out.put("H1",h1);',
+              'List<MarketEngine.Candle> h1=fetchHourlyHistory(500);out.put("H1",h1);',
+              1
+          )
+          s=s.replace(
+              'if("H1".equals(tf))return fetch("1h",500);',
+              'if("H1".equals(tf))return fetchHourlyHistory(500);',
+              1
+          )
+          s=s.replace(
+              'if("H2".equals(tf))return aggregateFixedHoursJst(fetch("1h",500),2);',
+              'if("H2".equals(tf))return aggregateFixedHoursJst(fetchHourlyHistory(500),2);',
+              1
+          )
+          s=s.replace(
+              'if("H4".equals(tf))return aggregateFixedHoursJst(fetch("1h",500),4);',
+              'if("H4".equals(tf))return aggregateFixedHoursJst(fetchHourlyHistory(500),4);',
+              1
+          )
+          s=s.replace(
+              'if("H8".equals(tf))return aggregateFixedHoursJst(fetch("1h",500),8);',
+              'if("H8".equals(tf))return aggregateFixedHoursJst(fetchHourlyHistory(500),8);',
+              1
+          )
+
+          anchor='''    private List<MarketEngine.Candle> fetch(String interval,int limit) throws Exception {
+                  return fetchPage(interval,limit,null);
+              }
+          '''
+          helper='''    private List<MarketEngine.Candle> fetch(String interval,int limit) throws Exception {
+                  return fetchPage(interval,limit,null);
+              }
+
+              private List<MarketEngine.Candle> fetchHourlyHistory(int targetBars) throws Exception {
+                  int target=Math.max(420,Math.min(1000,targetBars));
+                  TreeMap<Long,MarketEngine.Candle> merged=new TreeMap<>();
+                  Long toMs=null;
+                  int unchanged=0;
+                  for(int page=0;page<6&&merged.size()<target;page++){
+                      int before=merged.size();
+                      List<MarketEngine.Candle> part=fetchPage("1h",Math.min(1000,target),toMs);
+                      if(part==null||part.isEmpty())break;
+                      for(MarketEngine.Candle x:part)merged.put(x.timeMs,x);
+                      if(merged.size()==before){unchanged++;if(unchanged>=2)break;}else unchanged=0;
+                      long earliest=part.get(0).timeMs;
+                      if(earliest<=0)break;
+                      toMs=earliest-1L;
+                  }
+                  ArrayList<MarketEngine.Candle> out=new ArrayList<>(merged.values());
+                  if(out.size()>target)out=new ArrayList<>(out.subList(out.size()-target,out.size()));
+                  if(out.size()<384)throw new IOException("H8生成用H1履歴不足: "+out.size()+"本");
+                  return out;
+              }
+          '''
+          if anchor not in s: raise SystemExit('BiquoteClient fetch anchor missing')
+          s=s.replace(anchor,helper,1)
+          p.write_text(s,encoding='utf-8')
+
+          # H8 should have at least 48 display candles after 8-hour aggregation.
+          text=p.read_text(encoding='utf-8')
+          if 'fetchHourlyHistory(500)' not in text: raise SystemExit('paged hourly history fix missing')
+          if 'H8生成用H1履歴不足' not in text: raise SystemExit('H8 history guard missing')
+
+      - name: Static regression checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP=/tmp/chappy_fx_android/chappy_fx_android/app
+          ! grep -R "startForegroundService" "$APP/src/main/java/com/konchan/chappyfx"
+          ! grep -q "FOREGROUND_SERVICE" "$APP/src/main/AndroidManifest.xml"
+          ! grep -q "RECEIVE_BOOT_COMPLETED" "$APP/src/main/AndroidManifest.xml"
+          ! grep -q "MonitoringBootReceiver" "$APP/src/main/AndroidManifest.xml"
+          grep -q 'android:name=".FxApplication"' "$APP/src/main/AndroidManifest.xml"
+          grep -q 'saveEventForecast' "$APP/src/main/java/com/konchan/chappyfx/DemoStore.java"
+          grep -q 'resolveEventForecasts' "$APP/src/main/java/com/konchan/chappyfx/MonitoringService.java"
+          grep -q 'eventPredictionAdjustment' "$APP/src/main/java/com/konchan/chappyfx/ImportantInfoActivity.java"
+          grep -q '発表済みです。事前予想の表示は終了しました。' "$APP/src/main/java/com/konchan/chappyfx/ImportantInfoActivity.java"
+          grep -q 'fetchHourlyHistory(500)' "$APP/src/main/java/com/konchan/chappyfx/BiquoteClient.java"
+          grep -q 'H8生成用H1履歴不足' "$APP/src/main/java/com/konchan/chappyfx/BiquoteClient.java"
+
+      - name: Set up Java and Android SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android 35 SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Create ephemeral signing transfer key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p repair-2.279/secure
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out /tmp/fx2279-transfer-private.pem
+          openssl pkey -in /tmp/fx2279-transfer-private.pem -pubout -out repair-2.279/secure/public.pem
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add repair-2.279/secure/public.pem
+          git commit -m "Publish ephemeral FX 2.279 transfer key"
+          git push
+
+      - name: Wait for encrypted signing payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 100); do
+            git fetch origin main >/dev/null 2>&1 || true
+            if git cat-file -e origin/main:repair-2.279/secure/payload.enc.b64 2>/dev/null && git cat-file -e origin/main:repair-2.279/secure/secret.enc.b64 2>/dev/null; then
+              git show origin/main:repair-2.279/secure/payload.enc.b64 > /tmp/payload.enc.b64
+              git show origin/main:repair-2.279/secure/secret.enc.b64 > /tmp/secret.enc.b64
+              break
+            fi
+            sleep 3
+          done
+          test -s /tmp/payload.enc.b64
+          test -s /tmp/secret.enc.b64
+
+      - name: Decrypt fixed signing key in runner memory
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 --decode /tmp/secret.enc.b64 > /tmp/secret.enc
+          openssl pkeyutl -decrypt \
+            -inkey /tmp/fx2279-transfer-private.pem \
+            -in /tmp/secret.enc \
+            -pkeyopt rsa_padding_mode:oaep \
+            -pkeyopt rsa_oaep_md:sha256 \
+            -pkeyopt rsa_mgf1_md:sha256 \
+            -out /tmp/transfer-secret
+          base64 --decode /tmp/payload.enc.b64 > /tmp/payload.enc
+          openssl enc -d -aes-256-cbc -pbkdf2 \
+            -pass file:/tmp/transfer-secret \
+            -in /tmp/payload.enc -out /tmp/signing-payload.tar.gz
+          mkdir -p /tmp/fx-signing
+          tar -xzf /tmp/signing-payload.tar.gz -C /tmp/fx-signing
+          test -s /tmp/fx-signing/fx-demo-release.jks
+          test -s /tmp/fx-signing/password.txt
+          FX_SIGNING_PASSWORD="$(cat /tmp/fx-signing/password.txt)"
+          echo "FX_SIGNING_STORE=/tmp/fx-signing/fx-demo-release.jks" >> "$GITHUB_ENV"
+          echo "FX_SIGNING_PASSWORD=$FX_SIGNING_PASSWORD" >> "$GITHUB_ENV"
+          CERT_SHA256="$(keytool -list -v -keystore /tmp/fx-signing/fx-demo-release.jks -storepass "$FX_SIGNING_PASSWORD" -alias fxdemo | awk '/SHA256:/{print $2; exit}')"
+          test "$CERT_SHA256" = "B7:E5:43:7C:2B:23:72:5F:14:F1:A0:16:4A:69:08:6B:E8:30:8B:BC:C7:20:85:4D:4D:E4:20:EA:0E:C2:52:27"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Run engine self-test
+        working-directory: /tmp/chappy_fx_android/chappy_fx_android
+        shell: bash
+        run: |
+          rm -rf /tmp/chappy_fx_testclasses
+          mkdir -p /tmp/chappy_fx_testclasses
+          javac -d /tmp/chappy_fx_testclasses app/src/main/java/com/konchan/chappyfx/MarketEngine.java EngineSelfTest.java
+          java -cp /tmp/chappy_fx_testclasses EngineSelfTest
+
+      - name: Build signed 2.279
+        working-directory: /tmp/chappy_fx_android/chappy_fx_android
+        shell: bash
+        run: gradle :app:assembleRelease --stacktrace
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=/tmp/chappy_fx_android/chappy_fx_android/app/build/outputs/apk/release/app-release.apk
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/apksigner.txt
+          grep -Eq 'Verified using v2 scheme.*true|Verified using v3 scheme.*true' /tmp/apksigner.txt
+          grep -q 'Signer #1 certificate SHA-256 digest: b7e5437c2b23725f14f1a0164a69086be8308bbcc720854d4de420ea0ec25227' /tmp/apksigner.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -1 | tee /tmp/badging.txt
+          grep -q "versionCode='200279'" /tmp/badging.txt
+          grep -q "versionName='2.279'" /tmp/badging.txt
+
+      - name: Publish updater payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=/tmp/chappy_fx_android/chappy_fx_android/app/build/outputs/apk/release/app-release.apk
+          SHA="$(sha256sum "$APK" | awk '{print $1}')"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git reset --hard origin/main
+          cp "$APK" FX-Souba-Yosou-2.279.apk
+          cp "$APK" FX-Souba-Yosou.apk
+          cat > latest.json <<EOF
+          {
+            "versionCode": 200279,
+            "versionName": "2.279",
+            "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/FX-Souba-Yosou-2.279.apk",
+            "sha256": "$SHA"
+          }
+          EOF
+          git rm -f --ignore-unmatch repair-2.279/secure/public.pem repair-2.279/secure/payload.enc.b64 repair-2.279/secure/secret.enc.b64
+          git add FX-Souba-Yosou-2.279.apk FX-Souba-Yosou.apk latest.json
+          git commit -m "Publish FX updater payload Ver 2.279"
+          git push
