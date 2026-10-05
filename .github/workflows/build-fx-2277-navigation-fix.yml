@@ -44,7 +44,6 @@ jobs:
           cp "$SRC/overrides/app-build.gradle" "$APP/build.gradle"
 
       - name: Apply stable foreground-only lifecycle
-      - name: Apply stable foreground-only lifecycle
         shell: python
         run: |
           from pathlib import Path
@@ -267,7 +266,6 @@ jobs:
           CERT_SHA256="$(keytool -list -v -keystore /tmp/fx-signing/fx-demo-release.jks -storepass "$FX_SIGNING_PASSWORD" -alias fxdemo | awk '/SHA256:/{print $2; exit}')"
           test "$CERT_SHA256" = "B7:E5:43:7C:2B:23:72:5F:14:F1:A0:16:4A:69:08:6B:E8:30:8B:BC:C7:20:85:4D:4D:E4:20:EA:0E:C2:52:27"
 
-      - name: Set up Gradle
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
