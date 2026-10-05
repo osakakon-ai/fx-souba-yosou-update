@@ -1,0 +1,85 @@
+name: Publish FX 2.280 signed artifact
+
+on:
+  push:
+    paths:
+      - 'repair-2.280/PUBLISH_READY'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fx-2280-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download signed 2.280 artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --retry-delay 2 'https://sdmntprnznorth.oaiusercontent.com/files/00000000-4af0-820b-8727-a31022ede4a4/raw?se=2026-10-05T10%3A28%3A48Z&sp=r&sv=2026-02-06&sr=b&scid=30f42824-1c2c-5932-8c2a-e0481ca1db26&skoid=f5e14fda-2af7-44a3-9d18-d372ffcad871&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-04T21%3A02%3A49Z&ske=2026-10-05T21%3A02%3A49Z&sks=b&skv=2026-02-06&sig=ukftXeTp55ztknCXAUVVTA15gwSswIsRh3bPnM2XnmM%3D' -o /tmp/fx2280.zip
+          unzip -t /tmp/fx2280.zip
+          rm -rf /tmp/fx2280
+          mkdir -p /tmp/fx2280
+          unzip -q /tmp/fx2280.zip -d /tmp/fx2280
+          APK="$(find /tmp/fx2280 -type f -name '*.apk' -print -quit)"
+          test -n "$APK"
+          test -s "$APK"
+          echo "APK=$APK" >> "$GITHUB_ENV"
+
+      - name: Verify exact APK SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL="$(sha256sum "$APK" | awk '{print $1}')"
+          test "$ACTUAL" = "46a5e19d4172e96c6a1a45b0c33b380d93ecf5b6d2b51a5d4026adc009cf8cf9"
+
+      - name: Install Android build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "build-tools;35.0.0"
+
+      - name: Verify signature and version
+        shell: bash
+        run: |
+          set -euo pipefail
+          BT=/usr/local/lib/android/sdk/build-tools/35.0.0
+          "$BT/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/apksigner.txt
+          grep -Eq 'Verified using v2 scheme.*true|Verified using v3 scheme.*true' /tmp/apksigner.txt
+          grep -q 'Signer #1 certificate SHA-256 digest: b7e5437c2b23725f14f1a0164a69086be8308bbcc720854d4de420ea0ec25227' /tmp/apksigner.txt
+          "$BT/aapt" dump badging "$APK" | head -1 | tee /tmp/badging.txt
+          grep -q "versionCode='200280'" /tmp/badging.txt
+          grep -q "versionName='2.280'" /tmp/badging.txt
+
+      - name: Publish updater payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git reset --hard origin/main
+          cp "$APK" FX-Souba-Yosou-2.280.apk
+          cp "$APK" FX-Souba-Yosou.apk
+          cat > latest.json <<'EOF'
+          {
+            "versionCode": 200280,
+            "versionName": "2.280",
+            "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/FX-Souba-Yosou-2.280.apk",
+            "sha256": "46a5e19d4172e96c6a1a45b0c33b380d93ecf5b6d2b51a5d4026adc009cf8cf9"
+          }
+          EOF
+          git add FX-Souba-Yosou-2.280.apk FX-Souba-Yosou.apk latest.json
+          git commit -m "Publish FX updater payload Ver 2.280"
+          git push
