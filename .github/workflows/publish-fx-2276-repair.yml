@@ -1,0 +1,106 @@
+name: Publish FX 2.276 foreground-only repair
+
+on:
+  push:
+    paths:
+      - 'repair-2.276/publish/PUBLISH_READY'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fx-2276-repair-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct signed 2.276 from 2.275
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zstd
+          rm -rf /tmp/fx2276
+          mkdir -p /tmp/fx2276/old /tmp/fx2276/new/META-INF
+          cd /tmp/fx2276/old
+          unzip -q "$GITHUB_WORKSPACE/FX-Souba-Yosou-2.275.apk"
+          cd "$GITHUB_WORKSPACE"
+
+          cat repair-2.276/publish/classes_chunk_* > /tmp/classes.patch.b64
+          base64 --decode /tmp/classes.patch.b64 > /tmp/classes.patch.zst
+          base64 --decode repair-2.276/publish/manifest.patch.b64 > /tmp/manifest.patch.zst
+          zstd -d --patch-from=/tmp/fx2276/old/classes.dex /tmp/classes.patch.zst -o /tmp/fx2276/new/classes.dex
+          zstd -d --patch-from=/tmp/fx2276/old/AndroidManifest.xml /tmp/manifest.patch.zst -o /tmp/fx2276/new/AndroidManifest.xml
+
+          base64 --decode repair-2.276/publish/jar_manifest.b64 > /tmp/fx2276/new/META-INF/MANIFEST.MF
+          base64 --decode repair-2.276/publish/fxdemo_sf.b64 > /tmp/fx2276/new/META-INF/FXDEMO.SF
+          base64 --decode repair-2.276/publish/fxdemo_rsa.b64 > /tmp/fx2276/new/META-INF/FXDEMO.RSA
+
+          test "$(sha256sum /tmp/fx2276/new/classes.dex | awk '{print $1}')" = "c1aefda91e620828d81542a033d3d64a18800f5305771a741d1e319a552f21b3"
+          test "$(sha256sum /tmp/fx2276/new/AndroidManifest.xml | awk '{print $1}')" = "feb53ec9b6540eca258fe61fd9ef219797ad978ae29df1e51ae5c983f46d8b84"
+
+          python3 - <<'PY'
+          import zipfile
+          old='FX-Souba-Yosou-2.275.apk'
+          out='/tmp/FX-Souba-Yosou-2.276.apk'
+          replacements={
+              'AndroidManifest.xml':'/tmp/fx2276/new/AndroidManifest.xml',
+              'classes.dex':'/tmp/fx2276/new/classes.dex',
+          }
+          skip={'META-INF/MANIFEST.MF','META-INF/FXDEMO.SF','META-INF/FXDEMO.RSA'}
+          with zipfile.ZipFile(old,'r') as zin, zipfile.ZipFile(out,'w') as zout:
+              for info in zin.infolist():
+                  if info.filename in replacements or info.filename in skip:
+                      continue
+                  data=zin.read(info.filename)
+                  zout.writestr(info,data)
+              for name,path in replacements.items():
+                  old_info=zin.getinfo(name)
+                  with open(path,'rb') as f:
+                      zout.writestr(old_info,f.read())
+              for name in ['META-INF/MANIFEST.MF','META-INF/FXDEMO.SF','META-INF/FXDEMO.RSA']:
+                  with open('/tmp/fx2276/new/'+name,'rb') as f:
+                      zout.writestr(name,f.read(),compress_type=zipfile.ZIP_DEFLATED)
+          PY
+
+      - name: Verify version and signing certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=/tmp/FX-Souba-Yosou-2.276.apk
+          jarsigner -verify "$APK" | grep -q "jar verified"
+          CERT="$(keytool -printcert -jarfile "$APK" | awk '/SHA256:/{print $2; exit}')"
+          test "$CERT" = "B7:E5:43:7C:2B:23:72:5F:14:F1:A0:16:4A:69:08:6B:E8:30:8B:BC:C7:20:85:4D:4D:E4:20:EA:0E:C2:52:27"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
+          "$AAPT" dump badging "$APK" | head -1 | tee /tmp/badging.txt
+          grep -q "versionCode='200276'" /tmp/badging.txt
+          grep -q "versionName='2.276'" /tmp/badging.txt
+
+      - name: Publish updater payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=/tmp/FX-Souba-Yosou-2.276.apk
+          SHA="$(sha256sum "$APK" | awk '{print $1}')"
+          cp "$APK" FX-Souba-Yosou-2.276.apk
+          cp "$APK" FX-Souba-Yosou.apk
+          cat > latest.json <<EOF
+          {
+            "versionCode": 200276,
+            "versionName": "2.276",
+            "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/FX-Souba-Yosou-2.276.apk",
+            "sha256": "$SHA"
+          }
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add FX-Souba-Yosou-2.276.apk FX-Souba-Yosou.apk latest.json
+          git commit -m "Publish FX updater payload Ver 2.276"
+          git push
