@@ -437,17 +437,9 @@ jobs:
           # ---- MonitoringService: resolve hidden results whenever full M5 history is refreshed ----
           p=java/'MonitoringService.java'
           s=p.read_text(encoding='utf-8')
-          anchor='''            ResearchLabEngine.step(this,raw);
-
-                  List<MarketEngine.Candle> m5=raw.get("M5");
-          '''
-          replacement='''            ResearchLabEngine.step(this,raw);
-
-                  store.resolveEventForecasts(raw.get("M5"));
-                  List<MarketEngine.Candle> m5=raw.get("M5");
-          '''
+          anchor='            ResearchLabEngine.step(this,raw);'
           if anchor not in s: raise SystemExit('MonitoringService learning anchor missing')
-          s=s.replace(anchor,replacement,1)
+          s=s.replace(anchor,anchor+'\n\n            store.resolveEventForecasts(raw.get("M5"));',1)
           p.write_text(s,encoding='utf-8')
 
       - name: Static regression checks
