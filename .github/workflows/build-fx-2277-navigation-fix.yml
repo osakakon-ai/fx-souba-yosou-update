@@ -1,0 +1,288 @@
+name: Build and publish FX 2.277 navigation fix
+
+on:
+  push:
+    paths:
+      - 'repair-2.277/BUILD_READY'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fx-2277-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      FX_VERSION_CODE: 200277
+      FX_VERSION_NAME: 2.277
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch canonical FX source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/osakakon-ai/blender-project.git /tmp/fx-src
+
+          cat             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_00_0.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_00_1.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_00_2.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_00_3.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_01.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_02.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_03.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_04.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_05.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_06.txt             /tmp/fx-src/tools/chappy-fx-demo-android/build-input/part_07.txt             > /tmp/chappy_fx.zip.b64
+          test "$(wc -c < /tmp/chappy_fx.zip.b64)" -eq 50864
+          base64 --decode /tmp/chappy_fx.zip.b64 > /tmp/chappy_fx.zip
+          unzip -t /tmp/chappy_fx.zip >/dev/null
+          rm -rf /tmp/chappy_fx_android
+          mkdir -p /tmp/chappy_fx_android
+          unzip -q /tmp/chappy_fx.zip -d /tmp/chappy_fx_android
+
+          APP=/tmp/chappy_fx_android/chappy_fx_android/app
+          cp /tmp/fx-src/tools/chappy-fx-demo-android/overrides/*.java "$APP/src/main/java/com/konchan/chappyfx/"
+          cp /tmp/fx-src/tools/chappy-fx-demo-android/overrides/AndroidManifest.xml "$APP/src/main/AndroidManifest.xml"
+          cp /tmp/fx-src/tools/chappy-fx-demo-android/overrides/app-build.gradle "$APP/build.gradle"
+
+      - name: Apply stable foreground-only lifecycle
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          app=Path('/tmp/chappy_fx_android/chappy_fx_android/app')
+          java=app/'src/main/java/com/konchan/chappyfx'
+
+          p=java/'MainActivity.java'
+          s=p.read_text(encoding='utf-8')
+          old='@Override protected void onCreate(Bundle b){super.onCreate(b);store=new DemoStore(this);requestNotifications();buildUi();setupSwipe();startMonitor(false);}'
+          new='@Override protected void onCreate(Bundle b){super.onCreate(b);store=new DemoStore(this);requestNotifications();buildUi();setupSwipe();}'
+          if old not in s: raise SystemExit('MainActivity onCreate anchor missing')
+          s=s.replace(old,new,1)
+          s=s.replace('startBtn=button("監視を再起動");stopBtn=button("バックグラウンド監視：ON");stopBtn.setEnabled(false);refreshBtn=button("今すぐ解析");',
+                      'startBtn=button("通信を再開");stopBtn=button("表示中のみ通信");stopBtn.setEnabled(false);refreshBtn=button("今すぐ解析");',1)
+          s=s.replace('TextView note=txt("実売買は行いません。アプリを閉じても監視を継続し、端末再起動後も自動で監視を再開します。Android設定でアプリを強制停止した場合だけ、再開には一度アプリを起動してください。",11,MUTED,false);root.addView(note);',
+                      'TextView note=txt("実売買は行いません。通信はアプリを表示している間だけ行います。ページ移動中は通信を維持し、ホームへ戻る・画面OFF・アプリ終了時に停止します。",11,MUTED,false);root.addView(note);',1)
+          old='private void startMonitor(boolean now){Intent i=new Intent(this,MonitoringService.class);i.setAction(now&&store.isRunning()?MonitoringService.ACTION_RUN_NOW:MonitoringService.ACTION_START);if(Build.VERSION.SDK_INT>=26)startForegroundService(i);else startService(i);}'
+          new='private void startMonitor(boolean now){Intent i=new Intent(this,MonitoringService.class);i.setAction(now&&store.isRunning()?MonitoringService.ACTION_RUN_NOW:MonitoringService.ACTION_START);startService(i);}'
+          if old not in s: raise SystemExit('MainActivity startMonitor anchor missing')
+          s=s.replace(old,new,1)
+          s=s.replace('String monitorText=!running?"現在：監視停止":ws?"現在：WebSocketリアルタイム（価格受信 / 軽量解析15秒 / 全足同期5分）":"現在：WebSocket再接続中（全足同期5分）";',
+                      'String monitorText=!running?"現在：通信停止":ws?"現在：アプリ表示中のみリアルタイム接続":"現在：アプリ表示中・接続準備中";',1)
+          s=s.replace('status.setText(monitorText);status.setTextColor(!running?WARN:rapid?DOWN:ws?UP:WARN);startBtn.setEnabled(!running);stopBtn.setEnabled(running);',
+                      'status.setText(monitorText);status.setTextColor(!running?WARN:rapid?DOWN:ws?UP:WARN);startBtn.setEnabled(!running);stopBtn.setEnabled(false);',1)
+          p.write_text(s,encoding='utf-8')
+
+          p=java/'MonitoringService.java'
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('import android.content.pm.ServiceInfo;\n','',1)
+          s=s.replace('    private PowerManager.WakeLock wakeLock;\n','',1)
+          old='''        PowerManager pm=(PowerManager)getSystemService(POWER_SERVICE);
+                  wakeLock=pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"ChappyFX:AnalysisWakeLock");
+                  wakeLock.setReferenceCounted(false);
+          '''
+          if old not in s: raise SystemExit('wake lock init anchor missing')
+          s=s.replace(old,'',1)
+
+          old='''        // Continuous monitoring is the default for this app. ACTION_STOP is intentionally treated as restart
+                  // because the UI exposes monitoring as always-on.
+                  if(ACTION_STOP.equals(a))a=ACTION_START;
+                  ensureForeground();store.setRunning(true);
+          '''
+          new='''        if(ACTION_STOP.equals(a)){stopMonitoring();return START_NOT_STICKY;}
+                  store.setRunning(true);
+          '''
+          if old not in s: raise SystemExit('onStartCommand anchor missing')
+          s=s.replace(old,new,1)
+          s=s.replace('        return START_STICKY;','        return START_NOT_STICKY;',1)
+
+          s=s.replace('''        boolean locked=false;
+                  try{
+                      if(wakeLock!=null&&!wakeLock.isHeld()){wakeLock.acquire(90_000L);locked=true;}
+          ''','''        try{
+          ''',1)
+          s=s.replace('''        }finally{
+                      if(locked&&wakeLock!=null&&wakeLock.isHeld())try{wakeLock.release();}catch(Exception ignored){}
+                      cycleRunning.set(false);
+                  }
+          ''','''        }finally{
+                      cycleRunning.set(false);
+                  }
+          ''',1)
+
+          s=re.sub(r'\n    private void ensureForeground\(\)\{.*?\n    \}\n',
+                   '\n',s,count=1,flags=re.S)
+          s=re.sub(r'    private void updateOngoing\(\)\{.*?\n    \}',
+                   '    private void updateOngoing(){\n        // No persistent status notification.\n    }',
+                   s,count=1,flags=re.S)
+
+          old='''            NotificationChannel c=new NotificationChannel(CH_MONITOR,"FXデモ監視",NotificationManager.IMPORTANCE_LOW);c.setDescription("USD/JPYのWebSocket継続監視状態");nm.createNotificationChannel(c);
+                      NotificationChannel e=new NotificationChannel(CH_EVENTS,"FXデモ取引",NotificationManager.IMPORTANCE_DEFAULT);e.setDescription("デモエントリー・決済・急変通知");nm.createNotificationChannel(e);
+          '''
+          new='''            NotificationChannel e=new NotificationChannel(CH_EVENTS,"FXデモ取引",NotificationManager.IMPORTANCE_DEFAULT);e.setDescription("アプリ表示中のデモエントリー・決済・急変通知");nm.createNotificationChannel(e);
+          '''
+          if old not in s: raise SystemExit('notification channel anchor missing')
+          s=s.replace(old,new,1)
+
+          s=s.replace('        if(wakeLock!=null&&wakeLock.isHeld())try{wakeLock.release();}catch(Exception ignored){}\n','')
+          s=s.replace('        stopForeground(STOP_FOREGROUND_REMOVE);stopSelf();','        stopSelf();',1)
+          p.write_text(s,encoding='utf-8')
+
+          p=app/'src/main/AndroidManifest.xml'
+          s=p.read_text(encoding='utf-8')
+          for line in [
+              '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n',
+              '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />\n',
+              '    <uses-permission android:name="android.permission.WAKE_LOCK" />\n',
+              '    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n',
+          ]:
+              if line not in s: raise SystemExit('Manifest permission anchor missing: '+line.strip())
+              s=s.replace(line,'',1)
+          s=s.replace('    <application\n        android:allowBackup="true"\n',
+                      '    <application\n        android:name=".FxApplication"\n        android:allowBackup="true"\n',1)
+          s=re.sub(r'\n        <receiver\s+android:name="\.MonitoringBootReceiver".*?</receiver>\n',
+                   '\n',s,count=1,flags=re.S)
+          s=re.sub(r'        <service\s+android:name="\.MonitoringService".*?</service>',
+                   '        <service\n            android:name=".MonitoringService"\n            android:exported="false" />',
+                   s,count=1,flags=re.S)
+          p.write_text(s,encoding='utf-8')
+
+          (java/'FxApplication.java').write_text(r'''package com.konchan.chappyfx;
+
+          import android.app.*;
+          import android.content.*;
+          import android.os.*;
+
+          public class FxApplication extends Application implements Application.ActivityLifecycleCallbacks {
+              private final Handler handler=new Handler(Looper.getMainLooper());
+              private int started=0;
+              private int generation=0;
+
+              @Override public void onCreate(){
+                  super.onCreate();
+                  registerActivityLifecycleCallbacks(this);
+              }
+
+              @Override public void onActivityStarted(Activity activity){
+                  started++;
+                  generation++;
+                  if(started==1){
+                      Intent i=new Intent(this,MonitoringService.class);
+                      i.setAction(MonitoringService.ACTION_START);
+                      try{startService(i);}catch(Exception ignored){}
+                  }
+              }
+
+              @Override public void onActivityStopped(Activity activity){
+                  if(started>0)started--;
+                  if(started!=0)return;
+                  final int token=++generation;
+                  handler.postDelayed(()->{
+                      if(started==0&&token==generation){
+                          try{stopService(new Intent(this,MonitoringService.class));}catch(Exception ignored){}
+                      }
+                  },1200L);
+              }
+
+              @Override public void onActivityCreated(Activity activity,Bundle state){}
+              @Override public void onActivityResumed(Activity activity){}
+              @Override public void onActivityPaused(Activity activity){}
+              @Override public void onActivitySaveInstanceState(Activity activity,Bundle outState){}
+              @Override public void onActivityDestroyed(Activity activity){}
+          }
+          ''',encoding='utf-8')
+
+      - name: Static lifecycle regression checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP=/tmp/chappy_fx_android/chappy_fx_android/app
+          ! grep -R "startForegroundService" "$APP/src/main/java/com/konchan/chappyfx"
+          ! grep -q "FOREGROUND_SERVICE" "$APP/src/main/AndroidManifest.xml"
+          ! grep -q "RECEIVE_BOOT_COMPLETED" "$APP/src/main/AndroidManifest.xml"
+          ! grep -q "MonitoringBootReceiver" "$APP/src/main/AndroidManifest.xml"
+          grep -q 'android:name=".FxApplication"' "$APP/src/main/AndroidManifest.xml"
+          grep -q '1200L' "$APP/src/main/java/com/konchan/chappyfx/FxApplication.java"
+          grep -q 'stopService(new Intent(this,MonitoringService.class))' "$APP/src/main/java/com/konchan/chappyfx/FxApplication.java"
+          test "$(grep -R -l 'stopService(new Intent(this,MonitoringService.class))' "$APP/src/main/java/com/konchan/chappyfx" | wc -l)" -eq 1
+
+      - name: Set up Java and Android SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android 35 SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Prepare fixed signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/fx-signing
+          base64 --decode /tmp/fx-src/tools/chappy-fx-demo-android/signing/fx-demo-release.jks.b64 > /tmp/fx-signing/fx-demo-release.jks
+          FX_SIGNING_PASSWORD="$(awk '/FX_SIGNING_PASSWORD:/{print $2; exit}' /tmp/fx-src/.github/workflows/chappy-fx-demo-apk.yml)"
+          test -n "$FX_SIGNING_PASSWORD"
+          echo "FX_SIGNING_STORE=/tmp/fx-signing/fx-demo-release.jks" >> "$GITHUB_ENV"
+          echo "FX_SIGNING_PASSWORD=$FX_SIGNING_PASSWORD" >> "$GITHUB_ENV"
+          CERT_SHA256="$(keytool -list -v -keystore /tmp/fx-signing/fx-demo-release.jks -storepass "$FX_SIGNING_PASSWORD" -alias fxdemo | awk '/SHA256:/{print $2; exit}')"
+          test "$CERT_SHA256" = "B7:E5:43:7C:2B:23:72:5F:14:F1:A0:16:4A:69:08:6B:E8:30:8B:BC:C7:20:85:4D:4D:E4:20:EA:0E:C2:52:27"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Run engine self-test
+        working-directory: /tmp/chappy_fx_android/chappy_fx_android
+        shell: bash
+        run: |
+          rm -rf /tmp/chappy_fx_testclasses
+          mkdir -p /tmp/chappy_fx_testclasses
+          javac -d /tmp/chappy_fx_testclasses app/src/main/java/com/konchan/chappyfx/MarketEngine.java EngineSelfTest.java
+          java -cp /tmp/chappy_fx_testclasses EngineSelfTest
+
+      - name: Build signed 2.277
+        working-directory: /tmp/chappy_fx_android/chappy_fx_android
+        shell: bash
+        run: gradle :app:assembleRelease --stacktrace
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=/tmp/chappy_fx_android/chappy_fx_android/app/build/outputs/apk/release/app-release.apk
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/apksigner.txt
+          grep -Eq 'Verified using v2 scheme.*true|Verified using v3 scheme.*true' /tmp/apksigner.txt
+          grep -q 'Signer #1 certificate SHA-256 digest: b7e5437c2b23725f14f1a0164a69086be8308bbcc720854d4de420ea0ec25227' /tmp/apksigner.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -1 | tee /tmp/badging.txt
+          grep -q "versionCode='200277'" /tmp/badging.txt
+          grep -q "versionName='2.277'" /tmp/badging.txt
+
+      - name: Publish updater payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=/tmp/chappy_fx_android/chappy_fx_android/app/build/outputs/apk/release/app-release.apk
+          SHA="$(sha256sum "$APK" | awk '{print $1}')"
+          cp "$APK" FX-Souba-Yosou-2.277.apk
+          cp "$APK" FX-Souba-Yosou.apk
+          cat > latest.json <<EOF
+          {
+            "versionCode": 200277,
+            "versionName": "2.277",
+            "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/FX-Souba-Yosou-2.277.apk",
+            "sha256": "$SHA"
+          }
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add FX-Souba-Yosou-2.277.apk FX-Souba-Yosou.apk latest.json
+          git commit -m "Publish FX updater payload Ver 2.277"
+          git push
