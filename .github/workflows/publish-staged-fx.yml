@@ -48,8 +48,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat staging-fx-oanda/apk.part*.b64 > /tmp/fx.apk.b64
-          base64 --decode /tmp/fx.apk.b64 > /tmp/FX-Souba-Yosou.apk
+          if [ -s staging-fx-oanda/artifact-url.txt ]; then
+            URL="$(cat staging-fx-oanda/artifact-url.txt)"
+            curl -fL --retry 4 --retry-delay 2 "$URL" -o /tmp/fx-artifact.zip
+            rm -rf /tmp/fx-artifact
+            mkdir -p /tmp/fx-artifact
+            unzip -q /tmp/fx-artifact.zip -d /tmp/fx-artifact
+            APK="$(find /tmp/fx-artifact -type f -name 'FX-Souba-Yosou.apk' -print -quit)"
+            test -n "$APK"
+            cp "$APK" /tmp/FX-Souba-Yosou.apk
+          else
+            cat staging-fx-oanda/apk.part*.b64 > /tmp/fx.apk.b64
+            base64 --decode /tmp/fx.apk.b64 > /tmp/FX-Souba-Yosou.apk
+          fi
           test -s /tmp/FX-Souba-Yosou.apk
           ACTUAL="$(sha256sum /tmp/FX-Souba-Yosou.apk | awk '{print $1}')"
           test "$ACTUAL" = "$FX_SHA256"
@@ -88,7 +99,7 @@ jobs:
           EOF
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm -f staging-fx-oanda/apk.part*.b64 staging-fx-oanda/meta.json staging-fx-oanda/PUBLISH_READY
+          git rm -f staging-fx-oanda/apk.part*.b64 staging-fx-oanda/artifact-url.txt staging-fx-oanda/meta.json staging-fx-oanda/PUBLISH_READY
           git add "$VERSIONED" FX-Souba-Yosou.apk latest.json
           git commit -m "Publish FX updater payload Ver ${FX_VERSION_NAME}"
           git push origin HEAD:main
