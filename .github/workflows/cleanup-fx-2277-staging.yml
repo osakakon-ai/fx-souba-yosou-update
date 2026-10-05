@@ -1,0 +1,25 @@
+name: Cleanup FX 2.277 staging
+
+on:
+  push:
+    paths:
+      - 'repair-2.277/CLEANUP_READY'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove temporary build materials
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -rf --ignore-unmatch repair-2.277/source repair-2.277/secure repair-2.277/BUILD_READY repair-2.277/CLEANUP_READY
+          git rm -f --ignore-unmatch .github/workflows/build-fx-2277-navigation-fix.yml .github/workflows/cleanup-fx-2277-staging.yml
+          git commit -m "Clean FX 2.277 temporary build staging"
+          git push
