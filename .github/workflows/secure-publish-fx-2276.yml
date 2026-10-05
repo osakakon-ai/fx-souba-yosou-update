@@ -1,0 +1,141 @@
+name: Secure publish FX 2.276
+
+on:
+  push:
+    paths:
+      - 'repair-2.276/secure/START'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fx-2276-secure-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create ephemeral transfer key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p repair-2.276/secure
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out /tmp/fx-transfer-private.pem
+          openssl pkey -in /tmp/fx-transfer-private.pem -pubout -out repair-2.276/secure/public.pem
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add repair-2.276/secure/public.pem
+          git commit -m "Publish ephemeral FX 2.276 transfer key"
+          git push
+
+      - name: Wait for encrypted signing payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 90); do
+            git fetch origin main >/dev/null 2>&1 || true
+            if git cat-file -e origin/main:repair-2.276/secure/payload.enc.b64 2>/dev/null               && git cat-file -e origin/main:repair-2.276/secure/secret.enc.b64 2>/dev/null; then
+              git show origin/main:repair-2.276/secure/payload.enc.b64 > /tmp/payload.enc.b64
+              git show origin/main:repair-2.276/secure/secret.enc.b64 > /tmp/secret.enc.b64
+              break
+            fi
+            sleep 3
+          done
+          test -s /tmp/payload.enc.b64
+          test -s /tmp/secret.enc.b64
+
+      - name: Decrypt signing payload in runner memory
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 --decode /tmp/secret.enc.b64 > /tmp/secret.enc
+          openssl pkeyutl -decrypt             -inkey /tmp/fx-transfer-private.pem             -in /tmp/secret.enc             -pkeyopt rsa_padding_mode:oaep             -pkeyopt rsa_oaep_md:sha256             -pkeyopt rsa_mgf1_md:sha256             -out /tmp/transfer-secret
+
+          base64 --decode /tmp/payload.enc.b64 > /tmp/payload.enc
+          openssl enc -d -aes-256-cbc -pbkdf2             -pass file:/tmp/transfer-secret             -in /tmp/payload.enc -out /tmp/signing-payload.tar.gz
+          mkdir -p /tmp/fx-secret
+          tar -xzf /tmp/signing-payload.tar.gz -C /tmp/fx-secret
+          test -s /tmp/fx-secret/fx-demo-release.jks
+          test -s /tmp/fx-secret/password.txt
+          chmod 600 /tmp/fx-secret/fx-demo-release.jks /tmp/fx-secret/password.txt
+
+      - name: Rebuild repaired 2.276
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 4 --retry-delay 2             https://github.com/iBotPeaches/Apktool/releases/download/v3.0.3/apktool_3.0.3.jar             -o /tmp/apktool.jar
+          echo "dbf930b076c6b9be08d57c449cacefc3bdd6b71ebd59b3066fc0e1f5b14f9423  /tmp/apktool.jar" | sha256sum -c -
+
+          rm -rf /tmp/fx2276
+          java -jar /tmp/apktool.jar d -f -o /tmp/fx2276 FX-Souba-Yosou-2.275.apk
+          FX_WORK=/tmp/fx2276 python3 repair-2.276/publish/patch_fx2276.py
+          java -jar /tmp/apktool.jar b /tmp/fx2276 -o /tmp/FX-Souba-Yosou-2.276-unsigned.apk
+
+          unzip -p /tmp/FX-Souba-Yosou-2.276-unsigned.apk classes.dex | sha256sum | grep -q '^c1aefda91e620828d81542a033d3d64a18800f5305771a741d1e319a552f21b3'
+          unzip -p /tmp/FX-Souba-Yosou-2.276-unsigned.apk AndroidManifest.xml | sha256sum | grep -q '^feb53ec9b6540eca258fe61fd9ef219797ad978ae29df1e51ae5c983f46d8b84'
+          unzip -p /tmp/FX-Souba-Yosou-2.276-unsigned.apk resources.arsc | sha256sum | grep -q '^a9ef7d6f5dff36882b2f29dd77bf9a5187122a865e58f7c8a9c9d13fe6dd5e99'
+          unzip -p /tmp/FX-Souba-Yosou-2.276-unsigned.apk res/drawable/ic_launcher.xml | sha256sum | grep -q '^63c2bcb065a5c361c46256185cdaf86d9d1a288c9890ebf9d79fff6d9db998ed'
+
+      - name: Sign with existing fixed key
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 4 --retry-delay 2             https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar             -o /tmp/uber-apk-signer.jar
+          echo "e1299fd6fcf4da527dd53735b56127e8ea922a321128123b9c32d619bba1d835  /tmp/uber-apk-signer.jar" | sha256sum -c -
+
+          rm -rf /tmp/fx-signed
+          mkdir -p /tmp/fx-signed
+          PW="$(cat /tmp/fx-secret/password.txt)"
+          java -jar /tmp/uber-apk-signer.jar             --apks /tmp/FX-Souba-Yosou-2.276-unsigned.apk             --ks /tmp/fx-secret/fx-demo-release.jks             --ksAlias fxdemo             --ksPass "$PW"             --ksKeyPass "$PW"             --out /tmp/fx-signed
+
+          SIGNED="$(find /tmp/fx-signed -maxdepth 1 -type f -name '*.apk' | head -1)"
+          test -n "$SIGNED"
+          cp "$SIGNED" /tmp/FX-Souba-Yosou-2.276.apk
+
+      - name: Verify v2+ signature, certificate, and version
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=/tmp/FX-Souba-Yosou-2.276.apk
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          "$APKSIGNER" verify --verbose --print-certs "$APK" | tee /tmp/apksigner.txt
+          grep -Eq 'Verified using v2 scheme.*true|Verified using v3 scheme.*true' /tmp/apksigner.txt
+
+          CERT="$(keytool -printcert -jarfile "$APK" | awk '/SHA256:/{print $2; exit}')"
+          echo "Signing certificate SHA256: $CERT"
+          test "$CERT" = "B7:E5:43:7C:2B:23:72:5F:14:F1:A0:16:4A:69:08:6B:E8:30:8B:BC:C7:20:85:4D:4D:E4:20:EA:0E:C2:52:27"
+
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
+          "$AAPT" dump badging "$APK" | head -1 | tee /tmp/badging.txt
+          grep -q "versionCode='200276'" /tmp/badging.txt
+          grep -q "versionName='2.276'" /tmp/badging.txt
+
+      - name: Publish updater payload and remove transfer files
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=/tmp/FX-Souba-Yosou-2.276.apk
+          SHA="$(sha256sum "$APK" | awk '{print $1}')"
+          test -s "$APK"
+
+          git fetch origin main
+          git reset --hard origin/main
+          cp "$APK" FX-Souba-Yosou-2.276.apk
+          cp "$APK" FX-Souba-Yosou.apk
+          cat > latest.json <<EOF
+          {
+            "versionCode": 200276,
+            "versionName": "2.276",
+            "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/FX-Souba-Yosou-2.276.apk",
+            "sha256": "$SHA"
+          }
+          EOF
+
+          git rm -f --ignore-unmatch             repair-2.276/secure/public.pem             repair-2.276/secure/payload.enc.b64             repair-2.276/secure/secret.enc.b64
+          git add FX-Souba-Yosou-2.276.apk FX-Souba-Yosou.apk latest.json
+          git commit -m "Publish FX updater payload Ver 2.276"
+          git push
