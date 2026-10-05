@@ -99,7 +99,7 @@ jobs:
           EOF
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm -f staging-fx-oanda/apk.part*.b64 staging-fx-oanda/artifact-url.txt staging-fx-oanda/meta.json staging-fx-oanda/PUBLISH_READY
+          git rm -f --ignore-unmatch staging-fx-oanda/apk.part*.b64 staging-fx-oanda/artifact-url.txt staging-fx-oanda/meta.json staging-fx-oanda/PUBLISH_READY
           git add "$VERSIONED" FX-Souba-Yosou.apk latest.json
           git commit -m "Publish FX updater payload Ver ${FX_VERSION_NAME}"
           git push origin HEAD:main
