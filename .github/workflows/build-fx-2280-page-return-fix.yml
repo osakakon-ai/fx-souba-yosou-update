@@ -20,7 +20,7 @@ jobs:
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       FX_VERSION_CODE: 200280
-      FX_VERSION_NAME: 2.280
+      FX_VERSION_NAME: '2.280'
 
     steps:
       - uses: actions/checkout@v4
@@ -521,23 +521,19 @@ jobs:
 
           java=Path('/tmp/chappy_fx_android/chappy_fx_android/app/src/main/java/com/konchan/chappyfx')
           targets=['MainActivity.java','DemoTradeActivity.java','ImportantInfoActivity.java']
-          changed=0
+          replaced_flags=0
+          replaced_starts=0
           for name in targets:
               p=java/name
               s=p.read_text(encoding='utf-8')
-              before=s
-              # Reusing old Activity instances with REORDER_TO_FRONT can revive stale executors/handlers.
-              # Always open a fresh target page, then finish the current page.
-              s=s.replace('Intent i=new Intent(this,cls);i.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);\\n        startActivity(i);',
-                          'Intent i=new Intent(this,cls);\\n        startActivity(i);\\n        finish();')
-              s=s.replace('Intent i=new Intent(this,cls);i.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);startActivity(i);',
-                          'Intent i=new Intent(this,cls);startActivity(i);finish();')
-              if s!=before:
-                  changed+=1
-                  p.write_text(s,encoding='utf-8')
+              replaced_flags += s.count('.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)')
+              replaced_starts += s.count('startActivity(i);')
+              s=s.replace('.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)','')
+              s=s.replace('startActivity(i);','startActivity(i);finish();')
+              p.write_text(s,encoding='utf-8')
 
-          if changed<3:
-              raise SystemExit('page navigation replacement incomplete: changed='+str(changed))
+          if replaced_flags!=5 or replaced_starts!=5:
+              raise SystemExit('page navigation replacement incomplete: flags='+str(replaced_flags)+' starts='+str(replaced_starts))
 
           # Give replacement Activity enough time to start before foreground-only monitoring is stopped.
           p=java/'FxApplication.java'
