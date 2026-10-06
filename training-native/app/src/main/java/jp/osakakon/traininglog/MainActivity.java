@@ -190,6 +190,12 @@ public class MainActivity extends Activity {
 
     LinearLayout header=new LinearLayout(this);header.setOrientation(LinearLayout.HORIZONTAL);header.setGravity(Gravity.CENTER_VERTICAL);
     header.addView(tv(selectedDate,18,TEXT),new LinearLayout.LayoutParams(0,-2,1));
+
+    Button add=smallBtn("追加");
+    LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(-2,dp(36));ap.setMargins(dp(4),0,0,0);
+    header.addView(add,ap);
+    add.setOnClickListener(x->addRecordDialog(selectedDate));
+
     if(!rec.isEmpty()){
       Button edit=smallBtn("編集"),del=smallBtn("削除");
       LinearLayout.LayoutParams ep=new LinearLayout.LayoutParams(-2,dp(36));ep.setMargins(dp(4),0,0,0);
@@ -204,7 +210,7 @@ public class MainActivity extends Activity {
     box.addView(c);
 
     if(!rec.isEmpty()){
-      Button share=btn("カレンダー＋今日の内容を共有");share.setOnClickListener(x->shareScreen());box.addView(share);
+      Button share=btn("カレンダー＋選択日の内容を共有");share.setOnClickListener(x->shareScreen());box.addView(share);
     }
   }
 
@@ -224,6 +230,40 @@ public class MainActivity extends Activity {
     new AlertDialog.Builder(this).setTitle("記録を削除").setMessage(date+" の筋トレ記録を削除しますか？")
       .setPositiveButton("削除",(d,w)->{sp.edit().remove("record_"+date).apply();renderRecord();refreshCalendar();Toast.makeText(this,"記録を削除しました",Toast.LENGTH_SHORT).show();})
       .setNegativeButton("キャンセル",null).show();
+  }
+
+  void addRecordDialog(String date){
+    ArrayList<Exercise> menus=load();
+    if(menus.isEmpty()){
+      Toast.makeText(this,"先にメニュー登録から種目を登録してください",Toast.LENGTH_LONG).show();
+      return;
+    }
+    String[] names=new String[menus.size()];
+    boolean[] checked=new boolean[menus.size()];
+    for(int i=0;i<menus.size();i++)names[i]=menus.get(i).detail();
+    new AlertDialog.Builder(this)
+      .setTitle(date+" に筋トレを追加")
+      .setMultiChoiceItems(names,checked,(d,i,on)->checked[i]=on)
+      .setPositiveButton("追加",(d,w)->{
+        String old=sp.getString("record_"+date,"");
+        StringBuilder out=new StringBuilder(old);
+        int added=0;
+        for(int i=0;i<menus.size();i++){
+          if(!checked[i])continue;
+          if(out.length()>0)out.append("\n");
+          out.append(menus.get(i).detail());
+          added++;
+        }
+        if(added==0){
+          Toast.makeText(this,"追加する種目を選択してください",Toast.LENGTH_SHORT).show();
+          return;
+        }
+        sp.edit().putString("record_"+date,out.toString()).apply();
+        renderRecord();refreshCalendar();
+        Toast.makeText(this,date+" に筋トレを追加しました",Toast.LENGTH_SHORT).show();
+      })
+      .setNegativeButton("キャンセル",null)
+      .show();
   }
 
   void editRecordDialog(String date){
