@@ -1,0 +1,53 @@
+name: Publish signed FX 2.280
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fx-2280-signed.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch signed APK artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL 'https://sdmntprnznorth.oaiusercontent.com/files/00000000-3ccc-820b-afe1-14e485db473e/raw?se=2026-10-06T01%3A58%3A06Z&sp=r&sv=2026-02-06&sr=b&scid=03df3637-6018-54c4-9639-98c8eff7ad3e&skoid=f5e14fda-2af7-44a3-9d18-d372ffcad871&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-06T01%3A47%3A37Z&ske=2026-10-07T01%3A47%3A37Z&sks=b&skv=2026-02-06&sig=Zm1c93nEUqdkgSrhAsT7KYMegayY81Cd/O1FamjhjX4%3D' -o /tmp/fx2280.zip
+          unzip -t /tmp/fx2280.zip
+          rm -rf /tmp/fx2280
+          mkdir -p /tmp/fx2280
+          unzip -q /tmp/fx2280.zip -d /tmp/fx2280
+          test -s /tmp/fx2280/FX-Souba-Yosou.apk
+
+      - name: Verify and publish updater payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=/tmp/fx2280/FX-Souba-Yosou.apk
+          EXPECTED=c8f8711a27d2b36c6528ea58ab57f05c0fa88c3efa7aff24bf9e7adf71f8a4b6
+          ACTUAL="$(sha256sum "$APK" | awk '{print $1}')"
+          test "$ACTUAL" = "$EXPECTED"
+
+          cp "$APK" FX-Souba-Yosou-2.280.apk
+          cp "$APK" FX-Souba-Yosou.apk
+          cat > latest.json <<EOF
+          {
+            "versionCode": 200280,
+            "versionName": "2.280",
+            "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/FX-Souba-Yosou-2.280.apk",
+            "sha256": "$EXPECTED"
+          }
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add FX-Souba-Yosou-2.280.apk FX-Souba-Yosou.apk latest.json
+          git commit -m "Publish FX updater payload Ver 2.280"
+          git push
