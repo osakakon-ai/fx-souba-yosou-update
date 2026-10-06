@@ -5,9 +5,12 @@ import android.os.*;
 import android.content.*;
 import android.content.res.ColorStateList;
 import android.graphics.*;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.app.DownloadManager;
 import android.content.pm.PackageInfo;
+import android.database.Cursor;
 import org.json.JSONObject;
 import android.view.*;
 import android.widget.*;
@@ -19,8 +22,13 @@ public class MainActivity extends Activity {
   final int BG=Color.rgb(11,15,20), CARD=Color.rgb(24,31,40), TEXT=Color.rgb(238,244,248), SUB=Color.rgb(160,174,188), ACC=Color.rgb(87,214,141);
   LinearLayout root, body; SharedPreferences sp; String selectedDate;
   static final String LATEST_URL="https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/training/latest.json";
+  long updateDownloadId=-1;
+  BroadcastReceiver updateReceiver;
   ArrayList<Exercise> workout=new ArrayList<>(); int exIndex=0,setIndex=1; CountDownTimer timer;
   SimpleDateFormat fmt=new SimpleDateFormat("yyyy-MM-dd",Locale.JAPAN);
+  Calendar displayMonth=Calendar.getInstance();
+  LinearLayout calendarBox;
+  final int CAL_BG=Color.rgb(24,28,33), SAT=Color.rgb(70,150,255), SUN=Color.rgb(255,92,92), ORANGE=Color.rgb(255,152,0);
 
   static class Exercise {
     String name; double kg; int reps,sets,rest;
@@ -32,10 +40,19 @@ public class MainActivity extends Activity {
   }
 
   @Override public void onCreate(Bundle b){
-    super.onCreate(b);sp=getSharedPreferences("training",MODE_PRIVATE);selectedDate=fmt.format(new Date());showMain();
+    super.onCreate(b);sp=getSharedPreferences("training",MODE_PRIVATE);selectedDate=fmt.format(new Date());
+    updateReceiver=new BroadcastReceiver(){public void onReceive(Context c,Intent i){
+      if(!DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(i.getAction()))return;
+      long id=i.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID,-1);
+      if(id==updateDownloadId)openDownloadedApk(id);
+    }};
+    IntentFilter f=new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+    if(Build.VERSION.SDK_INT>=33)registerReceiver(updateReceiver,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(updateReceiver,f);
+    showMain();
   }
   @Override public void onDestroy(){
     if(timer!=null)timer.cancel();
+    try{if(updateReceiver!=null)unregisterReceiver(updateReceiver);}catch(Exception ignored){}
     super.onDestroy();
   }
 
@@ -48,8 +65,8 @@ public class MainActivity extends Activity {
     body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(14,4,14,28);
     ScrollView sv=new ScrollView(this);sv.addView(body);root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);
   }
-  TextView tv(String s,int z,int c){TextView v=new TextView(this);v.setText(s);v.setTextSize(z);v.setTextColor(c);v.setPadding(6,7,6,7);return v;}
-  Button btn(String s){Button b=new Button(this);b.setText(s);b.setTextColor(TEXT);b.setBackgroundTintList(ColorStateList.valueOf(CARD));return b;}
+  TextView tv(String s,int z,int c){TextView v=new TextView(this);v.setText(s);v.setTextSize(Math.max(z,16));v.setTextColor(c);v.setPadding(6,7,6,7);return v;}
+  Button btn(String s){Button b=new Button(this);b.setText(s);b.setTextSize(16);b.setTextColor(TEXT);b.setBackgroundTintList(ColorStateList.valueOf(CARD));return b;}
   Button smallBtn(String s){
     Button b=btn(s);b.setTextSize(12);b.setMinWidth(0);b.setMinimumWidth(0);b.setMinHeight(0);b.setMinimumHeight(0);
     b.setPadding(dp(10),dp(4),dp(10),dp(4));return b;
@@ -63,10 +80,93 @@ public class MainActivity extends Activity {
     row.addView(input,new LinearLayout.LayoutParams(0,-2,1));return row;
   }
 
+  GradientDrawable roundBg(int fill){
+    GradientDrawable g=new GradientDrawable();g.setShape(GradientDrawable.OVAL);g.setColor(fill);return g;
+  }
+  GradientDrawable selectedOutline(){
+    GradientDrawable g=new GradientDrawable();g.setShape(GradientDrawable.OVAL);g.setColor(Color.TRANSPARENT);g.setStroke(dp(2),Color.rgb(95,108,120));return g;
+  }
+  boolean hasWorkout(String key){return !sp.getString("record_"+key,"").isEmpty();}
+  String keyFor(int y,int m,int d){return String.format(Locale.JAPAN,"%04d-%02d-%02d",y,m+1,d);}
+  void refreshCalendar(){if(calendarBox!=null)renderCalendar();}
+  void setMonthFromSelected(){
+    try{
+      Date d=fmt.parse(selectedDate);
+      if(d!=null)displayMonth.setTime(d);
+    }catch(Exception ignored){}
+    displayMonth.set(Calendar.DAY_OF_MONTH,1);
+  }
+  void renderCalendar(){
+    if(calendarBox==null)return;
+    calendarBox.removeAllViews();
+
+    final int y=displayMonth.get(Calendar.YEAR), m=displayMonth.get(Calendar.MONTH);
+
+    LinearLayout nav=new LinearLayout(this);nav.setGravity(Gravity.CENTER_VERTICAL);
+    Button prev=smallBtn("‹"),next=smallBtn("›");
+    TextView title=tv(String.format(Locale.JAPAN,"%d年%d月",y,m+1),18,TEXT);title.setGravity(Gravity.CENTER);
+    nav.addView(prev,new LinearLayout.LayoutParams(dp(54),dp(42)));
+    nav.addView(title,new LinearLayout.LayoutParams(0,-2,1));
+    nav.addView(next,new LinearLayout.LayoutParams(dp(54),dp(42)));
+    calendarBox.addView(nav);
+    prev.setOnClickListener(v->{displayMonth.add(Calendar.MONTH,-1);renderCalendar();});
+    next.setOnClickListener(v->{displayMonth.add(Calendar.MONTH,1);renderCalendar();});
+
+    LinearLayout weekdays=new LinearLayout(this);weekdays.setBackgroundColor(CAL_BG);weekdays.setPadding(0,dp(3),0,dp(3));
+    String[] names={"月","火","水","木","金","土","日"};
+    for(int i=0;i<7;i++){
+      int col=i==5?SAT:(i==6?SUN:TEXT);
+      TextView w=tv(names[i],16,col);w.setGravity(Gravity.CENTER);
+      weekdays.addView(w,new LinearLayout.LayoutParams(0,dp(42),1));
+    }
+    calendarBox.addView(weekdays);
+
+    Calendar first=new GregorianCalendar(y,m,1);
+    int leading=(first.get(Calendar.DAY_OF_WEEK)+5)%7;
+    int max=first.getActualMaximum(Calendar.DAY_OF_MONTH);
+    Calendar now=Calendar.getInstance();
+    String today=keyFor(now.get(Calendar.YEAR),now.get(Calendar.MONTH),now.get(Calendar.DAY_OF_MONTH));
+
+    int day=1;
+    for(int row=0;row<6;row++){
+      LinearLayout week=new LinearLayout(this);week.setGravity(Gravity.CENTER_VERTICAL);
+      for(int col=0;col<7;col++){
+        FrameLayout cell=new FrameLayout(this);
+        week.addView(cell,new LinearLayout.LayoutParams(0,dp(52),1));
+        int pos=row*7+col;
+        if(pos<leading || day>max)continue;
+
+        final int d=day++;
+        final String key=keyFor(y,m,d);
+        TextView num=tv(String.valueOf(d),16,TEXT);num.setGravity(Gravity.CENTER);
+        FrameLayout.LayoutParams np=new FrameLayout.LayoutParams(dp(44),dp(44),Gravity.CENTER);
+        cell.addView(num,np);
+
+        boolean workoutDone=hasWorkout(key);
+        boolean isToday=key.equals(today);
+        boolean selected=key.equals(selectedDate);
+
+        if(workoutDone){
+          num.setBackground(roundBg(ORANGE));
+          num.setTextColor(Color.BLACK);
+        }else if(isToday){
+          num.setBackground(roundBg(ACC));
+          num.setTextColor(Color.WHITE);
+        }else if(selected){
+          num.setBackground(selectedOutline());
+        }
+
+        cell.setOnClickListener(v->{selectedDate=key;renderRecord();renderCalendar();});
+      }
+      calendarBox.addView(week);
+    }
+  }
+
   void showMain(){
     base("筋トレログ");
-    CalendarView cal=new CalendarView(this);cal.setFirstDayOfWeek(Calendar.MONDAY);cal.setDate(System.currentTimeMillis());
-    cal.setOnDateChangeListener((v,y,m,d)->{selectedDate=String.format(Locale.JAPAN,"%04d-%02d-%02d",y,m+1,d);renderRecord();});body.addView(cal);
+    setMonthFromSelected();
+    calendarBox=new LinearLayout(this);calendarBox.setOrientation(LinearLayout.VERTICAL);calendarBox.setPadding(0,0,0,dp(8));
+    body.addView(calendarBox);renderCalendar();
     LinearLayout a=new LinearLayout(this);
     Button menu=btn("メニュー登録"),start=btn("筋トレ開始");a.addView(menu,new LinearLayout.LayoutParams(0,-2,1));a.addView(start,new LinearLayout.LayoutParams(0,-2,1));body.addView(a);
     menu.setOnClickListener(v->menuDialog());start.setOnClickListener(v->chooseExercises());
@@ -111,7 +211,7 @@ public class MainActivity extends Activity {
 
   void deleteRecord(String date){
     new AlertDialog.Builder(this).setTitle("記録を削除").setMessage(date+" の筋トレ記録を削除しますか？")
-      .setPositiveButton("削除",(d,w)->{sp.edit().remove("record_"+date).apply();renderRecord();Toast.makeText(this,"記録を削除しました",Toast.LENGTH_SHORT).show();})
+      .setPositiveButton("削除",(d,w)->{sp.edit().remove("record_"+date).apply();renderRecord();refreshCalendar();Toast.makeText(this,"記録を削除しました",Toast.LENGTH_SHORT).show();})
       .setNegativeButton("キャンセル",null).show();
   }
 
@@ -143,7 +243,7 @@ public class MainActivity extends Activity {
           }
           if(out.length()==0){sp.edit().remove("record_"+date).apply();Toast.makeText(this,"記録を削除しました",Toast.LENGTH_SHORT).show();}
           else {sp.edit().putString("record_"+date,out.toString()).apply();Toast.makeText(this,"記録を更新しました",Toast.LENGTH_SHORT).show();}
-          renderRecord();
+          renderRecord();refreshCalendar();
         }catch(Exception ex){Toast.makeText(this,"入力値を確認してください",Toast.LENGTH_SHORT).show();}
       }).setNegativeButton("キャンセル",null).show();
   }
@@ -198,31 +298,11 @@ public class MainActivity extends Activity {
     new Thread(()->{
       try{
         JSONObject o=new JSONObject(readTextUrl(LATEST_URL));
-        int latest=o.getInt("versionCode");String name=o.getString("versionName");
+        int latest=o.getInt("versionCode");String name=o.getString("versionName");String url=o.getString("apkUrl");
         PackageInfo pi=getPackageManager().getPackageInfo(getPackageName(),0);
         long current=Build.VERSION.SDK_INT>=28?pi.getLongVersionCode():pi.versionCode;
         if(latest<=current){runOnUiThread(()->Toast.makeText(this,"最新です v"+name,Toast.LENGTH_SHORT).show());return;}
-
-        int count=o.getInt("partCount");
-        String pattern=o.getString("partUrlPattern");
-        StringBuilder encoded=new StringBuilder();
-        for(int i=0;i<count;i++) encoded.append(readTextUrl(String.format(Locale.US,pattern,i)).trim());
-        byte[] apk=android.util.Base64.decode(encoded.toString(),android.util.Base64.DEFAULT);
-
-        ContentValues values=new ContentValues();
-        values.put(MediaStore.Downloads.DISPLAY_NAME,"Training-App-update.apk");
-        values.put(MediaStore.Downloads.MIME_TYPE,"application/vnd.android.package-archive");
-        values.put(MediaStore.Downloads.RELATIVE_PATH,android.os.Environment.DIRECTORY_DOWNLOADS+"/TrainingLog");
-        Uri uri=getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
-        if(uri==null)throw new IllegalStateException("download uri");
-        try(OutputStream out=getContentResolver().openOutputStream(uri)){
-          if(out==null)throw new IllegalStateException("download stream");
-          out.write(apk);
-        }
-        runOnUiThread(()->{
-          Toast.makeText(this,"v"+name+" をダウンロードしました",Toast.LENGTH_SHORT).show();
-          openDownloadedApk(uri);
-        });
+        runOnUiThread(()->downloadUpdate(url,name));
       }catch(Exception e){
         runOnUiThread(()->Toast.makeText(this,"更新確認に失敗しました",Toast.LENGTH_LONG).show());
       }
@@ -231,15 +311,32 @@ public class MainActivity extends Activity {
 
   String readTextUrl(String url) throws Exception{
     java.net.HttpURLConnection con=(java.net.HttpURLConnection)new java.net.URL(url).openConnection();
-    con.setConnectTimeout(10000);con.setReadTimeout(30000);
+    con.setConnectTimeout(10000);con.setReadTimeout(20000);
     try(java.io.InputStream in=con.getInputStream();java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream()){
       byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);
       return out.toString("UTF-8");
     }finally{con.disconnect();}
   }
 
-  void openDownloadedApk(Uri uri){
+  void downloadUpdate(String url,String version){
     try{
+      DownloadManager.Request req=new DownloadManager.Request(Uri.parse(url));
+      req.setTitle("筋トレログ v"+version);
+      req.setDescription("更新版をダウンロードしています");
+      req.setMimeType("application/vnd.android.package-archive");
+      req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+      req.setDestinationInExternalFilesDir(this,android.os.Environment.DIRECTORY_DOWNLOADS,"Training-App-update.apk");
+      DownloadManager dm=(DownloadManager)getSystemService(DOWNLOAD_SERVICE);
+      updateDownloadId=dm.enqueue(req);
+      Toast.makeText(this,"更新版のダウンロードを開始しました",Toast.LENGTH_SHORT).show();
+    }catch(Exception e){Toast.makeText(this,"ダウンロードを開始できませんでした",Toast.LENGTH_LONG).show();}
+  }
+
+  void openDownloadedApk(long id){
+    try{
+      DownloadManager dm=(DownloadManager)getSystemService(DOWNLOAD_SERVICE);
+      Uri uri=dm.getUriForDownloadedFile(id);
+      if(uri==null){Toast.makeText(this,"更新ファイルを開けませんでした",Toast.LENGTH_LONG).show();return;}
       Intent in=new Intent(Intent.ACTION_VIEW);
       in.setDataAndType(uri,"application/vnd.android.package-archive");
       in.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_NEW_TASK);
