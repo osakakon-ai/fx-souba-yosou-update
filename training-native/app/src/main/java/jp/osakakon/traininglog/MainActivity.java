@@ -8,6 +8,7 @@ import android.graphics.*;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.app.DownloadManager;
 import android.content.pm.PackageInfo;
 import android.database.Cursor;
@@ -23,6 +24,7 @@ public class MainActivity extends Activity {
   LinearLayout root, body; SharedPreferences sp; String selectedDate;
   static final String LATEST_URL="https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/training/latest.json";
   long updateDownloadId=-1;
+  long installerOpenedId=-1;
   BroadcastReceiver updateReceiver;
   ArrayList<Exercise> workout=new ArrayList<>(); int exIndex=0,setIndex=1; CountDownTimer timer;
   SimpleDateFormat fmt=new SimpleDateFormat("yyyy-MM-dd",Locale.JAPAN);
@@ -41,14 +43,23 @@ public class MainActivity extends Activity {
 
   @Override public void onCreate(Bundle b){
     super.onCreate(b);sp=getSharedPreferences("training",MODE_PRIVATE);selectedDate=fmt.format(new Date());
+    updateDownloadId=sp.getLong("pending_update_download_id",-1);
     updateReceiver=new BroadcastReceiver(){public void onReceive(Context c,Intent i){
       if(!DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(i.getAction()))return;
       long id=i.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID,-1);
-      if(id==updateDownloadId)openDownloadedApk(id);
+      long pending=sp.getLong("pending_update_download_id",-1);
+      if(id==updateDownloadId||id==pending)openDownloadedApk(id);
     }};
     IntentFilter f=new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
-    if(Build.VERSION.SDK_INT>=33)registerReceiver(updateReceiver,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(updateReceiver,f);
+    if(Build.VERSION.SDK_INT>=33)registerReceiver(updateReceiver,f,Context.RECEIVER_EXPORTED);else registerReceiver(updateReceiver,f);
     showMain();
+  }
+  @Override protected void onResume(){
+    super.onResume();
+    long pending=sp==null?-1:sp.getLong("pending_install_id",-1);
+    if(pending>=0 && (Build.VERSION.SDK_INT<26 || getPackageManager().canRequestPackageInstalls())){
+      openDownloadedApk(pending);
+    }
   }
   @Override public void onDestroy(){
     if(timer!=null)timer.cancel();
@@ -328,20 +339,58 @@ public class MainActivity extends Activity {
       req.setDestinationInExternalFilesDir(this,android.os.Environment.DIRECTORY_DOWNLOADS,"Training-App-update.apk");
       DownloadManager dm=(DownloadManager)getSystemService(DOWNLOAD_SERVICE);
       updateDownloadId=dm.enqueue(req);
+      sp.edit().putLong("pending_update_download_id",updateDownloadId).apply();
       Toast.makeText(this,"更新版のダウンロードを開始しました",Toast.LENGTH_SHORT).show();
+      waitForDownload(updateDownloadId);
     }catch(Exception e){Toast.makeText(this,"ダウンロードを開始できませんでした",Toast.LENGTH_LONG).show();}
+  }
+
+  void waitForDownload(long id){
+    new Thread(()->{
+      DownloadManager dm=(DownloadManager)getSystemService(DOWNLOAD_SERVICE);
+      for(int n=0;n<120;n++){
+        Cursor cur=null;
+        try{
+          cur=dm.query(new DownloadManager.Query().setFilterById(id));
+          if(cur!=null && cur.moveToFirst()){
+            int status=cur.getInt(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+            if(status==DownloadManager.STATUS_SUCCESSFUL){
+              runOnUiThread(()->openDownloadedApk(id));return;
+            }
+            if(status==DownloadManager.STATUS_FAILED){
+              runOnUiThread(()->Toast.makeText(this,"更新版のダウンロードに失敗しました",Toast.LENGTH_LONG).show());return;
+            }
+          }
+        }catch(Exception ignored){}finally{if(cur!=null)cur.close();}
+        try{Thread.sleep(500);}catch(InterruptedException e){return;}
+      }
+    }).start();
   }
 
   void openDownloadedApk(long id){
     try{
+      if(id<0)return;
+      if(Build.VERSION.SDK_INT>=26 && !getPackageManager().canRequestPackageInstalls()){
+        sp.edit().putLong("pending_install_id",id).apply();
+        Intent settings=new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,Uri.parse("package:"+getPackageName()));
+        startActivity(settings);
+        Toast.makeText(this,"このアプリからのインストールを許可してください",Toast.LENGTH_LONG).show();
+        return;
+      }
+      if(installerOpenedId==id)return;
       DownloadManager dm=(DownloadManager)getSystemService(DOWNLOAD_SERVICE);
       Uri uri=dm.getUriForDownloadedFile(id);
       if(uri==null){Toast.makeText(this,"更新ファイルを開けませんでした",Toast.LENGTH_LONG).show();return;}
-      Intent in=new Intent(Intent.ACTION_VIEW);
-      in.setDataAndType(uri,"application/vnd.android.package-archive");
+      installerOpenedId=id;
+      sp.edit().remove("pending_update_download_id").remove("pending_install_id").apply();
+      Intent in=new Intent(Intent.ACTION_INSTALL_PACKAGE);
+      in.setData(uri);
       in.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_NEW_TASK);
       startActivity(in);
-    }catch(Exception e){Toast.makeText(this,"インストーラーを開けませんでした",Toast.LENGTH_LONG).show();}
+    }catch(Exception e){
+      installerOpenedId=-1;
+      Toast.makeText(this,"インストーラーを開けませんでした",Toast.LENGTH_LONG).show();
+    }
   }
 
   void shareScreen(){
