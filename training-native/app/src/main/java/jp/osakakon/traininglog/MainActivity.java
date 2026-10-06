@@ -124,16 +124,16 @@ public class MainActivity extends Activity {
     next.setOnClickListener(v->{displayMonth.add(Calendar.MONTH,1);renderCalendar();});
 
     LinearLayout weekdays=new LinearLayout(this);weekdays.setBackgroundColor(CAL_BG);weekdays.setPadding(0,dp(3),0,dp(3));
-    String[] names={"月","火","水","木","金","土","日"};
+    String[] names={"日","月","火","水","木","金","土"};
     for(int i=0;i<7;i++){
-      int col=i==5?SAT:(i==6?SUN:TEXT);
+      int col=i==0?SUN:(i==6?SAT:TEXT);
       TextView w=tv(names[i],16,col);w.setGravity(Gravity.CENTER);
       weekdays.addView(w,new LinearLayout.LayoutParams(0,dp(42),1));
     }
     calendarBox.addView(weekdays);
 
     Calendar first=new GregorianCalendar(y,m,1);
-    int leading=(first.get(Calendar.DAY_OF_WEEK)+5)%7;
+    int leading=first.get(Calendar.DAY_OF_WEEK)-1;
     int max=first.getActualMaximum(Calendar.DAY_OF_MONTH);
     Calendar now=Calendar.getInstance();
     String today=keyFor(now.get(Calendar.YEAR),now.get(Calendar.MONTH),now.get(Calendar.DAY_OF_MONTH));
