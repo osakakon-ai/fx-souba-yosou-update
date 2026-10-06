@@ -1,10 +1,11 @@
 name: Publish Signed Training APK
+
 on:
   push:
     branches: [main]
     paths:
-      - "training-publish/**"
-      - ".github/workflows/training-publish-signed.yml"
+      - "training/release-input/**"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -18,24 +19,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Rebuild signed APK
+
+      - name: Rebuild signed APK from text parts
         run: |
-          set -e
-          mkdir -p training
-          cat training-publish/part-*.txt | tr -d '\n\r ' | base64 -d > training/Training-App.apk
-          test "$(stat -c%s training/Training-App.apk)" -gt 1000000
-          sha256sum training/Training-App.apk
-          cat > training/latest.json <<'EOF'
-          {
-            "versionCode": 5,
-            "versionName": "0.5.0",
-            "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/training/Training-App.apk"
-          }
-          EOF
-      - name: Publish
+          set -euo pipefail
+          test -f training/release-input/latest.json
+          PARTS="$(find training/release-input -maxdepth 1 -type f -name 'part-*.b64' | sort)"
+          test -n "$PARTS"
+          cat $PARTS | tr -d '\r\n ' | base64 -d > training/Training-App.apk
+          unzip -t training/Training-App.apk >/dev/null
+          VERSION_NAME="$(python3 - <<'PY'
+          import json
+          with open('training/release-input/latest.json', encoding='utf-8') as f:
+              print(json.load(f)['versionName'])
+          PY
+          )"
+          cp training/Training-App.apk "training/Training-App-v${VERSION_NAME}.apk"
+          cp training/release-input/latest.json training/latest.json
+          test -s training/Training-App.apk
+
+      - name: Publish update files
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add training/Training-App.apk training/latest.json
-          git commit -m "Publish training app v0.5.0" || exit 0
+          VERSION_NAME="$(python3 - <<'PY'
+          import json
+          with open('training/latest.json', encoding='utf-8') as f:
+              print(json.load(f)['versionName'])
+          PY
+          )"
+          git add -f training/Training-App.apk "training/Training-App-v${VERSION_NAME}.apk" training/latest.json
+          git commit -m "Publish training app v${VERSION_NAME}" || exit 0
           git push
