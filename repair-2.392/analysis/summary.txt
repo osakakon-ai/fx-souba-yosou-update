@@ -1,0 +1,6 @@
+=== changed app files ===
+Files /tmp/fx2389/smali/com/konchan/chappyfx/CandlestickView.smali and /tmp/fx2391/smali/com/konchan/chappyfx/CandlestickView.smali differ
+Files /tmp/fx2389/smali/com/konchan/chappyfx/MainActivity$FxApplication.smali and /tmp/fx2391/smali/com/konchan/chappyfx/MainActivity$FxApplication.smali differ
+Files /tmp/fx2389/smali/com/konchan/chappyfx/MainActivity.smali and /tmp/fx2391/smali/com/konchan/chappyfx/MainActivity.smali differ
+
+=== manifest diff ===

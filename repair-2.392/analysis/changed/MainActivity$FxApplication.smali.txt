@@ -1,0 +1,217 @@
+.class public Lcom/konchan/chappyfx/MainActivity$FxApplication;
+.super Landroid/app/Application;
+.source "MainActivity.java"
+
+# interfaces
+.implements Landroid/app/Application$ActivityLifecycleCallbacks;
+
+
+# annotations
+.annotation system Ldalvik/annotation/EnclosingClass;
+    value = Lcom/konchan/chappyfx/MainActivity;
+.end annotation
+
+.annotation system Ldalvik/annotation/InnerClass;
+    accessFlags = 0x9
+    name = "FxApplication"
+.end annotation
+
+
+# instance fields
+.field private generation:I
+
+.field private final handler:Landroid/os/Handler;
+
+.field private started:I
+
+
+# direct methods
+.method public static synthetic $r8$lambda$BxxIv5ZHa-2B3Yd0gsGq7AkrITs(Lcom/konchan/chappyfx/MainActivity$FxApplication;I)V
+    .locals 0
+
+    invoke-direct {p0, p1}, Lcom/konchan/chappyfx/MainActivity$FxApplication;->lambda$onActivityStopped$0(I)V
+
+    return-void
+.end method
+
+.method public constructor <init>()V
+    .locals 2
+
+    .line 514
+    invoke-direct {p0}, Landroid/app/Application;-><init>()V
+
+    .line 515
+    new-instance v0, Landroid/os/Handler;
+
+    invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
+
+    move-result-object v1
+
+    invoke-direct {v0, v1}, Landroid/os/Handler;-><init>(Landroid/os/Looper;)V
+
+    iput-object v0, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->handler:Landroid/os/Handler;
+
+    const/4 v0, 0x0
+
+    .line 516
+    iput v0, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->started:I
+
+    .line 517
+    iput v0, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->generation:I
+
+    return-void
+.end method
+
+.method private synthetic lambda$onActivityStopped$0(I)V
+    .locals 1
+
+    .line 540
+    iget v0, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->started:I
+
+    if-nez v0, :cond_0
+
+    iget v0, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->generation:I
+
+    if-ne p1, v0, :cond_0
+
+    const/4 p1, 0x0
+
+    .line 541
+    invoke-static {p1}, Lcom/konchan/chappyfx/MonitoringService;->setAppVisible(Z)V
+
+    :cond_0
+    return-void
+.end method
+
+
+# virtual methods
+.method public onActivityCreated(Landroid/app/Activity;Landroid/os/Bundle;)V
+    .locals 0
+
+    return-void
+.end method
+
+.method public onActivityDestroyed(Landroid/app/Activity;)V
+    .locals 0
+
+    return-void
+.end method
+
+.method public onActivityPaused(Landroid/app/Activity;)V
+    .locals 0
+
+    return-void
+.end method
+
+.method public onActivityResumed(Landroid/app/Activity;)V
+    .locals 0
+
+    return-void
+.end method
+
+.method public onActivitySaveInstanceState(Landroid/app/Activity;Landroid/os/Bundle;)V
+    .locals 0
+
+    return-void
+.end method
+
+.method public onActivityStarted(Landroid/app/Activity;)V
+    .locals 2
+
+    .line 525
+    iget p1, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->started:I
+
+    const/4 v0, 0x1
+
+    add-int/2addr p1, v0
+
+    iput p1, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->started:I
+
+    .line 526
+    iget v1, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->generation:I
+
+    add-int/2addr v1, v0
+
+    iput v1, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->generation:I
+
+    if-ne p1, v0, :cond_0
+
+    .line 528
+    invoke-static {v0}, Lcom/konchan/chappyfx/MonitoringService;->setAppVisible(Z)V
+
+    .line 529
+    new-instance p1, Landroid/content/Intent;
+
+    const-class v0, Lcom/konchan/chappyfx/MonitoringService;
+
+    invoke-direct {p1, p0, v0}, Landroid/content/Intent;-><init>(Landroid/content/Context;Ljava/lang/Class;)V
+
+    .line 530
+    const-string v0, "com.konchan.chappyfx.START"
+
+    invoke-virtual {p1, v0}, Landroid/content/Intent;->setAction(Ljava/lang/String;)Landroid/content/Intent;
+
+    .line 531
+    :try_start_0
+    invoke-virtual {p0, p1}, Lcom/konchan/chappyfx/MainActivity$FxApplication;->startService(Landroid/content/Intent;)Landroid/content/ComponentName;
+    :try_end_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+
+    :catch_0
+    :cond_0
+    return-void
+.end method
+
+.method public onActivityStopped(Landroid/app/Activity;)V
+    .locals 4
+
+    .line 536
+    iget p1, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->started:I
+
+    if-lez p1, :cond_0
+
+    add-int/lit8 p1, p1, -0x1
+
+    iput p1, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->started:I
+
+    .line 537
+    :cond_0
+    iget p1, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->started:I
+
+    if-eqz p1, :cond_1
+
+    return-void
+
+    .line 538
+    :cond_1
+    iget p1, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->generation:I
+
+    add-int/lit8 p1, p1, 0x1
+
+    iput p1, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->generation:I
+
+    .line 539
+    iget-object v0, p0, Lcom/konchan/chappyfx/MainActivity$FxApplication;->handler:Landroid/os/Handler;
+
+    new-instance v1, Lcom/konchan/chappyfx/MainActivity$FxApplication$$ExternalSyntheticLambda0;
+
+    invoke-direct {v1, p0, p1}, Lcom/konchan/chappyfx/MainActivity$FxApplication$$ExternalSyntheticLambda0;-><init>(Lcom/konchan/chappyfx/MainActivity$FxApplication;I)V
+
+    const-wide/16 v2, 0x2ee
+
+    invoke-virtual {v0, v1, v2, v3}, Landroid/os/Handler;->postDelayed(Ljava/lang/Runnable;J)Z
+
+    return-void
+.end method
+
+.method public onCreate()V
+    .locals 0
+
+    .line 520
+    invoke-super {p0}, Landroid/app/Application;->onCreate()V
+
+    .line 521
+    invoke-virtual {p0, p0}, Lcom/konchan/chappyfx/MainActivity$FxApplication;->registerActivityLifecycleCallbacks(Landroid/app/Application$ActivityLifecycleCallbacks;)V
+
+    return-void
+.end method
