@@ -1,0 +1,237 @@
+[
+  {
+    "kind": "tick",
+    "status": 200,
+    "ms": 564,
+    "marketState": "open",
+    "stale": false,
+    "quoteAgeSeconds": 2,
+    "timestamp": "2026-10-07T08:26:19Z",
+    "lastQuoteAt": "2026-10-07T08:26:19Z",
+    "mid": 158.0685
+  },
+  {
+    "kind": "ohlc",
+    "interval": "1m",
+    "mode": "latest",
+    "status": 200,
+    "ms": 847,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 301,
+    "firstReturned": "2026-10-07T08:26:00Z",
+    "lastReturned": "2026-10-07T03:26:00Z",
+    "isOpenCount": 1
+  },
+  {
+    "kind": "ohlc",
+    "interval": "1m",
+    "mode": "range",
+    "status": 200,
+    "ms": 769,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 301,
+    "firstReturned": "2026-10-07T08:26:00Z",
+    "lastReturned": "2026-10-07T03:26:00Z",
+    "isOpenCount": 1
+  },
+  {
+    "kind": "ohlc",
+    "interval": "5m",
+    "mode": "latest",
+    "status": 200,
+    "ms": 844,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 289,
+    "firstReturned": "2026-10-07T08:25:00Z",
+    "lastReturned": "2026-10-06T08:20:00Z",
+    "isOpenCount": 1
+  },
+  {
+    "kind": "ohlc",
+    "interval": "5m",
+    "mode": "range",
+    "status": 200,
+    "ms": 805,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 289,
+    "firstReturned": "2026-10-07T08:25:00Z",
+    "lastReturned": "2026-10-06T08:20:00Z",
+    "isOpenCount": 1
+  },
+  {
+    "kind": "ohlc",
+    "interval": "15m",
+    "mode": "latest",
+    "status": 200,
+    "ms": 679,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 193,
+    "firstReturned": "2026-10-07T08:15:00Z",
+    "lastReturned": "2026-10-05T08:15:00Z",
+    "isOpenCount": 1
+  },
+  {
+    "kind": "ohlc",
+    "interval": "15m",
+    "mode": "range",
+    "status": 200,
+    "ms": 665,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 193,
+    "firstReturned": "2026-10-07T08:15:00Z",
+    "lastReturned": "2026-10-05T08:15:00Z",
+    "isOpenCount": 1
+  },
+  {
+    "kind": "ohlc",
+    "interval": "30m",
+    "mode": "latest",
+    "status": 200,
+    "ms": 613,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 193,
+    "firstReturned": "2026-10-07T08:00:00Z",
+    "lastReturned": "2026-10-01T08:00:00Z",
+    "isOpenCount": 1
+  },
+  {
+    "kind": "ohlc",
+    "interval": "30m",
+    "mode": "range",
+    "status": 200,
+    "ms": 610,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 193,
+    "firstReturned": "2026-10-07T08:00:00Z",
+    "lastReturned": "2026-10-01T08:00:00Z",
+    "isOpenCount": 1
+  },
+  {
+    "kind": "ohlc",
+    "interval": "1h",
+    "mode": "latest",
+    "status": 200,
+    "ms": 614,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 169,
+    "firstReturned": "2026-10-07T08:00:00Z",
+    "lastReturned": "2026-09-28T08:00:00Z",
+    "isOpenCount": 1
+  },
+  {
+    "kind": "ohlc",
+    "interval": "1h",
+    "mode": "range",
+    "status": 200,
+    "ms": 655,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 169,
+    "firstReturned": "2026-10-07T08:00:00Z",
+    "lastReturned": "2026-09-28T08:00:00Z",
+    "isOpenCount": 1
+  },
+  {
+    "kind": "ohlc",
+    "interval": "4h",
+    "mode": "latest",
+    "status": 200,
+    "ms": 660,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 181,
+    "firstReturned": "2026-10-07T08:00:00Z",
+    "lastReturned": "2026-08-26T20:00:00Z",
+    "isOpenCount": 1
+  },
+  {
+    "kind": "ohlc",
+    "interval": "4h",
+    "mode": "range",
+    "status": 200,
+    "ms": 622,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 181,
+    "firstReturned": "2026-10-07T08:00:00Z",
+    "lastReturned": "2026-08-26T20:00:00Z",
+    "isOpenCount": 1
+  },
+  {
+    "kind": "ohlc",
+    "interval": "1d",
+    "mode": "latest",
+    "status": 200,
+    "ms": 824,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 501,
+    "firstReturned": "2026-10-07T00:00:00Z",
+    "lastReturned": "2025-03-02T00:00:00Z",
+    "isOpenCount": 1
+  },
+  {
+    "kind": "ohlc",
+    "interval": "1d",
+    "mode": "range",
+    "status": 200,
+    "ms": 806,
+    "keys": [
+      "symbol",
+      "interval",
+      "bars"
+    ],
+    "count": 501,
+    "firstReturned": "2026-10-07T00:00:00Z",
+    "lastReturned": "2025-03-02T00:00:00Z",
+    "isOpenCount": 1
+  }
+]
