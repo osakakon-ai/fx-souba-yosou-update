@@ -61,9 +61,25 @@ jobs:
             cat staging-fx-oanda/apk.part*.b64 > /tmp/fx.apk.b64
             base64 --decode /tmp/fx.apk.b64 > /tmp/FX-Souba-Yosou.apk
           else
-            RUN_NUMBER="${FX_VERSION_NAME#2.}"
-            URL="https://github.com/osakakon-ai/blender-project/releases/download/fx-demo-${RUN_NUMBER}-1/FX-Souba-Yosou.apk"
-            curl -fL --retry 4 --retry-delay 2 "$URL" -o /tmp/FX-Souba-Yosou.apk
+            # The source build also commits a verified updater payload to blender-project/main.
+            # Use that text payload instead of the GitHub Release browser URL, which can
+            # transiently return 404 even after the release asset has been published.
+            SRC_BASE="https://raw.githubusercontent.com/osakakon-ai/blender-project/main/tools/chappy-fx-demo-updater-site"
+            curl -fL --retry 4 --retry-delay 2 -H "Cache-Control: no-cache" \
+              "$SRC_BASE/latest-meta.json?t=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" -o /tmp/source-meta.json
+            python - <<'PY'
+          import json,os
+          m=json.load(open("/tmp/source-meta.json",encoding="utf-8"))
+          if str(m.get("versionName","")) != os.environ["FX_VERSION_NAME"]:
+              raise SystemExit("source payload version mismatch")
+          if int(m.get("versionCode",0)) != int(os.environ["FX_VERSION_CODE"]):
+              raise SystemExit("source payload versionCode mismatch")
+          if str(m.get("sha256","")).lower() != os.environ["FX_SHA256"].lower():
+              raise SystemExit("source payload sha256 mismatch")
+          PY
+            curl -fL --retry 4 --retry-delay 2 -H "Cache-Control: no-cache" \
+              "$SRC_BASE/apk.b64?t=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" -o /tmp/fx.apk.b64
+            base64 --decode /tmp/fx.apk.b64 > /tmp/FX-Souba-Yosou.apk
           fi
           test -s /tmp/FX-Souba-Yosou.apk
           ACTUAL="$(sha256sum /tmp/FX-Souba-Yosou.apk | awk '{print $1}')"
