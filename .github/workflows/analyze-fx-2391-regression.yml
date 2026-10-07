@@ -1,0 +1,102 @@
+name: Analyze FX 2.391 regression
+
+on:
+  push:
+    paths:
+      - 'repair-2.392/ANALYZE_READY'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fx-2391-regression-analysis
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install apktool
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq apktool
+
+      - name: Decode 2.389 and 2.391
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/fx2389 /tmp/fx2391 repair-2.392/analysis
+          mkdir -p repair-2.392/analysis
+          apktool d -f -o /tmp/fx2389 FX-Souba-Yosou-2.389.apk >/tmp/apktool-2389.log 2>&1
+          apktool d -f -o /tmp/fx2391 FX-Souba-Yosou-2.391.apk >/tmp/apktool-2391.log 2>&1
+
+      - name: Build focused regression report
+        shell: bash
+        run: |
+          set -euo pipefail
+          A=/tmp/fx2389
+          B=/tmp/fx2391
+          OUT=repair-2.392/analysis
+          {
+            echo '=== changed app files ==='
+            diff -qr "$A/smali/com/konchan/chappyfx" "$B/smali/com/konchan/chappyfx" || true
+            echo
+            echo '=== manifest diff ==='
+            diff -u "$A/AndroidManifest.xml" "$B/AndroidManifest.xml" || true
+          } > "$OUT/summary.txt"
+
+          diff -ru "$A/smali/com/konchan/chappyfx" "$B/smali/com/konchan/chappyfx" > "$OUT/app-smali.diff" || true
+          if [ -d "$A/smali_classes2/com/konchan/chappyfx" ] || [ -d "$B/smali_classes2/com/konchan/chappyfx" ]; then
+            diff -ru "$A/smali_classes2/com/konchan/chappyfx" "$B/smali_classes2/com/konchan/chappyfx" > "$OUT/app-smali-classes2.diff" || true
+          fi
+
+          {
+            echo '=== 2.391 network / candle / analysis strings ==='
+            grep -RniE 'biquote|ohlc|candle|ローソク|今すぐ解析|RUN_NOW|fetch|http|wss|analysis|IOException|取得失敗|エラー'               "$B/smali/com/konchan/chappyfx" "$B/smali_classes2/com/konchan/chappyfx" 2>/dev/null | head -n 4000 || true
+          } > "$OUT/2391-focus.txt"
+
+          {
+            echo '=== 2.389 network / candle / analysis strings ==='
+            grep -RniE 'biquote|ohlc|candle|ローソク|今すぐ解析|RUN_NOW|fetch|http|wss|analysis|IOException|取得失敗|エラー'               "$A/smali/com/konchan/chappyfx" "$A/smali_classes2/com/konchan/chappyfx" 2>/dev/null | head -n 4000 || true
+          } > "$OUT/2389-focus.txt"
+
+          {
+            echo '2.389 sha256:'; sha256sum FX-Souba-Yosou-2.389.apk
+            echo '2.391 sha256:'; sha256sum FX-Souba-Yosou-2.391.apk
+          } > "$OUT/apk-sha256.txt"
+
+      - name: Copy changed app smali
+        shell: bash
+        run: |
+          set -euo pipefail
+          A=/tmp/fx2389/smali/com/konchan/chappyfx
+          B=/tmp/fx2391/smali/com/konchan/chappyfx
+          OUT=repair-2.392/analysis/changed
+          mkdir -p "$OUT"
+          diff -qr "$A" "$B" 2>/dev/null | sed -n             -e 's#^Files .*/fx2389/smali/com/konchan/chappyfx/\(.*\) and .* differ$#\1#p'             -e 's#^Only in .*/fx2391/smali/com/konchan/chappyfx[^:]*: \(.*\)$#\1#p'             | sort -u > /tmp/changed.txt || true
+          while IFS= read -r rel; do
+            [ -n "$rel" ] || continue
+            src="/tmp/fx2391/smali/com/konchan/chappyfx/$rel"
+            if [ -f "$src" ]; then
+              safe="$(echo "$rel" | tr '/ ' '__')"
+              cp "$src" "$OUT/$safe.txt"
+            fi
+          done < /tmp/changed.txt
+          cp /tmp/changed.txt repair-2.392/analysis/changed-files.txt
+
+      - name: Commit analysis only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add repair-2.392/analysis
+          git commit -m "Analyze FX 2.391 candle and run-now regression"
+          git push origin HEAD:main
