@@ -1,0 +1,96 @@
+name: Probe Biquote USDJPY OHLC
+
+on:
+  push:
+    paths:
+      - 'repair-2.392/PROBE_READY'
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe live and OHLC endpoints
+        shell: python
+        run: |
+          import json, urllib.request, urllib.parse, datetime, time
+          from pathlib import Path
+
+          out=[]
+          base="https://biquote.io/api/USDJPY/ohlc"
+          headers={
+              "Accept":"application/json",
+              "Cache-Control":"no-cache, no-store, max-age=0",
+              "Pragma":"no-cache",
+              "User-Agent":"ChappyFxDemo/Biquote Android",
+          }
+
+          def get(url):
+              req=urllib.request.Request(url,headers=headers)
+              t=time.time()
+              try:
+                  with urllib.request.urlopen(req,timeout=25) as r:
+                      body=r.read()
+                      return r.status, body.decode("utf-8","replace"), round((time.time()-t)*1000)
+              except Exception as e:
+                  return None, repr(e), round((time.time()-t)*1000)
+
+          status,body,ms=get("https://biquote.io/api/USDJPY")
+          rec={"kind":"tick","status":status,"ms":ms}
+          try:
+              j=json.loads(body)
+              rec.update({k:j.get(k) for k in ["marketState","stale","quoteAgeSeconds","timestamp","lastQuoteAt","mid"]})
+          except Exception:
+              rec["body"]=body[:500]
+          out.append(rec)
+
+          now=datetime.datetime.now(datetime.timezone.utc)
+          intervals=[
+              ("1m",1000,12*3600),
+              ("5m",500,36*3600),
+              ("15m",500,7*86400),
+              ("30m",500,14*86400),
+              ("1h",1000,30*86400),
+              ("4h",1000,120*86400),
+              ("1d",1000,3*365*86400),
+          ]
+          for iv,limit,lookback in intervals:
+              for mode in ["latest","range"]:
+                  q={"interval":iv,"limit":limit,"_cb":int(time.time()*1000)}
+                  if mode=="range":
+                      q["from"]=(now-datetime.timedelta(seconds=lookback)).isoformat().replace("+00:00","Z")
+                      q["to"]=(now+datetime.timedelta(hours=8)).isoformat().replace("+00:00","Z")
+                  url=base+"?"+urllib.parse.urlencode(q)
+                  status,body,ms=get(url)
+                  rec={"kind":"ohlc","interval":iv,"mode":mode,"status":status,"ms":ms}
+                  try:
+                      j=json.loads(body)
+                      bars=j.get("bars")
+                      rec["keys"]=list(j.keys()) if isinstance(j,dict) else []
+                      rec["count"]=len(bars) if isinstance(bars,list) else None
+                      if isinstance(bars,list) and bars:
+                          times=[b.get("openTime") for b in bars if isinstance(b,dict)]
+                          rec["firstReturned"]=times[0] if times else None
+                          rec["lastReturned"]=times[-1] if times else None
+                          rec["isOpenCount"]=sum(1 for b in bars if isinstance(b,dict) and b.get("isOpen") is True)
+                  except Exception:
+                      rec["body"]=body[:700]
+                  out.append(rec)
+
+          Path("repair-2.392/probe").mkdir(parents=True,exist_ok=True)
+          Path("repair-2.392/probe/result.json").write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding="utf-8")
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+
+      - name: Commit probe result
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add repair-2.392/probe/result.json
+          git commit -m "Record Biquote USDJPY OHLC probe"
+          git push origin HEAD:main
