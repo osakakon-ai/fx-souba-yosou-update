@@ -80,7 +80,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.4.0</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.4.1</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -688,10 +688,10 @@ function scrollForPlayback(info){
   (beatInMeasure-transitionStart)/Math.max(.001,transitionLength)
  ));
 
- // 1拍＝60000/BPM msなので、BPMが速いほどスクロールも同じ比率で速くなる。
- const eased=smoothStep01(linear);
+ // ハイライトと同じBPMクロックの最後の1拍を、そのまま一定速度でスクロールに使う。
+ // 加減速カーブを入れないことで、コード切替と画面移動の体感速度を一致させる。
  const y=scrollState.transitionFromY+
-  (scrollState.transitionToY-scrollState.transitionFromY)*eased;
+  (scrollState.transitionToY-scrollState.transitionFromY)*linear;
 
  window.scrollTo(0,Math.max(0,y));
 }
