@@ -57,9 +57,13 @@ jobs:
             APK="$(find /tmp/fx-artifact -type f -name 'FX-Souba-Yosou.apk' -print -quit)"
             test -n "$APK"
             cp "$APK" /tmp/FX-Souba-Yosou.apk
-          else
+          elif compgen -G "staging-fx-oanda/apk.part*.b64" > /dev/null; then
             cat staging-fx-oanda/apk.part*.b64 > /tmp/fx.apk.b64
             base64 --decode /tmp/fx.apk.b64 > /tmp/FX-Souba-Yosou.apk
+          else
+            RUN_NUMBER="${FX_VERSION_NAME#2.}"
+            URL="https://github.com/osakakon-ai/blender-project/releases/download/fx-demo-${RUN_NUMBER}-1/FX-Souba-Yosou.apk"
+            curl -fL --retry 4 --retry-delay 2 "$URL" -o /tmp/FX-Souba-Yosou.apk
           fi
           test -s /tmp/FX-Souba-Yosou.apk
           ACTUAL="$(sha256sum /tmp/FX-Souba-Yosou.apk | awk '{print $1}')"
