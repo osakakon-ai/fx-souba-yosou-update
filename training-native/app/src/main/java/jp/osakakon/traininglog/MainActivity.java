@@ -7,6 +7,8 @@ import android.content.res.ColorStateList;
 import android.graphics.*;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.media.ToneGenerator;
+import android.media.AudioManager;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.app.DownloadManager;
@@ -181,6 +183,7 @@ public class MainActivity extends Activity {
     LinearLayout a=new LinearLayout(this);
     Button menu=btn("メニュー登録"),start=btn("筋トレ開始");a.addView(menu,new LinearLayout.LayoutParams(0,-2,1));a.addView(start,new LinearLayout.LayoutParams(0,-2,1));body.addView(a);
     menu.setOnClickListener(v->menuDialog());start.setOnClickListener(v->chooseExercises());
+    Button sound=btn("インターバル音："+intervalSoundName());sound.setOnClickListener(v->intervalSoundDialog(sound));body.addView(sound);
     body.addView(tv("選択日の記録",18,TEXT));
     LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setTag("record");body.addView(box);renderRecord();
   }
@@ -337,10 +340,60 @@ public class MainActivity extends Activity {
     for(int i=0;i<workout.size();i++){int col=i==exIndex?ACC:TEXT;String m=i<exIndex?"✓ ":i==exIndex?"▶ ":"";body.addView(tv(m+(i+1)+". "+workout.get(i).detail(),15,col));}
   }
   void completeSet(){Exercise e=workout.get(exIndex);if(setIndex<e.sets)rest(e.rest,()->{setIndex++;showWorkout();});else if(exIndex<workout.size()-1)rest(e.rest,()->{exIndex++;setIndex=1;showWorkout();});else finishWorkout();}
+  String[] intervalSoundNames(){return new String[]{"標準ビープ","2連ビープ","3連ビープ","高め","低め","長め","無音"};}
+  String intervalSoundName(){
+    String[] names=intervalSoundNames();
+    int i=sp.getInt("interval_sound",0);
+    if(i<0||i>=names.length)i=0;
+    return names[i];
+  }
+  void intervalSoundDialog(Button target){
+    String[] names=intervalSoundNames();
+    final int[] selected={sp.getInt("interval_sound",0)};
+    if(selected[0]<0||selected[0]>=names.length)selected[0]=0;
+    new AlertDialog.Builder(this)
+      .setTitle("インターバル終了音")
+      .setSingleChoiceItems(names,selected[0],(d,which)->{
+        selected[0]=which;
+        previewIntervalSound(which);
+      })
+      .setPositiveButton("保存",(d,w)->{
+        sp.edit().putInt("interval_sound",selected[0]).apply();
+        if(target!=null)target.setText("インターバル音："+names[selected[0]]);
+        Toast.makeText(this,"終了音を設定しました",Toast.LENGTH_SHORT).show();
+      })
+      .setNegativeButton("キャンセル",null)
+      .show();
+  }
+  void previewIntervalSound(int choice){playIntervalSound(choice);}
+  void playIntervalSound(){playIntervalSound(sp.getInt("interval_sound",0));}
+  void playIntervalSound(int choice){
+    if(choice==6)return;
+    new Thread(()->{
+      ToneGenerator tg=null;
+      try{
+        tg=new ToneGenerator(AudioManager.STREAM_NOTIFICATION,100);
+        if(choice==0){
+          tg.startTone(ToneGenerator.TONE_PROP_BEEP,500);Thread.sleep(600);
+        }else if(choice==1){
+          for(int i=0;i<2;i++){tg.startTone(ToneGenerator.TONE_PROP_BEEP,220);Thread.sleep(340);}
+        }else if(choice==2){
+          for(int i=0;i<3;i++){tg.startTone(ToneGenerator.TONE_PROP_BEEP2,160);Thread.sleep(280);}
+        }else if(choice==3){
+          tg.startTone(ToneGenerator.TONE_DTMF_9,700);Thread.sleep(800);
+        }else if(choice==4){
+          tg.startTone(ToneGenerator.TONE_DTMF_1,700);Thread.sleep(800);
+        }else{
+          tg.startTone(ToneGenerator.TONE_PROP_BEEP2,1200);Thread.sleep(1300);
+        }
+      }catch(Exception ignored){}finally{if(tg!=null)try{tg.release();}catch(Exception ignored){}}
+    }).start();
+  }
+
   void rest(int seconds,Runnable next){
     base("インターバル");final int[] rem={Math.max(0,seconds)};TextView clock=tv(rem[0]+" 秒",48,ACC);clock.setGravity(Gravity.CENTER);body.addView(clock);
     EditText custom=field("秒数を自由入力",""+rem[0],true);body.addView(custom);LinearLayout a=new LinearLayout(this);Button minus=btn("-15秒"),apply=btn("適用"),plus=btn("+15秒"),skip=btn("スキップ");a.addView(minus);a.addView(apply);a.addView(plus);body.addView(a);body.addView(skip);
-    Runnable launch=()->{if(timer!=null)timer.cancel();clock.setText(rem[0]+" 秒");timer=new CountDownTimer(rem[0]*1000L,1000){public void onTick(long m){clock.setText((int)Math.ceil(m/1000.0)+" 秒");}public void onFinish(){next.run();}};timer.start();};
+    Runnable launch=()->{if(timer!=null)timer.cancel();clock.setText(rem[0]+" 秒");timer=new CountDownTimer(rem[0]*1000L,1000){public void onTick(long m){clock.setText((int)Math.ceil(m/1000.0)+" 秒");}public void onFinish(){playIntervalSound();next.run();}};timer.start();};
     minus.setOnClickListener(v->{rem[0]=Math.max(0,rem[0]-15);custom.setText(""+rem[0]);launch.run();});plus.setOnClickListener(v->{rem[0]+=15;custom.setText(""+rem[0]);launch.run();});apply.setOnClickListener(v->{try{rem[0]=Math.max(0,Integer.parseInt(custom.getText().toString()));launch.run();}catch(Exception e){}});skip.setOnClickListener(v->{if(timer!=null)timer.cancel();next.run();});launch.run();
   }
   void finishWorkout(){String day=fmt.format(new Date());StringBuilder s=new StringBuilder();for(Exercise e:workout){if(s.length()>0)s.append("\n");s.append(e.detail());}sp.edit().putString("record_"+day,s.toString()).apply();selectedDate=day;showMain();Toast.makeText(this,"筋トレ完了",Toast.LENGTH_LONG).show();}
@@ -438,7 +491,7 @@ public class MainActivity extends Activity {
       Bitmap bm=Bitmap.createBitmap(root.getWidth(),root.getHeight(),Bitmap.Config.ARGB_8888);Canvas c=new Canvas(bm);root.draw(c);
       ContentValues v=new ContentValues();v.put(MediaStore.Images.Media.DISPLAY_NAME,"training_"+selectedDate+".png");v.put(MediaStore.Images.Media.MIME_TYPE,"image/png");v.put(MediaStore.Images.Media.RELATIVE_PATH,"Pictures/TrainingLog");
       Uri uri=getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,v);OutputStream os=getContentResolver().openOutputStream(uri);bm.compress(Bitmap.CompressFormat.PNG,100,os);os.close();
-      Intent send=new Intent(Intent.ACTION_SEND);send.setType("image/png");send.putExtra(Intent.EXTRA_STREAM,uri);send.putExtra(Intent.EXTRA_TEXT,"今日の筋トレ記録");send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivity(Intent.createChooser(send,"Xなどに共有"));
+      Intent send=new Intent(Intent.ACTION_SEND);send.setType("image/png");send.putExtra(Intent.EXTRA_STREAM,uri);send.putExtra(Intent.EXTRA_TEXT,"今日の筋トレ");send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivity(Intent.createChooser(send,"Xなどに共有"));
     }catch(Exception e){Toast.makeText(this,"共有画像を作成できませんでした",Toast.LENGTH_LONG).show();}
   }
 }
