@@ -7,7 +7,9 @@ import android.content.res.ColorStateList;
 import android.graphics.*;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
-import android.media.ToneGenerator;
+import android.media.AudioTrack;
+import android.media.AudioFormat;
+import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.provider.MediaStore;
 import android.provider.Settings;
@@ -340,7 +342,9 @@ public class MainActivity extends Activity {
     for(int i=0;i<workout.size();i++){int col=i==exIndex?ACC:TEXT;String m=i<exIndex?"✓ ":i==exIndex?"▶ ":"";body.addView(tv(m+(i+1)+". "+workout.get(i).detail(),15,col));}
   }
   void completeSet(){Exercise e=workout.get(exIndex);if(setIndex<e.sets)rest(e.rest,()->{setIndex++;showWorkout();});else if(exIndex<workout.size()-1)rest(e.rest,()->{exIndex++;setIndex=1;showWorkout();});else finishWorkout();}
-  String[] intervalSoundNames(){return new String[]{"標準ビープ","2連ビープ","3連ビープ","高め","低め","長め","無音"};}
+  String[] intervalSoundNames(){
+    return new String[]{"ピンポーン","鳥のさえずり","鈴","木琴","キラリン","やさしい鐘","電子チャイム","シンプル音","無音"};
+  }
   String intervalSoundName(){
     String[] names=intervalSoundNames();
     int i=sp.getInt("interval_sound",0);
@@ -368,26 +372,107 @@ public class MainActivity extends Activity {
   void previewIntervalSound(int choice){playIntervalSound(choice);}
   void playIntervalSound(){playIntervalSound(sp.getInt("interval_sound",0));}
   void playIntervalSound(int choice){
-    if(choice==6)return;
+    if(choice==8)return;
     new Thread(()->{
-      ToneGenerator tg=null;
+      final int sr=44100;
+      final double seconds=choice==5?1.8:1.35;
+      final int n=(int)(sr*seconds);
+      short[] pcm=new short[n];
+      for(int i=0;i<n;i++){
+        double t=i/(double)sr;
+        double v=intervalWave(choice,t,seconds);
+        v=Math.max(-1.0,Math.min(1.0,v));
+        pcm[i]=(short)(v*Short.MAX_VALUE*0.72);
+      }
+      AudioTrack track=null;
       try{
-        tg=new ToneGenerator(AudioManager.STREAM_NOTIFICATION,100);
-        if(choice==0){
-          tg.startTone(ToneGenerator.TONE_PROP_BEEP,500);Thread.sleep(600);
-        }else if(choice==1){
-          for(int i=0;i<2;i++){tg.startTone(ToneGenerator.TONE_PROP_BEEP,220);Thread.sleep(340);}
-        }else if(choice==2){
-          for(int i=0;i<3;i++){tg.startTone(ToneGenerator.TONE_PROP_BEEP2,160);Thread.sleep(280);}
-        }else if(choice==3){
-          tg.startTone(ToneGenerator.TONE_DTMF_9,700);Thread.sleep(800);
-        }else if(choice==4){
-          tg.startTone(ToneGenerator.TONE_DTMF_1,700);Thread.sleep(800);
-        }else{
-          tg.startTone(ToneGenerator.TONE_PROP_BEEP2,1200);Thread.sleep(1300);
-        }
-      }catch(Exception ignored){}finally{if(tg!=null)try{tg.release();}catch(Exception ignored){}}
+        AudioAttributes attrs=new AudioAttributes.Builder()
+          .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+          .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+          .build();
+        AudioFormat fmt=new AudioFormat.Builder()
+          .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+          .setSampleRate(sr)
+          .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+          .build();
+        track=new AudioTrack(attrs,fmt,pcm.length*2,AudioTrack.MODE_STATIC,AudioManager.AUDIO_SESSION_ID_GENERATE);
+        track.write(pcm,0,pcm.length);
+        track.play();
+        Thread.sleep((long)(seconds*1000)+120);
+      }catch(Exception ignored){}finally{
+        if(track!=null){try{track.stop();}catch(Exception ignored){}try{track.release();}catch(Exception ignored){}}
+      }
     }).start();
+  }
+  double intervalWave(int choice,double t,double total){
+    if(choice==0){ // ピンポーン
+      if(t<0.52)return bellTone(t,880,0.52);
+      if(t<0.62)return 0;
+      return bellTone(t-0.62,660,Math.max(0.1,total-0.62));
+    }
+    if(choice==1){ // 鳥のさえずり
+      double v=0;
+      double[] starts={0.05,0.42,0.76,1.02};
+      for(int k=0;k<starts.length;k++){
+        double x=t-starts[k];
+        if(x>=0&&x<0.20){
+          double f0=(k%2==0)?1900:2300;
+          double f=f0+1500*(x/0.20)+160*Math.sin(2*Math.PI*12*x);
+          double env=Math.sin(Math.PI*x/0.20);
+          v+=0.42*env*Math.sin(2*Math.PI*f*x);
+          v+=0.14*env*Math.sin(2*Math.PI*(f*2.04)*x);
+        }
+      }
+      return v;
+    }
+    if(choice==2){ // 鈴
+      double env=Math.exp(-3.1*t);
+      return env*(0.52*Math.sin(2*Math.PI*1420*t)+0.28*Math.sin(2*Math.PI*2230*t)+0.18*Math.sin(2*Math.PI*3180*t));
+    }
+    if(choice==3){ // 木琴
+      double v=0;
+      double[] starts={0.05,0.34,0.65};
+      double[] freqs={659.25,783.99,987.77};
+      for(int k=0;k<starts.length;k++){
+        double x=t-starts[k];
+        if(x>=0&&x<0.42){
+          double env=Math.exp(-8*x);
+          v+=env*(0.68*Math.sin(2*Math.PI*freqs[k]*x)+0.20*Math.sin(2*Math.PI*freqs[k]*3*x));
+        }
+      }
+      return v;
+    }
+    if(choice==4){ // キラリン
+      if(t>1.15)return 0;
+      double f=700+1900*(t/1.15);
+      double env=Math.sin(Math.PI*Math.min(1,t/1.15))*0.7;
+      return env*(0.60*Math.sin(2*Math.PI*f*t)+0.22*Math.sin(2*Math.PI*(f*1.5)*t));
+    }
+    if(choice==5){ // やさしい鐘
+      double env=Math.exp(-1.7*t);
+      return env*(0.48*Math.sin(2*Math.PI*523.25*t)+0.24*Math.sin(2*Math.PI*784.88*t)+0.14*Math.sin(2*Math.PI*1046.5*t));
+    }
+    if(choice==6){ // 電子チャイム
+      double[] starts={0.02,0.25,0.48,0.74};
+      double[] freqs={659.25,783.99,987.77,1318.51};
+      double v=0;
+      for(int k=0;k<starts.length;k++){
+        double x=t-starts[k];
+        if(x>=0&&x<0.35){
+          double env=Math.exp(-6*x);
+          v+=0.55*env*Math.sin(2*Math.PI*freqs[k]*x);
+        }
+      }
+      return v;
+    }
+    // シンプル音
+    double env=Math.exp(-4*t);
+    return 0.62*env*Math.sin(2*Math.PI*880*t);
+  }
+  double bellTone(double t,double f,double dur){
+    if(t<0||t>dur)return 0;
+    double env=Math.exp(-3.3*t);
+    return env*(0.58*Math.sin(2*Math.PI*f*t)+0.22*Math.sin(2*Math.PI*f*2.01*t)+0.12*Math.sin(2*Math.PI*f*3.02*t));
   }
 
   void rest(int seconds,Runnable next){
