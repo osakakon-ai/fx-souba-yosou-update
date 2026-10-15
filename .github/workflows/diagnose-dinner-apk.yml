@@ -1,0 +1,55 @@
+name: Diagnose Dinner APK installation
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-dinner-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  install-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare Android emulator
+        shell: bash
+        run: |
+          set -euxo pipefail
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/emulator" >> "$GITHUB_PATH"
+          SDKMGR="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -1)"
+          yes | "$SDKMGR" --sdk_root="$ANDROID_HOME" 'platform-tools' 'emulator' 'system-images;android-35;google_apis;x86_64' 'build-tools;35.0.0' || true
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 dinner/Dinner-Photo-Log.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dinner/Dinner-Photo-Log.apk
+          echo no | "$ANDROID_HOME/cmdline-tools/16.0/bin/avdmanager" create avd -n dinner-test -k 'system-images;android-35;google_apis;x86_64' --force
+          "$ANDROID_HOME/emulator/emulator" -avd dinner-test -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > "$RUNNER_TEMP/emulator.log" 2>&1 &
+          adb wait-for-device
+          for i in $(seq 1 180); do
+             v=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+             if [ "$v" = 1 ]; then break; fi
+             sleep 2
+          done
+          adb shell getprop ro.build.version.release
+      - name: Install and launch
+        shell: bash
+        run: |
+          set -euxo pipefail
+          adb install -r dinner/Dinner-Photo-Log.apk
+          adb shell am start -W -n jp.osakakon.dinnerphotolog/.MainActivity
+          sleep 4
+          adb shell pidof jp.osakakon.dinnerphotolog
+      - name: Diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          adb devices -l || true
+          adb logcat -d -t 300 | grep -E 'PackageManager|PackageInstaller|INSTALL_|dinnerphotolog|AndroidRuntime|FATAL EXCEPTION' | tail -100 || true
+          tail -100 "$RUNNER_TEMP/emulator.log" || true
