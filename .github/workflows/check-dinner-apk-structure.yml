@@ -1,0 +1,22 @@
+name: Diagnose Dinner APK structure
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/check-dinner-apk-structure.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: APK install prerequisites
+        shell: bash
+        run: |
+          set -uxo pipefail
+          SDK="/usr/local/lib/android/sdk/build-tools/35.0.0"
+          "$SDK/aapt" dump badging dinner/Dinner-Photo-Log.apk | head -30
+          "$SDK/apksigner" verify --verbose --print-certs dinner/Dinner-Photo-Log.apk
+          "$SDK/zipalign" -c -v 4 dinner/Dinner-Photo-Log.apk
