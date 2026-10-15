@@ -29,7 +29,7 @@ jobs:
           yes | "$SDKMGR" --sdk_root="$ANDROID_HOME" 'platform-tools' 'emulator' 'system-images;android-35;google_apis;x86_64' 'build-tools;35.0.0' || true
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 dinner/Dinner-Photo-Log.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dinner/Dinner-Photo-Log.apk
-          echo no | "$ANDROID_HOME/cmdline-tools/16.0/bin/avdmanager" create avd -n dinner-test -k 'system-images;android-35;google_apis;x86_64' --force
+          echo no | "$(find "$ANDROID_HOME/cmdline-tools" -type f -name avdmanager | head -1)" create avd -n dinner-test -k 'system-images;android-35;google_apis;x86_64' --force
           "$ANDROID_HOME/emulator/emulator" -avd dinner-test -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > "$RUNNER_TEMP/emulator.log" 2>&1 &
           adb wait-for-device
           for i in $(seq 1 180); do
