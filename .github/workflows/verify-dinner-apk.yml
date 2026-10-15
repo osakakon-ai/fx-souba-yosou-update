@@ -1,0 +1,28 @@
+name: Verify Dinner Photo Log signed APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-dinner-apk.yml'
+      - 'dinner/Dinner-Photo-Log.apk'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify APK signing and Android manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMGR="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -1)"
+          "$SDKMGR" --sdk_root="$ANDROID_HOME" 'build-tools;35.0.0'
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs dinner/Dinner-Photo-Log.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging dinner/Dinner-Photo-Log.apk | head -12
