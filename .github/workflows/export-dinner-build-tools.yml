@@ -1,0 +1,28 @@
+name: Export Android signing tools for local safe signing
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/export-dinner-build-tools.yml'
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bundle standard Android SDK apksigner
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="/usr/local/lib/android/sdk/build-tools/35.0.0"
+          test -f "$sdk/lib/apksigner.jar"
+          mkdir -p output
+          cp "$sdk/lib/apksigner.jar" output/apksigner.jar
+          stat -c '%s %n' output/apksigner.jar
+          java -jar output/apksigner.jar --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apksigner-tool-v35
+          path: output/apksigner.jar
+          if-no-files-found: error
+          retention-days: 1
