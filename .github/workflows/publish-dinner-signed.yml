@@ -1,0 +1,33 @@
+name: Publish Dinner Photo Log signed APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dinner-build/release/part-*.b64'
+      - '.github/workflows/publish-dinner-signed.yml'
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble pre-signed APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat $(find dinner-build/release -maxdepth 1 -name 'part-*.b64' | sort) | tr -d '\r\n\t ' | base64 -d > dinner/Dinner-Photo-Log.apk
+          echo '3c4d6656d6e73f4b9e93061c4837803532df58909e405120beb935dbfa4f963a  dinner/Dinner-Photo-Log.apk' | sha256sum -c -
+          unzip -t dinner/Dinner-Photo-Log.apk >/dev/null
+      - name: Publish versioned APK and fixed update URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp dinner/Dinner-Photo-Log.apk dinner/Dinner-Photo-Log-v0.2.5.apk
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f dinner/Dinner-Photo-Log.apk dinner/Dinner-Photo-Log-v0.2.5.apk
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Publish Dinner Photo Log APK v0.2.5'
+          git push
