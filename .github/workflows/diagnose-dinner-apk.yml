@@ -10,7 +10,7 @@ permissions:
 jobs:
   install-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Set up Java
@@ -50,6 +50,6 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          adb devices -l || true
-          adb logcat -d -t 300 | grep -E 'PackageManager|PackageInstaller|INSTALL_|dinnerphotolog|AndroidRuntime|FATAL EXCEPTION' | tail -100 || true
+          timeout 10s adb devices -l || true
+          timeout 10s adb logcat -d -t 300 | grep -E 'PackageManager|PackageInstaller|INSTALL_|dinnerphotolog|AndroidRuntime|FATAL EXCEPTION' | tail -100 || true
           tail -100 "$RUNNER_TEMP/emulator.log" || true
