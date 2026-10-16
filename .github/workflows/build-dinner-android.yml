@@ -43,6 +43,6 @@ jobs:
       - name: Save unsigned APK for local signing
         uses: actions/upload-artifact@v4
         with:
-          name: dinner-photo-log-v0.2.5-unsigned
+          name: dinner-photo-log-v0.2.6-unsigned
           path: dinner-build/project/app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
