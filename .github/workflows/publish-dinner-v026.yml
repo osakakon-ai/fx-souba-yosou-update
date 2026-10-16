@@ -1,0 +1,38 @@
+name: Publish Dinner Photo Log signed APK v0.2.6
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dinner-build/release026/part-*.b64'
+      - '.github/workflows/publish-dinner-v026.yml'
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reassemble and verify locally-signed package
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat $(find dinner-build/release026 -maxdepth 1 -name 'part-*.b64' | sort) | tr -d '\r\n\t ' | base64 -d > dinner/Dinner-Photo-Log.apk
+          echo 'be9bd32a73d4d4ece5c9b330a9f24c655f11192b44f4242e6ce74da06e43a5c5  dinner/Dinner-Photo-Log.apk' | sha256sum -c -
+          unzip -t dinner/Dinner-Photo-Log.apk >/dev/null
+          SDK="/usr/local/lib/android/sdk/build-tools/35.0.0"
+          "$SDK/zipalign" -c 4 dinner/Dinner-Photo-Log.apk
+          "$SDK/apksigner" verify --print-certs dinner/Dinner-Photo-Log.apk | tee "$RUNNER_TEMP/signing.txt"
+          grep -F '827abed49d3ca7378ba8bf62661f6c2d32de22c44b29b6ab455df68f19fabc13' "$RUNNER_TEMP/signing.txt"
+          "$SDK/aapt" dump badging dinner/Dinner-Photo-Log.apk | grep -F "versionName='0.2.6'"
+      - name: Publish versioned and latest APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp dinner/Dinner-Photo-Log.apk dinner/Dinner-Photo-Log-v0.2.6.apk
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f dinner/Dinner-Photo-Log.apk dinner/Dinner-Photo-Log-v0.2.6.apk
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Publish dinner photo log v0.2.6'
+          git push
