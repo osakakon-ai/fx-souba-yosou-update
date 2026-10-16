@@ -18,7 +18,7 @@ jobs:
         run: |
           set -euo pipefail
           cat $(find dinner-build/release026 -maxdepth 1 -name 'part-*.b64' | sort) | tr -d '\r\n\t ' | base64 -d > dinner/Dinner-Photo-Log.apk
-          echo 'be9bd32a73d4d4ece5c9b330a9f24c655f11192b44f4242e6ce74da06e43a5c5  dinner/Dinner-Photo-Log.apk' | sha256sum -c -
+          echo '850e41ea79797e1e349b2286dff32cdd9438c472f31ad94900b1e511a432622d  dinner/Dinner-Photo-Log.apk' | sha256sum -c -
           unzip -t dinner/Dinner-Photo-Log.apk >/dev/null
           SDK="/usr/local/lib/android/sdk/build-tools/35.0.0"
           "$SDK/zipalign" -c 4 dinner/Dinner-Photo-Log.apk
