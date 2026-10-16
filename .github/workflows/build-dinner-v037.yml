@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'dinner-build/v037/source.b64'
+      - '.github/workflows/build-dinner-v037.yml'
 permissions:
   contents: write
 jobs:
@@ -29,7 +30,8 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
           cd /tmp/dinner037
-          gradle :app:assembleRelease --no-daemon
+          gradle :app:assembleRelease --no-daemon 2>&1 | tee "$GITHUB_WORKSPACE/dinner-build/v037/build.log"
+          test "${PIPESTATUS[0]}" -eq 0
           APK=app/build/outputs/apk/release/app-release-unsigned.apk
           test -s "$APK"
           unzip -t "$APK" >/dev/null
@@ -51,4 +53,15 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -f dinner-build/v037/unsigned-android-release.apk
           git commit -m 'Build official unsigned v0.3.7 Android APK for local signing'
+          git push origin HEAD:main
+      - name: Report build failures (never publish invalid APK)
+        if: failure()
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          echo "FAILED: inspect compilation output below." > dinner-build/v037/build-status.txt
+          if test -f dinner-build/v037/build.log; then tail -100 dinner-build/v037/build.log >> dinner-build/v037/build-status.txt; fi
+          git add -f dinner-build/v037/build-status.txt
+          git commit -m 'Record v0.3.7 Android compile failure' || exit 0
           git push origin HEAD:main
