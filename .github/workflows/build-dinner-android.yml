@@ -38,11 +38,19 @@ jobs:
       - name: Compile unsigned release APK
         working-directory: dinner-build/project
         run: gradle :app:assembleRelease --no-daemon --stacktrace
-      - name: Verify APK archive
-        run: unzip -t dinner-build/project/app/build/outputs/apk/release/app-release-unsigned.apk
+      - name: Align unsigned APK and verify placement
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0"
+          INPUT="dinner-build/project/app/build/outputs/apk/release/app-release-unsigned.apk"
+          OUTPUT="dinner-build/project/app/build/outputs/apk/release/app-aligned-unsigned.apk"
+          "$SDK/zipalign" -f -p 4 "$INPUT" "$OUTPUT"
+          "$SDK/zipalign" -c -v 4 "$OUTPUT"
+          unzip -t "$OUTPUT" >/dev/null
       - name: Save unsigned APK for local signing
         uses: actions/upload-artifact@v4
         with:
           name: dinner-photo-log-v0.2.6-unsigned
-          path: dinner-build/project/app/build/outputs/apk/release/app-release-unsigned.apk
+          path: dinner-build/project/app/build/outputs/apk/release/app-aligned-unsigned.apk
           if-no-files-found: error
