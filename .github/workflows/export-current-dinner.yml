@@ -1,0 +1,29 @@
+name: Export current dinner release for install validation
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/export-current-dinner.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Report current APK and source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum dinner/Dinner-Photo-Log.apk dinner-build/source.zip
+          unzip -t dinner/Dinner-Photo-Log.apk >/dev/null
+          /usr/local/lib/android/sdk/build-tools/35.0.0/apksigner verify --print-certs dinner/Dinner-Photo-Log.apk
+          /usr/local/lib/android/sdk/build-tools/35.0.0/aapt dump badging dinner/Dinner-Photo-Log.apk | grep '^package:'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DinnerPhotoLog-Current-APK-Source
+          path: |
+            dinner/Dinner-Photo-Log.apk
+            dinner-build/source.zip
+          if-no-files-found: error
+          retention-days: 1
