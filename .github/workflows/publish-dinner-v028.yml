@@ -1,0 +1,43 @@
+name: Publish Dinner Photo Log v0.2.8 APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dinner-build/release-v028/piece-*.b64'
+      - '.github/workflows/publish-dinner-v028.yml'
+permissions:
+  contents: write
+concurrency:
+  group: dinner-v028-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reassemble signed APK and check version
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dinner
+          cat $(find dinner-build/release-v028 -maxdepth 1 -name 'piece-*.b64' | sort) | tr -d '\r\n\t ' | base64 -d | gzip -d > dinner/Dinner-Photo-Log.apk
+          echo '46d74d15e1f4d56f481df87200ccf9cc3dd1fd5072d6584947431a299fc5fa52  dinner/Dinner-Photo-Log.apk' | sha256sum -c -
+          unzip -t dinner/Dinner-Photo-Log.apk >/dev/null
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0"
+          "$SDK/apksigner" verify --verbose dinner/Dinner-Photo-Log.apk
+          "$SDK/zipalign" -c -v 4 dinner/Dinner-Photo-Log.apk >/dev/null
+          "$SDK/aapt" dump badging dinner/Dinner-Photo-Log.apk | grep -m1 -E "versionName='0.2.8'.*"
+          unzip -p dinner/Dinner-Photo-Log.apk assets/index.html | grep -q 'app.js?v=028'
+          unzip -p dinner/Dinner-Photo-Log.apk assets/app.js | grep -q 'day-full-image'
+      - name: Publish unchanged update URL and versioned release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp dinner/Dinner-Photo-Log.apk dinner/Dinner-Photo-Log-v0.2.8.apk
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f dinner/Dinner-Photo-Log.apk dinner/Dinner-Photo-Log-v0.2.8.apk
+          git diff --cached --quiet && exit 0
+          git commit -m 'Publish dinner calendar full-width photo APK v0.2.8'
+          git push
