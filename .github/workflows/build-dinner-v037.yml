@@ -1,0 +1,54 @@
+name: Build Dinner Photo Log v0.3.7 native photo picker
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dinner-build/v037/source.b64'
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Restore exact source and build officially (never patch classes.dex)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/dinner037
+          base64 -d dinner-build/v037/source.b64 > /tmp/source.zip
+          unzip -q /tmp/source.zip -d /tmp/dinner037
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          cd /tmp/dinner037
+          gradle :app:assembleRelease --no-daemon
+          APK=app/build/outputs/apk/release/app-release-unsigned.apk
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          grep -q 'ACTION_PICK_IMAGES' app/src/main/java/jp/osakakon/dinnerphotolog/MainActivity.java
+          node --check app/src/main/assets/app.js
+          cp "$APK" "$GITHUB_WORKSPACE/dinner-build/v037/unsigned-android-release.apk"
+          sha256sum "$GITHUB_WORKSPACE/dinner-build/v037/unsigned-android-release.apk"
+      - name: Keep compiled unsigned APK for signing outside GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: dinner-v037-official-unsigned
+          path: dinner-build/v037/unsigned-android-release.apk
+          if-no-files-found: error
+      - name: Store compiled APK for signed delivery, preserving private signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f dinner-build/v037/unsigned-android-release.apk
+          git commit -m 'Build official unsigned v0.3.7 Android APK for local signing'
+          git push origin HEAD:main
