@@ -1,0 +1,45 @@
+name: Publish Dinner Photo Log v0.2.9 signed APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dinner-build/release-v029/piece-*.b64'
+      - '.github/workflows/publish-dinner-v029.yml'
+permissions:
+  contents: write
+concurrency:
+  group: dinner-v029-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reassemble and verify signed v0.2.9 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dinner
+          cat $(find dinner-build/release-v029 -maxdepth 1 -name 'piece-*.b64' | sort) | tr -d '\r\n\t ' | base64 -d | gzip -d > dinner/Dinner-Photo-Log.apk
+          echo '387784ce39947e5a6c89a093977dafc24f28f33e80948db18f352ec4b554d9cb  dinner/Dinner-Photo-Log.apk' | sha256sum -c -
+          unzip -t dinner/Dinner-Photo-Log.apk >/dev/null
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0"
+          "$SDK/apksigner" verify --verbose dinner/Dinner-Photo-Log.apk
+          "$SDK/zipalign" -c -v 4 dinner/Dinner-Photo-Log.apk >/dev/null
+          "$SDK/aapt" dump badging dinner/Dinner-Photo-Log.apk | grep -m1 "versionName='0.2.9'"
+          unzip -p dinner/Dinner-Photo-Log.apk assets/index.html | grep -q 'style.css?v=029'
+          unzip -p dinner/Dinner-Photo-Log.apk assets/index.html | grep -q 'app.js?v=029'
+          unzip -p dinner/Dinner-Photo-Log.apk assets/app.js | grep -q 'const VERSION = '\''0.2.9'\'''
+          unzip -p dinner/Dinner-Photo-Log.apk assets/style.css | grep -q '#dayDialog #dayContent img.day-full-image'
+      - name: Replace stable update APK and save versioned copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp dinner/Dinner-Photo-Log.apk dinner/Dinner-Photo-Log-v0.2.9.apk
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f dinner/Dinner-Photo-Log.apk dinner/Dinner-Photo-Log-v0.2.9.apk
+          git diff --cached --quiet && exit 0
+          git commit -m 'Publish dinner calendar APK v0.2.9'
+          git push
