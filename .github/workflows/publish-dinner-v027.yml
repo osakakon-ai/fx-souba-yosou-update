@@ -1,0 +1,40 @@
+name: Publish Dinner Photo Log v0.2.7 signed APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dinner-build/release-v027/piece-*.b64'
+      - '.github/workflows/publish-dinner-v027.yml'
+permissions:
+  contents: write
+concurrency:
+  group: dinner-v027-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover APK and check SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dinner
+          cat $(find dinner-build/release-v027 -maxdepth 1 -name 'piece-*.b64' | sort) | tr -d '\r\n\t ' | base64 -d | gzip -d > dinner/Dinner-Photo-Log.apk
+          echo '5d274185b707904beb1045674e9682b30343f8e727dfc833e408c292721ffc45  dinner/Dinner-Photo-Log.apk' | sha256sum -c -
+          unzip -t dinner/Dinner-Photo-Log.apk >/dev/null
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0"
+          "$SDK/apksigner" verify --verbose dinner/Dinner-Photo-Log.apk
+          "$SDK/zipalign" -c -v 4 dinner/Dinner-Photo-Log.apk
+      - name: Publish fixed update URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp dinner/Dinner-Photo-Log.apk dinner/Dinner-Photo-Log-v0.2.7.apk
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f dinner/Dinner-Photo-Log.apk dinner/Dinner-Photo-Log-v0.2.7.apk
+          git diff --cached --quiet && exit 0
+          git commit -m 'Publish dinner calendar full-width photo APK v0.2.7'
+          git push
