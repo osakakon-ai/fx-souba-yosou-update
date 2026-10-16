@@ -1,0 +1,45 @@
+name: Publish Dinner Photo Log v0.3.0 signed APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dinner-build/release-v030/piece-*.b64'
+      - '.github/workflows/publish-dinner-v030.yml'
+permissions:
+  contents: write
+concurrency:
+  group: dinner-v030-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate signed APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dinner
+          cat $(find dinner-build/release-v030 -maxdepth 1 -name 'piece-*.b64' | sort) | tr -d '\r\n\t ' | base64 -d | gzip -d > dinner/Dinner-Photo-Log-v0.3.0.apk
+          echo '3ba8c8bd9c8084ffb8bb421b6e5bb4b91c6db3a6fe4d5d6d77cba3bddead2245  dinner/Dinner-Photo-Log-v0.3.0.apk' | sha256sum -c -
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0"
+          unzip -t dinner/Dinner-Photo-Log-v0.3.0.apk >/dev/null
+          "$SDK/apksigner" verify --verbose --print-certs dinner/Dinner-Photo-Log-v0.3.0.apk
+          "$SDK/zipalign" -c -v 4 dinner/Dinner-Photo-Log-v0.3.0.apk >/dev/null
+          "$SDK/aapt" dump badging dinner/Dinner-Photo-Log-v0.3.0.apk | grep -m1 "versionName='0.3.0'"
+          unzip -p dinner/Dinner-Photo-Log-v0.3.0.apk assets/app.js | grep -q "const VERSION = '0.3.0'"
+          unzip -p dinner/Dinner-Photo-Log-v0.3.0.apk assets/style.css | grep -q '#dayDialog #dayContent img.day-full-image'
+          unzip -p dinner/Dinner-Photo-Log-v0.3.0.apk assets/index.html | grep -q 'updateStatus'
+          "$SDK/apksigner" verify --print-certs dinner/Dinner-Photo-Log-v0.3.0.apk | grep -q '827abed49d3ca7378ba8bf62661f6c2d32de22c44b29b6ab455df68f19fabc13'
+      - name: Publish update and versioned APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp dinner/Dinner-Photo-Log-v0.3.0.apk dinner/Dinner-Photo-Log.apk
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f dinner/Dinner-Photo-Log.apk dinner/Dinner-Photo-Log-v0.3.0.apk
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Publish Dinner Photo Log v0.3.0 and native updater improvements'
+          git push
