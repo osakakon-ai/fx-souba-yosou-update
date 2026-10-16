@@ -18,8 +18,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - id: android
-        uses: android-actions/setup-android@v3
       - id: gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -35,8 +33,11 @@ jobs:
           base64 -d dinner-build/v037/source.b64 > /tmp/source.zip
           unzip -q /tmp/source.zip -d /tmp/dinner037
           echo 'step=android-sdk and build'
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -d "$ANDROID_HOME"
+          sdkmanager --list_installed | head -40 || true
+          test -d "$ANDROID_HOME/platforms/android-35" || sdkmanager 'platforms;android-35'
+          test -d "$ANDROID_HOME/build-tools/35.0.0" || sdkmanager 'build-tools;35.0.0'
           cd /tmp/dinner037
           gradle :app:assembleRelease --no-daemon 2>&1 | tee "$GITHUB_WORKSPACE/dinner-build/v037/build.log"
           test "${PIPESTATUS[0]}" -eq 0
