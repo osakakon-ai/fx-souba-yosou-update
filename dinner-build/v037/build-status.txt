@@ -1,1 +1,2 @@
-FAILED: inspect compilation output below.
+FAILED: Android build pipeline
+checkout=success java=success android=failure gradle=skipped compile=skipped
