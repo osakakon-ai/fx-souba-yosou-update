@@ -60,7 +60,8 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f dinner-build/v037/unsigned-android-release.apk
+          echo "$GITHUB_RUN_ID" > dinner-build/v037/build-run-id.txt
+          git add -f dinner-build/v037/unsigned-android-release.apk dinner-build/v037/build-run-id.txt
           git commit -m 'Build official unsigned v0.3.7 Android APK for local signing'
           git push origin HEAD:main
       - name: Report build failures (never publish invalid APK)
