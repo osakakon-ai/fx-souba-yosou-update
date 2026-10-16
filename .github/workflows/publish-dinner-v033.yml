@@ -1,0 +1,57 @@
+name: Publish Dinner Photo Log v0.3.3
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dinner-build/v033/delta.json'
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct and verify signed Android update
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, hashlib, json, zipfile
+          from pathlib import Path
+          old = Path('dinner/Dinner-Photo-Log-v0.3.2.apk').read_bytes()
+          patch = json.loads(Path('dinner-build/v033/delta.json').read_text())
+          assert hashlib.sha256(old).hexdigest() == patch['old_sha256']
+          updated = bytearray()
+          for entry in patch['commands']:
+              if entry[0] == 'C':
+                  offset, length = entry[1:]
+                  assert offset >= 0 and length >= 0 and offset+length <= len(old)
+                  updated.extend(old[offset:offset+length])
+              elif entry[0] == 'D':
+                  updated.extend(base64.b64decode(entry[1], validate=True))
+              else:
+                  raise ValueError('Unknown patch operation')
+          assert hashlib.sha256(updated).hexdigest() == patch['new_sha256']
+          target = Path('/tmp/Dinner-Photo-Log-v0.3.3.apk')
+          target.write_bytes(updated)
+          with zipfile.ZipFile(target) as z:
+              assert z.testzip() is None
+              assert b'v0.3.3' in z.read('assets/index.html')
+              assert '0.3.3'.encode('utf-16le') in z.read('AndroidManifest.xml')
+          print('Verified APK SHA256: '+patch['new_sha256'])
+          PY
+          mkdir -p dinner
+          cp /tmp/Dinner-Photo-Log-v0.3.3.apk dinner/Dinner-Photo-Log-v0.3.3.apk
+          cp /tmp/Dinner-Photo-Log-v0.3.3.apk dinner/Dinner-Photo-Log.apk
+          base64 -d dinner-build/v033/source.b64 > dinner-build/source.zip
+          echo "801d4faf53b7e65993cbf62f31e407b55d1c53f0f635d48e425cab77c9b4326e  dinner-build/source.zip" | sha256sum --check
+      - name: Publish latest signed APK for in-app update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dinner/Dinner-Photo-Log.apk dinner/Dinner-Photo-Log-v0.3.3.apk dinner-build/source.zip
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Publish Dinner Photo Log v0.3.3 for in-app update'
+          git push origin HEAD:main
