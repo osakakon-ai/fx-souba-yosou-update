@@ -1,0 +1,5 @@
+FAILED: Android build pipeline
+checkout=success java=success gradle=success compile=failure
+step=restoring source
+/tmp/source.zip: FAILED
+sha256sum: WARNING: 1 computed checksum did NOT match
