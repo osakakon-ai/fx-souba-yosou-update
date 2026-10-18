@@ -49,6 +49,9 @@ jobs:
           grep -q 'chooseGoogleAlbumZip' app/src/main/java/jp/osakakon/dinnerphotolog/MainActivity.java
           grep -q 'ACTION_PICK_IMAGES' app/src/main/java/jp/osakakon/dinnerphotolog/MainActivity.java
           node --check app/src/main/assets/app.js
+          grep -Fq 'const countNode=' app/src/main/assets/app.js
+          grep -Fq 'btn.innerHTML=' app/src/main/assets/app.js
+          unzip -p "$APK" assets/app.js | cmp - app/src/main/assets/app.js
           cp "$APK" "$GITHUB_WORKSPACE/dinner-build/v039/unsigned-android-release.apk"
           sha256sum "$GITHUB_WORKSPACE/dinner-build/v039/unsigned-android-release.apk"
       - name: Keep compiled unsigned APK for signing outside GitHub
