@@ -31,7 +31,7 @@ jobs:
           echo 'step=restoring source'
           mkdir -p /tmp/dinner039
           base64 -d dinner-build/v039/source.b64 > /tmp/source.zip
-          echo '5bd91bfbaaf9754dcf29d3edd7a98fd815f0b689258dd142493003a91dbbe92a  /tmp/source.zip' | sha256sum -c -
+          echo '26e5ab9bbddebb454f938b00b0173322679ae0122b0ba5c3eeaa934d53d9be8a  /tmp/source.zip' | sha256sum -c -
           unzip -q /tmp/source.zip -d /tmp/dinner039
           echo 'step=android-sdk and build'
           echo "ANDROID_HOME=$ANDROID_HOME"
