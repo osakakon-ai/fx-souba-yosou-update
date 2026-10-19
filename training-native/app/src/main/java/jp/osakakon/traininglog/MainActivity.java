@@ -95,6 +95,42 @@ public class MainActivity extends Activity {
     row.addView(input,new LinearLayout.LayoutParams(0,-2,1));return row;
   }
 
+  int exerciseImage(String name){
+    String n=name==null?"":name.replace(" ","").replace("　","");
+    if(n.contains("腕立て")||n.toLowerCase(Locale.ROOT).contains("pushup"))return R.drawable.ex_pushup;
+    if(n.contains("ゴブレット"))return R.drawable.ex_goblet_squat;
+    if(n.contains("スクワット"))return R.drawable.ex_squat;
+    if(n.contains("ランジ")||n.contains("ブルガリアン"))return R.drawable.ex_lunge;
+    if(n.contains("プランク"))return R.drawable.ex_plank;
+    if(n.contains("クランチ")||n.contains("シットアップ")||n.contains("腹筋"))return R.drawable.ex_crunch;
+    if(n.contains("ショルダープレス")||n.contains("オーバーヘッドプレス"))return R.drawable.ex_shoulder_press;
+    if(n.contains("サイドレイズ")||n.contains("ラテラルレイズ"))return R.drawable.ex_lateral_raise;
+    if(n.contains("ワンハンドロー")||n.contains("ダンベルロー")||n.contains("ワンアームロー"))return R.drawable.ex_one_arm_row;
+    if(n.contains("ダンベルカール")||n.contains("ハンマーカール")||n.endsWith("カール"))return R.drawable.ex_dumbbell_curl;
+    return 0;
+  }
+  ImageView exercisePhoto(String name,int height){
+    int res=exerciseImage(name);if(res==0)return null;
+    ImageView iv=new ImageView(this);iv.setImageResource(res);iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+    GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(30,34,39));bg.setCornerRadius(dp(12));iv.setBackground(bg);iv.setClipToOutline(true);
+    LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(height));p.setMargins(0,dp(6),0,dp(8));iv.setLayoutParams(p);
+    iv.setContentDescription(name+" の筋トレ写真");
+    return iv;
+  }
+  LinearLayout exerciseRow(Exercise e,int photoWidth){
+    LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);
+    int res=exerciseImage(e.name);
+    if(res!=0){
+      ImageView iv=new ImageView(this);iv.setImageResource(res);iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+      GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(30,34,39));bg.setCornerRadius(dp(10));iv.setBackground(bg);iv.setClipToOutline(true);
+      LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(photoWidth),dp(photoWidth));ip.setMargins(0,dp(3),dp(10),dp(3));row.addView(iv,ip);
+    }
+    LinearLayout texts=new LinearLayout(this);texts.setOrientation(LinearLayout.VERTICAL);
+    texts.addView(tv(e.name,17,TEXT));texts.addView(tv((e.kg>0?Exercise.trim(e.kg)+"kg × ":"")+e.reps+"回 × "+e.sets+"セット",15,SUB));
+    row.addView(texts,new LinearLayout.LayoutParams(0,-2,1));
+    return row;
+  }
+
   GradientDrawable roundBg(int fill){
     GradientDrawable g=new GradientDrawable();g.setShape(GradientDrawable.OVAL);g.setColor(fill);return g;
   }
@@ -211,7 +247,12 @@ public class MainActivity extends Activity {
     }
     c.addView(header);
 
-    if(rec.isEmpty())c.addView(tv("筋トレ記録なし",15,SUB));else for(String s:rec.split("\n"))c.addView(tv("✓ "+s,16,TEXT));
+    if(rec.isEmpty())c.addView(tv("筋トレ記録なし",15,SUB));
+    else for(String line:rec.split("\n")){
+      Exercise e=parseRecordLine(line);LinearLayout row=exerciseRow(e,72);
+      TextView mark=tv("✓",18,ACC);row.addView(mark,0,new LinearLayout.LayoutParams(dp(28),-2));
+      c.addView(row);
+    }
     box.addView(c);
 
     if(!rec.isEmpty()){
@@ -310,8 +351,19 @@ public class MainActivity extends Activity {
   void save(ArrayList<Exercise>a){StringBuilder s=new StringBuilder();for(Exercise e:a){if(s.length()>0)s.append("\n");s.append(e.enc());}sp.edit().putString("exercises",s.toString()).apply();}
 
   void menuDialog(){
-    ArrayList<Exercise>a=load();String[] names=new String[a.size()+1];names[0]="＋ 新しい種目を登録";for(int i=0;i<a.size();i++)names[i+1]=a.get(i).detail();
-    new AlertDialog.Builder(this).setTitle("筋トレメニュー").setItems(names,(d,w)->{if(w==0)addExercise();else editExercise(w-1);}).show();
+    ArrayList<Exercise>a=load();
+    LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(dp(10),dp(6),dp(10),dp(6));
+    ScrollView scroll=new ScrollView(this);scroll.addView(list);
+    final AlertDialog[] holder={null};
+    Button add=btn("＋ 新しい種目を登録");add.setOnClickListener(v->{if(holder[0]!=null)holder[0].dismiss();addExercise();});list.addView(add);
+    for(int i=0;i<a.size();i++){
+      final int idx=i;Exercise e=a.get(i);LinearLayout row=card();row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);
+      int res=exerciseImage(e.name);
+      if(res!=0){ImageView iv=new ImageView(this);iv.setImageResource(res);iv.setScaleType(ImageView.ScaleType.CENTER_CROP);GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(30,34,39));bg.setCornerRadius(dp(10));iv.setBackground(bg);iv.setClipToOutline(true);LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(78),dp(78));ip.setMargins(0,0,dp(10),0);row.addView(iv,ip);}
+      LinearLayout txt=new LinearLayout(this);txt.setOrientation(LinearLayout.VERTICAL);txt.addView(tv(e.name,18,TEXT));txt.addView(tv((e.kg>0?Exercise.trim(e.kg)+"kg × ":"")+e.reps+"回 × "+e.sets+"セット ・ 休憩"+e.rest+"秒",15,SUB));row.addView(txt,new LinearLayout.LayoutParams(0,-2,1));
+      row.setOnClickListener(v->{if(holder[0]!=null)holder[0].dismiss();editExercise(idx);});list.addView(row);
+    }
+    AlertDialog dlg=new AlertDialog.Builder(this).setTitle("筋トレメニュー").setView(scroll).setNegativeButton("閉じる",null).create();holder[0]=dlg;dlg.show();
   }
   void addExercise(){editForm(null,-1);}
   void editExercise(int idx){ArrayList<Exercise>a=load();if(idx>=0&&idx<a.size())editForm(a.get(idx),idx);}
@@ -326,20 +378,35 @@ public class MainActivity extends Activity {
   }
 
   void chooseExercises(){
-    ArrayList<Exercise>a=load();String[] names=new String[a.size()];boolean[] ch=new boolean[a.size()];for(int i=0;i<a.size();i++)names[i]=a.get(i).detail();
-    new AlertDialog.Builder(this).setTitle("今日の筋トレを選択").setMultiChoiceItems(names,ch,(d,i,c)->ch[i]=c).setPositiveButton("順番設定",(d,w)->{
-      workout.clear();for(int i=0;i<a.size();i++)if(ch[i])workout.add(a.get(i));if(workout.isEmpty()){Toast.makeText(this,"1つ以上選択してください",Toast.LENGTH_SHORT).show();return;}showOrder();
+    ArrayList<Exercise>a=load();
+    LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(dp(8),dp(4),dp(8),dp(4));
+    ArrayList<CheckBox> boxes=new ArrayList<>();
+    for(Exercise e:a){
+      LinearLayout row=card();row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);
+      int res=exerciseImage(e.name);
+      if(res!=0){ImageView iv=new ImageView(this);iv.setImageResource(res);iv.setScaleType(ImageView.ScaleType.CENTER_CROP);GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(30,34,39));bg.setCornerRadius(dp(10));iv.setBackground(bg);iv.setClipToOutline(true);LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(82),dp(82));ip.setMargins(0,0,dp(8),0);row.addView(iv,ip);}
+      CheckBox cb=new CheckBox(this);cb.setText(e.detail()+" ・ 休憩"+e.rest+"秒");cb.setTextColor(TEXT);cb.setTextSize(16);boxes.add(cb);row.addView(cb,new LinearLayout.LayoutParams(0,-2,1));
+      row.setOnClickListener(v->cb.setChecked(!cb.isChecked()));list.addView(row);
+    }
+    ScrollView scroll=new ScrollView(this);scroll.addView(list);
+    new AlertDialog.Builder(this).setTitle("今日の筋トレを選択").setView(scroll).setPositiveButton("順番設定",(d,w)->{
+      workout.clear();for(int i=0;i<a.size();i++)if(boxes.get(i).isChecked())workout.add(a.get(i));
+      if(workout.isEmpty()){Toast.makeText(this,"1つ以上選択してください",Toast.LENGTH_SHORT).show();return;}showOrder();
     }).setNegativeButton("キャンセル",null).show();
   }
   void showOrder(){
     base("順番を変更");body.addView(tv("↑ ↓ で自由に並べ替えできます",15,SUB));
-    for(int i=0;i<workout.size();i++){final int x=i;LinearLayout row=card();row.setOrientation(LinearLayout.HORIZONTAL);row.addView(tv((i+1)+". "+workout.get(i).detail(),15,TEXT),new LinearLayout.LayoutParams(0,-2,1));Button u=btn("↑"),d=btn("↓");u.setOnClickListener(v->{if(x>0){Collections.swap(workout,x,x-1);showOrder();}});d.setOnClickListener(v->{if(x<workout.size()-1){Collections.swap(workout,x,x+1);showOrder();}});row.addView(u);row.addView(d);body.addView(row);}
+    for(int i=0;i<workout.size();i++){final int x=i;Exercise e=workout.get(i);LinearLayout row=card();row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);
+      int res=exerciseImage(e.name);if(res!=0){ImageView iv=new ImageView(this);iv.setImageResource(res);iv.setScaleType(ImageView.ScaleType.CENTER_CROP);GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(30,34,39));bg.setCornerRadius(dp(8));iv.setBackground(bg);iv.setClipToOutline(true);LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(64),dp(64));ip.setMargins(0,0,dp(8),0);row.addView(iv,ip);}
+      row.addView(tv((i+1)+". "+e.detail(),15,TEXT),new LinearLayout.LayoutParams(0,-2,1));Button u=btn("↑"),d=btn("↓");u.setOnClickListener(v->{if(x>0){Collections.swap(workout,x,x-1);showOrder();}});d.setOnClickListener(v->{if(x<workout.size()-1){Collections.swap(workout,x,x+1);showOrder();}});row.addView(u);row.addView(d);body.addView(row);}
     Button go=btn("筋トレ開始");go.setOnClickListener(v->{exIndex=0;setIndex=1;showWorkout();});body.addView(go);
   }
   void showWorkout(){
-    Exercise e=workout.get(exIndex);base("筋トレ中");LinearLayout c=card();c.addView(tv(e.name,22,TEXT));c.addView(tv((e.kg>0?Exercise.trim(e.kg)+"kg　":"")+e.reps+"回",30,ACC));c.addView(tv(setIndex+" / "+e.sets+" セット",19,TEXT));body.addView(c);
+    Exercise e=workout.get(exIndex);base("筋トレ中");LinearLayout c=card();
+    ImageView photo=exercisePhoto(e.name,230);if(photo!=null)c.addView(photo);
+    c.addView(tv(e.name,22,TEXT));c.addView(tv((e.kg>0?Exercise.trim(e.kg)+"kg　":"")+e.reps+"回",30,ACC));c.addView(tv(setIndex+" / "+e.sets+" セット",19,TEXT));body.addView(c);
     Button done=btn("このセット完了");done.setOnClickListener(v->completeSet());body.addView(done);body.addView(tv("今日のメニュー",18,TEXT));
-    for(int i=0;i<workout.size();i++){int col=i==exIndex?ACC:TEXT;String m=i<exIndex?"✓ ":i==exIndex?"▶ ":"";body.addView(tv(m+(i+1)+". "+workout.get(i).detail(),15,col));}
+    for(int i=0;i<workout.size();i++){int col=i==exIndex?ACC:TEXT;String m=i<exIndex?"✓ ":i==exIndex?"▶ ":"";Exercise x=workout.get(i);LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);int res=exerciseImage(x.name);if(res!=0){ImageView iv=new ImageView(this);iv.setImageResource(res);iv.setScaleType(ImageView.ScaleType.CENTER_CROP);LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(46),dp(46));ip.setMargins(0,dp(3),dp(8),dp(3));row.addView(iv,ip);}row.addView(tv(m+(i+1)+". "+x.detail(),15,col),new LinearLayout.LayoutParams(0,-2,1));body.addView(row);}
   }
   void completeSet(){Exercise e=workout.get(exIndex);if(setIndex<e.sets)rest(e.rest,()->{setIndex++;showWorkout();});else if(exIndex<workout.size()-1)rest(e.rest,()->{exIndex++;setIndex=1;showWorkout();});else finishWorkout();}
   String[] intervalSoundNames(){
