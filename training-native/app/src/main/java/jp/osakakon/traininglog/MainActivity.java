@@ -250,7 +250,6 @@ public class MainActivity extends Activity {
     if(rec.isEmpty())c.addView(tv("筋トレ記録なし",15,SUB));
     else for(String line:rec.split("\n")){
       Exercise e=parseRecordLine(line);LinearLayout row=exerciseRow(e,72);
-      TextView mark=tv("✓",18,ACC);row.addView(mark,0,new LinearLayout.LayoutParams(dp(28),-2));
       c.addView(row);
     }
     box.addView(c);
