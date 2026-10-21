@@ -1,5 +1,6 @@
 {
   "versionCode": 200586,
   "versionName": "2.586",
-  "sha256": "4c501845d941cc579ec751ffc94d96f7e6b3b3e3fb66a31c4dcd946e202db5c6"
+  "sha256": "4c501845d941cc579ec751ffc94d96f7e6b3b3e3fb66a31c4dcd946e202db5c6",
+  "sourceBlobSha": "1dc4980d3d1e4e8b094a3fbdc90cfa6891c5f3f7"
 }
