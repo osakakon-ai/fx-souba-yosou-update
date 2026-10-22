@@ -1,0 +1,98 @@
+name: Build Dinner Photo Log v0.3.10 native photo picker
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dinner-build/v0310/source.b64'
+      - '.github/workflows/build-dinner-v0310.yml'
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - id: checkout
+        uses: actions/checkout@v4
+      - id: java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - id: gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - id: compile
+        name: Restore exact source and build officially (never patch classes.dex)
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec > >(tee "$GITHUB_WORKSPACE/dinner-build/v0310/build.log") 2>&1
+          echo 'step=restoring source'
+          mkdir -p /tmp/dinner0310
+          base64 -d dinner-build/v0310/source.b64 > /tmp/source.zip
+          echo '75cda82907893782855323de91ad89edfc80f91989e4cf0752c1d69fc2e748d1  /tmp/source.zip' | sha256sum -c -
+          unzip -q /tmp/source.zip -d /tmp/dinner0310
+          echo 'step=android-sdk and build'
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -d "$ANDROID_HOME"
+          sdkmanager --list_installed | head -40 || true
+          test -d "$ANDROID_HOME/platforms/android-35" || sdkmanager 'platforms;android-35'
+          test -d "$ANDROID_HOME/build-tools/35.0.0" || sdkmanager 'build-tools;35.0.0'
+          cd /tmp/dinner0310
+          gradle :app:assembleRelease --no-daemon 2>&1 | tee "$GITHUB_WORKSPACE/dinner-build/v0310/build.log"
+          test "${PIPESTATUS[0]}" -eq 0
+          APK=app/build/outputs/apk/release/app-release-unsigned.apk
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          grep -q 'deliverSinglePhoto' app/src/main/java/jp/osakakon/dinnerphotolog/MainActivity.java
+          grep -q 'chooseGoogleAlbumZip' app/src/main/java/jp/osakakon/dinnerphotolog/MainActivity.java
+          grep -q 'ACTION_PICK_IMAGES' app/src/main/java/jp/osakakon/dinnerphotolog/MainActivity.java
+          node --check app/src/main/assets/app.js
+          grep -Fq 'const countNode=' app/src/main/assets/app.js
+          grep -Fq 'showQueueDialog' app/src/main/assets/app.js
+          grep -Fq 'pickPhotos()' app/src/main/assets/app.js
+          grep -Fq 'id="queueDialog"' app/src/main/assets/index.html
+          ! grep -q 'id="addView"' app/src/main/assets/index.html
+          grep -Fq 'btn.innerHTML=' app/src/main/assets/app.js
+          unzip -p "$APK" assets/app.js | cmp - app/src/main/assets/app.js
+          unzip -p "$APK" assets/index.html | cmp - app/src/main/assets/index.html
+          cp "$APK" "$GITHUB_WORKSPACE/dinner-build/v0310/unsigned-android-release.apk"
+          sha256sum "$GITHUB_WORKSPACE/dinner-build/v0310/unsigned-android-release.apk"
+      - name: Keep compiled unsigned APK for signing outside GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: dinner-v0310-official-unsigned
+          path: dinner-build/v0310/unsigned-android-release.apk
+          if-no-files-found: error
+      - name: Export Android standard signing utilities (no private keys)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dinner-v0310-signing-tools
+          path: |
+            /usr/local/lib/android/sdk/build-tools/35.0.0/apksigner
+            /usr/local/lib/android/sdk/build-tools/35.0.0/lib/apksigner.jar
+            /usr/local/lib/android/sdk/build-tools/35.0.0/zipalign
+          if-no-files-found: error
+      - name: Store compiled APK for signed delivery, preserving private signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          echo "$GITHUB_RUN_ID" > dinner-build/v0310/build-run-id.txt
+          git add -f dinner-build/v0310/unsigned-android-release.apk dinner-build/v0310/build-run-id.txt
+          git commit -m 'Build official unsigned v0.3.10 Android APK for local signing'
+          git push origin HEAD:main
+      - name: Report build failures (never publish invalid APK)
+        if: failure()
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          echo 'FAILED: Android build pipeline' > dinner-build/v0310/build-status.txt
+          echo 'checkout=${{ steps.checkout.outcome }} java=${{ steps.java.outcome }} gradle=${{ steps.gradle.outcome }} compile=${{ steps.compile.outcome }}' >> dinner-build/v0310/build-status.txt
+          if test -f dinner-build/v0310/build.log; then tail -100 dinner-build/v0310/build.log >> dinner-build/v0310/build-status.txt; fi
+          git add -f dinner-build/v0310/build-status.txt
+          git commit -m 'Record v0.3.10 Android compile failure' || exit 0
+          git push origin HEAD:main
