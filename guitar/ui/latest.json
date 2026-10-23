@@ -1,6 +1,6 @@
 {
-  "uiVersion": 225,
-  "versionName": "v0.4.2 UI225 1コード1小節・8音アルペジオ",
+  "uiVersion": 226,
+  "versionName": "v0.4.2 UI226 アルペジオ小節間の省スペース表示",
   "htmlUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/index.html",
-  "sha256": "c367507989a1c974717731459615df6637394a2334fe2288ccd3d7c906b17641"
+  "sha256": "769547eed7f2bb498d20b13f7ca5007a910f03ec8ba0eda4d87fcb9cd46a2071"
 }
