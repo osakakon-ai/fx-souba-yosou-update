@@ -1,6 +1,6 @@
 {
-  "uiVersion": 221,
-  "versionName": "v0.4.2 アルペジオ五線譜補正",
+  "uiVersion": 222,
+  "versionName": "v0.4.2 UI222 フィンガーピッキングTAB対応",
   "htmlUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/index.html",
-  "sha256": "a27440038fd8020f8be37166c78b2a3348be8243613045c945a33b5ad32832be"
+  "sha256": "5b961b1ba860328c4e5a589ce3ffaf8d32a5176df4623dbe6004992bc5086039"
 }
