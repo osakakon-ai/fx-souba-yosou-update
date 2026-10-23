@@ -1,6 +1,6 @@
 {
-  "uiVersion": 231,
-  "versionName": "v0.4.2 UI231 1小節4コードの横並び修正",
+  "uiVersion": 232,
+  "versionName": "v0.4.2 UI232 アルペジオ・TAB・ダイアグラムの表示組み合わせ",
   "htmlUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/index.html",
-  "sha256": "07dd747d8ef83a76151a7ccbdfc1694dbcd6bec097f1b964eb3104d03e00fcc4"
+  "sha256": "30d94fd9ca37ed202df10aa8c0d524b4968fbcba0a657f5fbbe602f03fa54c65"
 }
