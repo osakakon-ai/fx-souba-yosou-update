@@ -1,6 +1,6 @@
 {
-  "uiVersion": 230,
-  "versionName": "v0.4.2 UI230 コード名・ダイアグラム・歌詞の縦配置",
+  "uiVersion": 231,
+  "versionName": "v0.4.2 UI231 1小節4コードの横並び修正",
   "htmlUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/index.html",
-  "sha256": "924b743801c66e2c3dd329afbe182b44d40603911dc784bc51ba3de66e3ace1f"
+  "sha256": "07dd747d8ef83a76151a7ccbdfc1694dbcd6bec097f1b964eb3104d03e00fcc4"
 }
