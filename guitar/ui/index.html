@@ -69,7 +69,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .score-line-chords{display:grid;grid-template-columns:repeat(var(--line-bars),minmax(0,1fr));padding-left:var(--line-left);align-items:start}
 .score-line-chords .score-measure{padding:1px 1px 4px;min-width:0;border:0;scroll-margin-top:92px}
 .score-line-chords .score-measure.playing{background:#e7f2ff}
-.score-line-chords .arp-compact-row{display:block;padding:0}
+.score-line-chords .arp-compact-row{display:grid;grid-template-columns:repeat(var(--bar-chords,1),minmax(0,1fr));gap:0;padding:0;width:100%}
 .score-line-chords .arp-compact-chord{display:flex;flex-direction:column;gap:2px;padding:3px 2px 5px;align-items:center;justify-content:flex-start}
 .score-line-chords .arp-compact-chord .diagram{width:64px;max-width:64px;flex:0 0 64px}
 .score-line-chords .arp-compact-name{font-size:16px;min-height:0;padding:0;width:auto;font-weight:800;text-align:center;line-height:1.25}
@@ -120,7 +120,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI230</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI231</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -532,7 +532,7 @@ function arpeggioFretFormHtml(measure){
 // is moved out of the gaps between consecutive staff systems.
 function arpeggioCompactRowHtml(m,mi){
  const segs=lyricSegmentsForMeasure(mi,m);
- let out='<div class="arp-compact-row">';
+ let out='<div class="arp-compact-row" style="--bar-chords:'+Math.max(1,m.length)+'">';
  m.forEach((c,ci)=>{
   const shape=autoShape(c.name);
   out+='<div class="chord-mini arp-compact-chord" data-measure="'+mi+'" data-chord="'+ci+'">';
@@ -572,7 +572,7 @@ function arpeggioMeasureRows(){
  return {rows,capacity:cap};
 }
 function renderArpeggioLineSvg(row){
- const left=54,bw=150,w=left+bw*row.length+3,total=beatsPerMeasure();
+ const left=54,bw=row.length===1?300:150,w=left+bw*row.length+3,total=beatsPerMeasure();
  const den=Number((settings.timeSig||'4/4').split('/')[1])||4;
  const subdiv=settings.arpSubdivision==='sixteenth'?(den===8?2:4):(den===8?1:2);
  let svg='<svg class="score-svg score-line-svg" viewBox="0 0 '+w+' 270" role="img" aria-label="小節 '+row.map(r=>r.mi+1).join('、')+' の連続した五線譜とTAB">';
@@ -633,13 +633,13 @@ function renderArpeggioLineSvg(row){
  });
  return svg+'</svg>';
 }
-function renderArpeggioLineHtml(row,capacity){
- const left=54,w=left+150*row.length+3;
- let out='<div class="score-line" style="width:'+(100*row.length/capacity).toFixed(2)+'%" data-first-measure="'+row[0].mi+'">';
+function renderArpeggioLineHtml(row,capacity,showStaff=true){
+ const left=54,w=left+(row.length===1?300:150)*row.length+3;
+ let out='<div class="score-line" style="width:100%" data-first-measure="'+row[0].mi+'">';
  row.forEach(r=>{const label=(state.sectionLabels&&state.sectionLabels[r.mi])||'';
   if(label)out+='<div class="section-label">小節 '+(r.mi+1)+' · '+esc(label)+'</div>';
  });
- out+=renderArpeggioLineSvg(row);
+ if(showStaff)out+=renderArpeggioLineSvg(row);
  out+='<div class="score-line-chords" style="--line-bars:'+row.length+';--line-left:'+(100*left/w).toFixed(3)+'%">';
  row.forEach(r=>{
   out+='<div class="score-measure" data-measure="'+r.mi+'">';
@@ -654,10 +654,10 @@ function render(){
  const arp=settings.notationMode==='arpeggio';
  let out=arp&&settings.showStaff!==false
   ?'<details class="arp-guide"><summary>アルペジオ譜の見方</summary><div>五線譜とTABを横につなげ、小節線でコードを区切ります。TAB数字はフレット番号（0=開放）。p=親指、i=人差し指、m=中指、a=薬指。画面の幅に応じて1行の小節数を調整します。</div></details>':'';
- if(arp&&settings.showStaff!==false){
+ if(arp){
   out+='<div class="score-work arpeggio-score">';
   const layout=arpeggioMeasureRows();
-  layout.rows.forEach(row=>out+=renderArpeggioLineHtml(row,layout.capacity));
+  layout.rows.forEach(row=>out+=renderArpeggioLineHtml(row,layout.capacity,settings.showStaff!==false));
   out+='</div>'+arpeggioAllFretForms();
  }else{
   out+='<div class="score-work">';
