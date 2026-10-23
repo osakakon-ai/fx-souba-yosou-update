@@ -60,7 +60,21 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .arp-fret-string{color:#858b94;font-size:9px;min-width:16px;text-align:right}
 .arp-fret-number{font-size:12px;font-weight:750;min-width:15px;text-align:center}
 /* UI226: keep the sheet continuous; put reference material after the music. */
-.score-work.arpeggio-score{margin-top:3px}
+.score-work.arpeggio-score{margin-top:3px;display:block}
+.score-line{width:100%;max-width:100%;margin:0 0 3px;padding:3px 0 1px;border-bottom:1px solid #e2e6ed;scroll-margin-top:92px}
+.score-line .section-label{margin:0 0 3px 3px}
+.score-line .score-line-svg{display:block;width:100%;height:auto;touch-action:pan-y}
+.score-line .score-bar-shade{fill:transparent;transition:fill .15s ease}
+.score-line .score-bar-hit.playing .score-bar-shade{fill:#e7f2ff}
+.score-line-chords{display:grid;grid-template-columns:repeat(var(--line-bars),minmax(0,1fr));padding-left:var(--line-left);align-items:start}
+.score-line-chords .score-measure{padding:1px 1px 4px;min-width:0;border:0;scroll-margin-top:92px}
+.score-line-chords .score-measure.playing{background:#e7f2ff}
+.score-line-chords .arp-compact-row{display:block;padding:0}
+.score-line-chords .arp-compact-chord{gap:4px;padding:0 2px}
+.score-line-chords .arp-compact-chord .diagram{width:35px;max-width:35px}
+.score-line-chords .arp-compact-label button{font-size:12px}
+.score-line-chords .arp-compact-lyric{font-size:11px}
+.score-work.arpeggio-score .score-measure{padding:2px 2px 3px;border:0}
 .score-work.arpeggio-score .score-measure{padding:3px 5px 2px;border-bottom:1px solid #e3e7ec}
 .score-work.arpeggio-score .measure-head{padding:0 3px;font-size:11px}
 .score-work.arpeggio-score .score-svg{margin:0}
@@ -108,7 +122,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI226</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI227</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -541,35 +555,129 @@ function arpeggioAllFretForms(){
  for(let i=0;i<unique.length;i+=4)out+=arpeggioFretFormHtml(unique.slice(i,i+4));
  return out+'</details>';
 }
+// One connected staff and TAB per row. Limit each bar to 150 SVG units so
+// a phone can show two legible bars without shrinking fret digits to tiny text.
+function arpeggioBarsPerLine(){
+ const setting=Math.max(1,Math.min(6,Number(settings.chordsPerRow)||4));
+ const w=Number(document.documentElement&&document.documentElement.clientWidth)||390;
+ return Math.max(1,Math.min(setting,Math.floor((Math.max(320,w)-84)/150)));
+}
+function arpeggioMeasureRows(){
+ const cap=arpeggioBarsPerLine(),rows=[];let row=[],used=0;
+ state.measures.forEach((m,mi)=>{
+  const chords=Math.max(1,m.length);
+  if(row.length&&used+chords>cap){rows.push(row);row=[];used=0}
+  row.push({measure:m,mi});used+=chords;
+  if(used>=cap){rows.push(row);row=[];used=0}
+ });
+ if(row.length)rows.push(row);
+ return {rows,capacity:cap};
+}
+function renderArpeggioLineSvg(row){
+ const left=54,bw=150,w=left+bw*row.length+3,total=beatsPerMeasure();
+ const den=Number((settings.timeSig||'4/4').split('/')[1])||4;
+ const subdiv=settings.arpSubdivision==='sixteenth'?(den===8?2:4):(den===8?1:2);
+ let svg='<svg class="score-svg score-line-svg" viewBox="0 0 '+w+' 270" role="img" aria-label="小節 '+row.map(r=>r.mi+1).join('、')+' の連続した五線譜とTAB">';
+ row.forEach((r,i)=>{
+  const x=left+bw*i;
+  svg+='<g class="score-bar-hit" data-measure="'+r.mi+'"><rect class="score-bar-shade" x="'+x+'" y="25" width="'+bw+'" height="213"/></g>';
+ });
+ for(let k=0;k<5;k++){
+  const y=48+k*10;svg+='<line x1="18" y1="'+y+'" x2="'+(w-3)+'" y2="'+y+'" stroke="#222" stroke-width="1"/>';
+ }
+ for(let str=1;str<=6;str++){
+  const y=166+(str-1)*14;svg+='<line x1="18" y1="'+y+'" x2="'+(w-3)+'" y2="'+y+'" stroke="#777" stroke-width="1"/>';
+ }
+ svg+='<line x1="18" y1="48" x2="18" y2="88" stroke="#222"/>';
+ svg+='<text x="23" y="87" font-size="48">𝄞</text><text x="29" y="130" font-size="13" text-anchor="middle" font-weight="700">8</text>';
+ svg+='<text x="20" y="155" font-size="11" font-weight="700">TAB</text>';
+ row.forEach((r,i)=>{
+  const x0=left+bw*i;let beat=0;
+  for(let b=0;b<total;b++){
+   if(b>0){
+    const bx=x0+bw*b/total;
+    svg+='<line x1="'+bx+'" y1="38" x2="'+bx+'" y2="237" stroke="#dfe3e9" stroke-width=".7" stroke-dasharray="2 4"/>';
+   }
+   for(let k=0;k<subdiv;k++){
+    const nx=x0+bw*(b+(k+.5)/subdiv)/total;
+    svg+='<text class="beat-label" x="'+nx+'" y="257" text-anchor="middle">'+(k===0?b+1:(subdiv===4?['','e','&amp;','a'][k]:'&amp;'))+'</text>';
+   }
+  }
+  r.measure.forEach(c=>{
+   const span=Math.min(Math.max(.25,Number(c.beats)||1),total-beat);
+   if(span<=0)return;
+   const center=x0+bw*(beat+span/2)/total;
+   const flat=/(?:^[A-G]b|\/[A-G]b$)/.test(c.name)||String(effectiveKey()).includes('b');
+   svg+='<text x="'+center+'" y="19" text-anchor="middle" font-size="13" font-weight="700">'+esc(c.name)+'</text>';
+   if(beat>0){
+    const bx=x0+bw*beat/total;
+    svg+='<line x1="'+bx+'" y1="27" x2="'+bx+'" y2="236" stroke="#8d97a5" stroke-dasharray="4 3"/>';
+   }
+   for(const e of arpeggioSequence(c.name,span)){
+    const nx=x0+bw*(beat+e.beat+e.duration/2)/total;
+    const note=guitarStaffPitch(e.midi,flat),y=note.y;
+    svg+=guitarLedgerLines(nx,y)+guitarAccidental(nx,note);
+    svg+='<ellipse cx="'+nx+'" cy="'+y+'" rx="4.5" ry="3.4" fill="#111"/>';
+    const stem=nx+4.5;
+    svg+='<line x1="'+stem+'" y1="'+y+'" x2="'+stem+'" y2="'+(y-22)+'" stroke="#111" stroke-width="1"/>';
+    svg+='<path d="M '+stem+' '+(y-22)+' q 9 6 5 13" stroke="#111" stroke-width="1.2" fill="none"/>';
+    if(settings.arpSubdivision==='sixteenth')svg+='<path d="M '+stem+' '+(y-16)+' q 9 6 5 13" stroke="#111" stroke-width="1.2" fill="none"/>';
+    svg+='<text x="'+nx+'" y="155" text-anchor="middle" font-size="9">'+e.finger+'</text>';
+    const ty=166+(e.string-1)*14;
+    svg+='<rect x="'+(nx-7)+'" y="'+(ty-6.5)+'" width="14" height="13" fill="#fff"/>';
+    svg+='<text x="'+nx+'" y="'+(ty+4)+'" font-size="11.5" font-weight="700" text-anchor="middle">'+e.fret+'</text>';
+   }
+   beat+=span;
+  });
+  const x=x0+bw;
+  svg+='<line x1="'+x+'" y1="48" x2="'+x+'" y2="88" stroke="#222" stroke-width="'+(i===row.length-1?2:1.3)+'"/>';
+  svg+='<line x1="'+x+'" y1="166" x2="'+x+'" y2="236" stroke="#222" stroke-width="'+(i===row.length-1?2:1.3)+'"/>';
+ });
+ return svg+'</svg>';
+}
+function renderArpeggioLineHtml(row,capacity){
+ const left=54,w=left+150*row.length+3;
+ let out='<div class="score-line" style="width:'+(100*row.length/capacity).toFixed(2)+'%" data-first-measure="'+row[0].mi+'">';
+ row.forEach(r=>{const label=(state.sectionLabels&&state.sectionLabels[r.mi])||'';
+  if(label)out+='<div class="section-label">小節 '+(r.mi+1)+' · '+esc(label)+'</div>';
+ });
+ out+=renderArpeggioLineSvg(row);
+ out+='<div class="score-line-chords" style="--line-bars:'+row.length+';--line-left:'+(100*left/w).toFixed(3)+'%">';
+ row.forEach(r=>{
+  out+='<div class="score-measure" data-measure="'+r.mi+'">';
+  out+=arpeggioCompactRowHtml(r.measure,r.mi);
+  out+='</div>';
+ });
+ return out+'</div></div>';
+}
+
 function render(){
  renderMeta();
  const arp=settings.notationMode==='arpeggio';
  let out=arp&&settings.showStaff!==false
-  ?'<details class="arp-guide"><summary>アルペジオ譜の見方</summary><div>五線譜とTABは同じ時間軸です。TAB数字=フレット（0=開放）。p=親指 / i=人差し指 / m=中指 / a=薬指。標準の8分音符は「1 &amp; 2 &amp; 3 &amp; 4 &amp;」。左手の押弦フォームは譜面の下にまとめました。</div></details>'
-  :'';
- out+='<div class="score-work'+(arp?' arpeggio-score':'')+'">';
- for(let j=0;j<state.measures.length;j++){
-  out+='<div class="score-measure" data-measure="'+j+'">';
-  const section=(state.sectionLabels&&state.sectionLabels[j])||'';
-  if(section)out+='<div class="section-label">'+esc(section)+'</div>';
-  out+='<div class="measure-head"><span>小節 '+(j+1)+'</span><span>'+settings.timeSig+'</span></div>';
-  if(arp){
-   if(settings.showStaff!==false)out+=renderMeasureSvg(state.measures[j],j);
-   out+=arpeggioCompactRowHtml(state.measures[j],j);
-  }else{
-   const hasChordLyrics=!!lyricSegmentsForMeasure(j,state.measures[j]);
-   if(!hasChordLyrics)out+=chordRowHtml(state.measures[j],j);
+  ?'<details class="arp-guide"><summary>アルペジオ譜の見方</summary><div>五線譜とTABを横につなげ、小節線でコードを区切ります。TAB数字はフレット番号（0=開放）。p=親指、i=人差し指、m=中指、a=薬指。画面の幅に応じて1行の小節数を調整します。</div></details>':'';
+ if(arp&&settings.showStaff!==false){
+  out+='<div class="score-work arpeggio-score">';
+  const layout=arpeggioMeasureRows();
+  layout.rows.forEach(row=>out+=renderArpeggioLineHtml(row,layout.capacity));
+  out+='</div>'+arpeggioAllFretForms();
+ }else{
+  out+='<div class="score-work">';
+  for(let j=0;j<state.measures.length;j++){
+   out+='<div class="score-measure" data-measure="'+j+'">';
+   const label=(state.sectionLabels&&state.sectionLabels[j])||'';
+   if(label)out+='<div class="section-label">'+esc(label)+'</div>';
+   out+='<div class="measure-head"><span>小節 '+(j+1)+'</span><span>'+settings.timeSig+'</span></div>';
+   if(!lyricSegmentsForMeasure(j,state.measures[j]))out+=chordRowHtml(state.measures[j],j);
    if(settings.showStaff!==false)out+=renderMeasureSvg(state.measures[j],j);
    out+=lyricRowHtml(state.measures[j],j);
+   out+='</div>';
   }
   out+='</div>';
  }
- out+='</div>';
- if(arp&&settings.showStaff!==false)out+=arpeggioAllFretForms();
  document.getElementById('sheet').innerHTML=out;
  if(scrollState.running)updateScrollHighlight();
 }
-
 function normalizeToken(raw){
  const p=String(raw).trim().split(':');const name=p[0];const beats=p[1]?Number(p[1]):1;
  if(!chordValid(name))return null;
@@ -775,7 +883,8 @@ function updateScrollHighlight(playback){
  const p=playback||playbackAtElapsed();
  const measureNodes=[...document.querySelectorAll('.score-measure')];
  const chordNodes=[...document.querySelectorAll('.chord-mini')];
- measureNodes.forEach((n,i)=>n.classList.toggle('playing',!!p.entry&&i===p.entry.mi));
+ measureNodes.forEach(n=>n.classList.toggle('playing',!!p.entry&&Number(n.dataset.measure)===p.entry.mi));
+ document.querySelectorAll('.score-bar-hit').forEach(n=>n.classList.toggle('playing',!!p.entry&&Number(n.dataset.measure)===p.entry.mi));
  chordNodes.forEach(n=>{
   const mi=Number(n.dataset.measure),ci=Number(n.dataset.chord);
   n.classList.toggle('playing',!!p.entry&&mi===p.entry.mi&&ci===p.entry.ci);
