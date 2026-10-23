@@ -152,7 +152,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
     <option value="descending">下降：1→2→3→低音</option>
    </select></div>
    <div class="field"><label for="arpChordLength">アルペジオのコードの長さ</label><select id="arpChordLength">
-    <option value="fullbar" selected>各コードを1小節（8音）</option>
+    <option value="fullbar" selected>各コードを1小節（4/4なら8音）</option>
     <option value="onebeat">各コードを1拍（2音）</option>
    </select></div>
    <div class="field"><label for="arpSubdivision">アルペジオの音符</label><select id="arpSubdivision"><option value="eighth" selected>8分音符（標準）</option><option value="sixteenth">16分音符（細かいリズム）</option></select></div>
@@ -987,6 +987,7 @@ function load(){
   if(!['chord','arpeggio'].includes(settings.notationMode))settings.notationMode='chord';
   if(!['basic','thumbReturn','ascending','alternating','descending'].includes(settings.arpPattern))settings.arpPattern=(settings.arpOrder==='highlow'?'descending':'thumbReturn');
   const hasArpLength=Object.prototype.hasOwnProperty.call(d.settings||{},'arpChordLength');
+  if(!hasArpLength&&settings.notationMode==='arpeggio'&&settings.arpPattern==='basic')settings.arpPattern='thumbReturn';
   if(!['fullbar','onebeat'].includes(settings.arpChordLength))settings.arpChordLength='fullbar';
   if(!['eighth','sixteenth'].includes(settings.arpSubdivision))settings.arpSubdivision='eighth';
   if(![3,4,5,6].includes(Number(settings.chordsPerRow)))settings.chordsPerRow=4;
@@ -1000,6 +1001,7 @@ function load(){
    const parsed=parseLooseBars(document.getElementById('codeText').value);
    state.measures=parsed.measures;
    state.sectionLabels=parsed.sectionLabels;
+   save();
   }
  }catch(e){}
 }
