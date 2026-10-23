@@ -38,7 +38,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .lyric-tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
 .lyric-tools button{min-height:38px;padding:6px 10px;font-size:13px}
 .lyric-chord-row{display:grid;grid-template-columns:repeat(var(--chord-cols,4),minmax(0,1fr));align-items:stretch;gap:var(--chord-gap,5px);border-top:1px solid #eceff2;padding:0 4px}
-.lyric-chord-cell{min-width:0;padding:7px 0 6px;text-align:left;font-size:var(--lyric-font,14px);line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
+.lyric-chord-cell{min-width:0;padding:7px 0 6px 3px;text-align:left;font-size:var(--lyric-font,14px);line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
 .chord-lyric-flow{display:grid;grid-template-columns:repeat(var(--chord-cols,4),minmax(0,1fr));align-items:start;gap:var(--chord-gap,5px);padding:4px 4px 7px;border-top:1px solid #eceff2}
 .chord-lyric-item{min-width:0;display:flex;flex-direction:column;align-items:center}
 .chord-lyric-item .chord-mini{padding:0;width:var(--diagram-w,64px)}
@@ -80,7 +80,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.4.1</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -346,18 +346,10 @@ function chordLayout(){
 function lyricRowHtml(m,mi){
  const segs=lyricSegmentsForMeasure(mi,m);
  if(!segs)return '<div class="lyric-line">'+esc(lyricsForMeasure(mi))+'</div>';
-
  const layout=chordLayout();
- let out='<div class="chord-lyric-flow" style="'+layout.style+'">';
+ let out='<div class="lyric-chord-row" style="'+layout.style+'">';
  m.forEach((c,ci)=>{
-  const sh=autoShape(c.name);
-  out+='<div class="chord-lyric-item">';
-  out+='<div class="chord-mini" data-measure="'+mi+'" data-chord="'+ci+'">';
-  out+='<button onclick="showChordDetail('+mi+','+ci+')">'+esc(c.name)+'</button>';
-  out+=diagram(sh);
-  out+='</div>';
-  out+='<div class="chord-lyric-text">'+esc(segs[ci]||'')+'</div>';
-  out+='</div>';
+  out+='<div class="lyric-chord-cell">'+esc(segs[ci]||'')+'</div>';
  });
  out+='</div>';
  return out;
@@ -400,8 +392,7 @@ function render(){
   const section=(state.sectionLabels&&state.sectionLabels[j])||'';
   if(section)out+='<div class="section-label">'+esc(section)+'</div>';
   out+='<div class="measure-head"><span>小節 '+(j+1)+'</span><span>'+settings.timeSig+'</span></div>';
-  const hasChordLyrics=!!lyricSegmentsForMeasure(j,state.measures[j]);
-  if(!hasChordLyrics)out+=chordRowHtml(state.measures[j],j);
+  out+=chordRowHtml(state.measures[j],j);
   if(settings.showStaff!==false)out+=renderMeasureSvg(state.measures[j],j);
   out+=lyricRowHtml(state.measures[j],j);
   out+='</div>';
@@ -643,56 +634,31 @@ function smoothStep01(t){
 function scrollForPlayback(info){
  const p=info.playback;
  if(!p.entry||!info.measureNodes.length)return;
-
  const mi=p.entry.mi;
- const measures=state.measures;
- if(mi>=measures.length-1){
-  scrollState.transitionMeasure=-1;
-  return;
- }
-
- const m=measures[mi]||[];
- const measureBeats=Math.max(.25,m.reduce((s,c)=>s+(Number(c.beats)||1),0));
- const beatInMeasure=p.entry.localStart+(p.progress*Math.max(.25,p.entry.beats));
-
- // ハイライトとスクロールは同じBPMクロックを使う。
- // 4/4なら第4拍に入るまでは画面を動かさず、
- // 最後の1拍だけで次小節を見える位置まで滑らかに送る。
- const transitionLength=Math.min(1,measureBeats);
- const transitionStart=Math.max(0,measureBeats-transitionLength);
-
- if(scrollState.transitionMeasure>=0&&scrollState.transitionMeasure<mi){
-  window.scrollTo(0,Math.max(0,scrollState.transitionToY));
-  scrollState.transitionMeasure=-1;
- }
-
- if(beatInMeasure<transitionStart)return;
-
+ const measure=state.measures[mi]||[];
+ const duration=Math.max(.25,measure.reduce((s,c)=>s+(Number(c.beats)||1),0));
+ const beatInMeasure=p.entry.localStart+p.progress*Math.max(.25,p.entry.beats);
+ // 始めの拍は動かさない。4/4では3拍目を終えてから最後の0.75拍だけスクロール。
+ const transitionLength=Math.min(.75, duration);
+ const transitionStart=duration-transitionLength;
+ if(mi>=info.measureNodes.length-1||beatInMeasure<transitionStart)return;
+ const current=info.measureNodes[mi], next=info.measureNodes[mi+1];
+ const sticky=stickyTopOffset();
+ const currentTop=current.getBoundingClientRect().top+window.scrollY;
+ const nextTop=next.getBoundingClientRect().top+window.scrollY;
+ const available=Math.max(200,window.innerHeight-sticky);
+ // 画面下に次の小節が覗く程度にし、演奏中の小節を固定ヘッダーより上へ押し出さない。
+ const previewScroll=nextTop-(sticky+available*.78);
+ const safeScroll=currentTop-(sticky+12);
+ const targetY=Math.max(window.scrollY,Math.min(previewScroll,safeScroll));
  if(scrollState.transitionMeasure!==mi){
-  const next=info.measureNodes[mi+1];
-  if(!next)return;
-
-  const sticky=stickyTopOffset();
-  const viewportBelowHeader=Math.max(320,window.innerHeight-sticky);
-  const previewLine=sticky+(viewportBelowHeader*.52);
-  const nextTop=next.getBoundingClientRect().top+window.scrollY;
-  const desired=Math.max(window.scrollY,nextTop-previewLine);
-
   scrollState.transitionMeasure=mi;
   scrollState.transitionFromY=window.scrollY;
-  scrollState.transitionToY=desired;
+  scrollState.transitionToY=targetY;
  }
-
- const linear=Math.max(0,Math.min(
-  1,
-  (beatInMeasure-transitionStart)/Math.max(.001,transitionLength)
- ));
-
- // ハイライトと同じBPMクロックの最後の1拍を、そのまま一定速度でスクロールに使う。
- // 加減速カーブを入れないことで、コード切替と画面移動の体感速度を一致させる。
+ const linear=Math.max(0,Math.min(1,(beatInMeasure-transitionStart)/transitionLength));
  const y=scrollState.transitionFromY+
-  (scrollState.transitionToY-scrollState.transitionFromY)*linear;
-
+   (scrollState.transitionToY-scrollState.transitionFromY)*linear;
  window.scrollTo(0,Math.max(0,y));
 }
 
