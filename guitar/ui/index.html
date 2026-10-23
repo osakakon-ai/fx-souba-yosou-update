@@ -126,7 +126,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI232</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI233</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -796,7 +796,9 @@ function parseLooseBars(src){
  const tokens=text.split(/\s+/).filter(Boolean).map(raw=>{
   const token=normalizeToken(raw);
   if(!token)return null;
-  if(settings.notationMode==='arpeggio'&&settings.arpChordLength==='fullbar'&&!raw.includes(':')){
+  if(settings.arpChordLength==='fullbar'&&
+     (settings.displayPreset!=='auto'||settings.notationMode==='arpeggio')&&
+     !raw.includes(':')){
    return {...token,beats:beatsPerMeasure()};
   }
   return token;
@@ -818,7 +820,7 @@ function applyText(){
  state.measures=parsed.measures;
  state.sectionLabels=parsed.sectionLabels;
  if(!state.measures.length)state.measures=[[]];
- if(settings.notationMode!=='arpeggio')syncText();
+ if(settings.notationMode!=='arpeggio'&&settings.displayPreset==='auto')syncText();
  codeEditorDirty=false;render();save();
 }
 
