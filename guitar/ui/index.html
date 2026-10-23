@@ -74,6 +74,12 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .score-line-chords .arp-compact-chord .diagram{width:64px;max-width:64px;flex:0 0 64px}
 .score-line-chords .arp-compact-name{font-size:16px;min-height:0;padding:0;width:auto;font-weight:800;text-align:center;line-height:1.25}
 .score-line-chords .arp-compact-lyric{font-size:14px;text-align:center;width:100%;min-height:18px;line-height:1.4}
+.score-line-chords .arp-compact-textonly{min-height:48px;justify-content:center;padding:6px 2px}
+.score-line-chords .arp-compact-textonly .arp-compact-name{font-size:16px}
+.score-line.no-notation .score-line-chords{padding-left:0}
+.score-line.no-notation .score-measure{padding:4px 1px 9px}
+.score-line.no-notation .score-line-chords .arp-compact-chord{min-height:100px;justify-content:flex-start}
+.score-line.no-notation.simple-line .score-line-chords .arp-compact-chord{min-height:52px}
 .score-work.arpeggio-score .score-measure{padding:2px 2px 3px;border:0}
 .score-work.arpeggio-score .score-measure{padding:3px 5px 2px;border-bottom:1px solid #e3e7ec}
 .score-work.arpeggio-score .measure-head{padding:0 3px;font-size:11px}
@@ -120,7 +126,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI231</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI232</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -167,6 +173,14 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
    <div class="field"><label for="tuning">チューニング</label><select id="tuning">
     <option value="standard">標準 E A D G B E</option><option value="half">半音下げ Eb Ab Db Gb Bb Eb</option><option value="dropd">Drop D D A D G B E</option>
    </select></div>
+   <div class="field"><label for="displayPreset">譜面の表示組み合わせ</label><select id="displayPreset">
+    <option value="auto" selected>従来の設定を使う</option>
+    <option value="full">アルペジオ：五線譜＋TAB＋コード図＋歌詞</option>
+    <option value="notes">アルペジオ：五線譜＋TAB（コード名）</option>
+    <option value="tabDiagram">アルペジオ：TAB＋コード図＋歌詞</option>
+    <option value="diagramOnly">コードダイアグラム＋歌詞</option>
+    <option value="simple">コード名＋歌詞（シンプル）</option>
+   </select></div>
    <div class="field"><label for="showStaff">五線譜</label><select id="showStaff">
     <option value="on" selected>表示する</option><option value="off">表示しない</option>
    </select></div>
@@ -192,7 +206,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
     <option value="off" selected>なし</option><option value="on">あり</option>
    </select></div>
   </div>
-  <div class="settings-note">和音では「C D Em Am」を各1拍で表示します。アルペジオでは「各コードを1小節」を選ぶと、同じ入力を4小節に展開します。「各コードを1拍」なら4コードを1小節に配置します。「C:4」などの拍数指定や「|」の小節区切りは優先されます。五線譜と6線TAB譜は同じ時間軸で表示。TABの数字はフレット（0は開放弦）、p=親指、i=人差し指、m=中指、a=薬指です。選んだコードフォームの弾ける弦のみ使います。ギター音をONにすると、和音表示では従来のFreePats実録音源、アルペジオ表示ではTABどおりの音をBPMに合わせて1音ずつ簡易合成音で試聴できます（実録音源ではありません）。</div>
+  <div class="settings-note">表示組み合わせは譜面に何を載せるかを選ぶ設定です。コードの長さとは別です。アルペジオでは「各コードを1小節」を選ぶと、C D Em Amを4小節に展開し、4/4の8分音符で各8音になります。「各コードを1拍」なら各2音です。和音では「C D Em Am」を通常は各1拍で表示します。「各コードを1拍」なら4コードを1小節に配置します。「C:4」などの拍数指定や「|」の小節区切りは優先されます。五線譜と6線TAB譜は同じ時間軸で表示。TABの数字はフレット（0は開放弦）、p=親指、i=人差し指、m=中指、a=薬指です。選んだコードフォームの弾ける弦のみ使います。ギター音をONにすると、和音表示では従来のFreePats実録音源、アルペジオ表示ではTABどおりの音をBPMに合わせて1音ずつ簡易合成音で試聴できます（実録音源ではありません）。</div>
   <div class="row"><button class="primary" onclick="applySettings()">設定を反映</button><button onclick="closeSettings()">閉じる</button></div>
  </div>
 </div>
@@ -218,7 +232,7 @@ const OPEN={C:[null,3,2,0,1,0],D:[null,null,0,2,3,2],E:[0,2,2,1,0,0],F:[1,3,3,2,
 const N=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
 let state={measures:[[{name:'C',beats:1},{name:'D',beats:1},{name:'Em',beats:1},{name:'Am',beats:1}]],root:'C',sectionLabels:{}};
-let settings={bpm:120,timeSig:'4/4',capo:0,keySig:'auto',showStaff:true,notationMode:'chord',arpPattern:'thumbReturn',arpChordLength:'fullbar',arpSubdivision:'eighth',chordsPerRow:4,guitarSound:false};
+let settings={bpm:120,timeSig:'4/4',capo:0,keySig:'auto',showStaff:true,notationMode:'chord',displayPreset:'auto',arpPattern:'thumbReturn',arpChordLength:'fullbar',arpSubdivision:'eighth',chordsPerRow:4,guitarSound:false};
 let selectedChord=null;
 let scrollState={running:false,startTime:0,elapsed:0,raf:0,transitionMeasure:-1,transitionFromY:0,transitionToY:0,lastSoundIndex:-1,arpEvents:[],nextArpEvent:0};
 let codeEditorDirty=false;
@@ -530,15 +544,15 @@ function arpeggioFretFormHtml(measure){
 
 // Compact chord/lyric strip remains visible while the full fingering reference
 // is moved out of the gaps between consecutive staff systems.
-function arpeggioCompactRowHtml(m,mi){
+function arpeggioCompactRowHtml(m,mi,showDiagrams=true,showLyrics=true){
  const segs=lyricSegmentsForMeasure(mi,m);
  let out='<div class="arp-compact-row" style="--bar-chords:'+Math.max(1,m.length)+'">';
  m.forEach((c,ci)=>{
   const shape=autoShape(c.name);
-  out+='<div class="chord-mini arp-compact-chord" data-measure="'+mi+'" data-chord="'+ci+'">';
+  out+='<div class="chord-mini arp-compact-chord'+(showDiagrams?'':' arp-compact-textonly')+'" data-measure="'+mi+'" data-chord="'+ci+'">';
   out+='<button class="arp-compact-name" onclick="showChordDetail('+mi+','+ci+')">'+esc(c.name)+'</button>';
-  out+=diagram(shape);
-  out+='<div class="arp-compact-lyric">'+esc(segs?segs[ci]||'':(ci===0?lyricsForMeasure(mi):''))+'</div>';
+  if(showDiagrams)out+=diagram(shape);
+  if(showLyrics)out+='<div class="arp-compact-lyric">'+esc(segs?segs[ci]||'':(ci===0?lyricsForMeasure(mi):''))+'</div>';
   out+='</div>';
  });
  return out+'</div>';
@@ -633,17 +647,66 @@ function renderArpeggioLineSvg(row){
  });
  return svg+'</svg>';
 }
-function renderArpeggioLineHtml(row,capacity,showStaff=true){
+// TAB-only rendering uses the same arpeggioSequence as the full staff, so the
+// selected strings, frets and timing cannot diverge between display presets.
+function renderArpeggioTabOnlySvg(row){
+ const left=54,bw=row.length===1?300:150,w=left+bw*row.length+3,total=beatsPerMeasure();
+ let out='<svg class="score-svg score-line-svg tab-only-svg" viewBox="0 0 '+w+' 165" role="img" aria-label="小節 '+row.map(r=>r.mi+1).join('、')+' のTAB譜">';
+ row.forEach((r,i)=>{
+  const x=left+i*bw;
+  out+='<g class="score-bar-hit" data-measure="'+r.mi+'"><rect class="score-bar-shade" x="'+x+'" y="15" width="'+bw+'" height="122"/></g>';
+ });
+ for(let string=1;string<=6;string++){
+  const y=48+(string-1)*15;
+  out+='<line x1="18" y1="'+y+'" x2="'+(w-3)+'" y2="'+y+'" stroke="#777" stroke-width="1"/>';
+ }
+ out+='<text x="19" y="39" font-size="11" font-weight="700">TAB</text>';
+ row.forEach((r,i)=>{
+  let beat=0;const x0=left+i*bw;
+  r.measure.forEach(c=>{
+   const span=Math.min(Math.max(.25,Number(c.beats)||1),total-beat);if(span<=0)return;
+   const center=x0+bw*(beat+span/2)/total;
+   out+='<text x="'+center+'" y="16" text-anchor="middle" font-size="13" font-weight="700">'+esc(c.name)+'</text>';
+   if(beat>0){
+    const gx=x0+bw*beat/total;
+    out+='<line x1="'+gx+'" y1="21" x2="'+gx+'" y2="123" stroke="#a0aab7" stroke-dasharray="3 3"/>';
+   }
+   for(const e of arpeggioSequence(c.name,span)){
+    const nx=x0+bw*(beat+e.beat+e.duration/2)/total,ty=48+(e.string-1)*15;
+    out+='<text x="'+nx+'" y="40" font-size="9" text-anchor="middle">'+e.finger+'</text>';
+    out+='<rect x="'+(nx-7)+'" y="'+(ty-7)+'" width="14" height="14" fill="#fff"/>';
+    out+='<text x="'+nx+'" y="'+(ty+4)+'" font-size="11.5" font-weight="700" text-anchor="middle">'+e.fret+'</text>';
+   }
+   beat+=span;
+  });
+  for(let k=0;k<total;k++){
+   const gx=x0+bw*(k+.5)/total;
+   out+='<text x="'+gx+'" y="153" class="beat-label" text-anchor="middle">'+(k+1)+'</text>';
+  }
+  const bx=x0+bw;
+  out+='<line x1="'+bx+'" y1="48" x2="'+bx+'" y2="123" stroke="#222" stroke-width="'+(i===row.length-1?2:1.3)+'"/>';
+ });
+ return out+'</svg>';
+}
+function sheetDisplayPreset(){
+ const mode=settings.displayPreset||'auto';
+ if(mode!=='auto')return mode;
+ if(settings.notationMode==='arpeggio')return settings.showStaff!==false?'full':'diagramOnly';
+ return 'legacyChord';
+}
+function renderArpeggioLineHtml(row,capacity,preset='full'){
  const left=54,w=left+(row.length===1?300:150)*row.length+3;
- let out='<div class="score-line" style="width:100%" data-first-measure="'+row[0].mi+'">';
+ const noNotation=preset==='diagramOnly'||preset==='simple';
+ let out='<div class="score-line'+(noNotation?' no-notation':'')+(preset==='simple'?' simple-line':'')+'" style="width:100%" data-first-measure="'+row[0].mi+'">';
  row.forEach(r=>{const label=(state.sectionLabels&&state.sectionLabels[r.mi])||'';
   if(label)out+='<div class="section-label">小節 '+(r.mi+1)+' · '+esc(label)+'</div>';
  });
- if(showStaff)out+=renderArpeggioLineSvg(row);
- out+='<div class="score-line-chords" style="--line-bars:'+row.length+';--line-left:'+(100*left/w).toFixed(3)+'%">';
+ if(preset==='full'||preset==='notes')out+=renderArpeggioLineSvg(row);
+ else if(preset==='tabDiagram')out+=renderArpeggioTabOnlySvg(row);
+ out+='<div class="score-line-chords" style="--line-bars:'+row.length+';--line-left:'+(noNotation?0:(100*left/w)).toFixed(3)+'%">';
  row.forEach(r=>{
   out+='<div class="score-measure" data-measure="'+r.mi+'">';
-  out+=arpeggioCompactRowHtml(r.measure,r.mi);
+  out+=arpeggioCompactRowHtml(r.measure,r.mi,!['notes','simple'].includes(preset),preset!=='notes');
   out+='</div>';
  });
  return out+'</div></div>';
@@ -651,14 +714,16 @@ function renderArpeggioLineHtml(row,capacity,showStaff=true){
 
 function render(){
  renderMeta();
- const arp=settings.notationMode==='arpeggio';
- let out=arp&&settings.showStaff!==false
-  ?'<details class="arp-guide"><summary>アルペジオ譜の見方</summary><div>五線譜とTABを横につなげ、小節線でコードを区切ります。TAB数字はフレット番号（0=開放）。p=親指、i=人差し指、m=中指、a=薬指。画面の幅に応じて1行の小節数を調整します。</div></details>':'';
+ const preset=sheetDisplayPreset(),arp=preset!=='legacyChord';
+ let out=arp
+  ?'<details class="arp-guide"><summary>譜面の見方</summary><div>表示組み合わせは設定から変更できます。TABの数字はフレット番号（0=開放）、p=親指、i=人差し指、m=中指、a=薬指。4/4の8分音符なら1コードが4拍で8音、1拍では2音です。コードフォームは各コードの下または譜面末尾に表示できます。</div></details>'
+  :'';
  if(arp){
   out+='<div class="score-work arpeggio-score">';
   const layout=arpeggioMeasureRows();
-  layout.rows.forEach(row=>out+=renderArpeggioLineHtml(row,layout.capacity,settings.showStaff!==false));
-  out+='</div>'+arpeggioAllFretForms();
+  layout.rows.forEach(row=>out+=renderArpeggioLineHtml(row,layout.capacity,preset));
+  out+='</div>';
+  if(['full','tabDiagram','diagramOnly'].includes(preset))out+=arpeggioAllFretForms();
  }else{
   out+='<div class="score-work">';
   for(let j=0;j<state.measures.length;j++){
@@ -817,7 +882,7 @@ function closeChordDetail(){document.getElementById('chordDetailOverlay').classL
 function detailOverlayClose(e){if(e.target.id==='chordDetailOverlay')closeChordDetail()}
 
 function openSettings(){
- document.getElementById('bpm').value=settings.bpm;document.getElementById('timeSig').value=settings.timeSig;document.getElementById('keySig').value=settings.keySig||'auto';document.getElementById('capo').value=String(settings.capo||0);document.getElementById('showStaff').value=settings.showStaff===false?'off':'on';document.getElementById('notationMode').value=settings.notationMode||'chord';document.getElementById('arpPattern').value=settings.arpPattern||'thumbReturn';document.getElementById('arpChordLength').value=settings.arpChordLength||'fullbar';document.getElementById('arpSubdivision').value=settings.arpSubdivision||'eighth';document.getElementById('chordsPerRow').value=String(settings.chordsPerRow||4);document.getElementById('guitarSound').value=settings.guitarSound?'on':'off';
+ document.getElementById('bpm').value=settings.bpm;document.getElementById('timeSig').value=settings.timeSig;document.getElementById('keySig').value=settings.keySig||'auto';document.getElementById('capo').value=String(settings.capo||0);document.getElementById('showStaff').value=settings.showStaff===false?'off':'on';document.getElementById('notationMode').value=settings.notationMode||'chord';document.getElementById('displayPreset').value=settings.displayPreset||'auto';document.getElementById('arpPattern').value=settings.arpPattern||'thumbReturn';document.getElementById('arpChordLength').value=settings.arpChordLength||'fullbar';document.getElementById('arpSubdivision').value=settings.arpSubdivision||'eighth';document.getElementById('chordsPerRow').value=String(settings.chordsPerRow||4);document.getElementById('guitarSound').value=settings.guitarSound?'on':'off';
  document.getElementById('settingsOverlay').classList.add('open');
 }
 function closeSettings(){document.getElementById('settingsOverlay').classList.remove('open')}
@@ -826,7 +891,10 @@ function applySettings(){
  if(scrollState.running)stopAutoScroll(true);
  const oldArpMode=settings.notationMode,oldArpLength=settings.arpChordLength;
  settings.bpm=Math.round(Math.max(20,Math.min(300,Number(document.getElementById('bpm').value)||120)));
- const oldSig=settings.timeSig;settings.timeSig=document.getElementById('timeSig').value||'4/4';settings.keySig=document.getElementById('keySig').value||'auto';settings.capo=Number(document.getElementById('capo').value)||0;settings.showStaff=document.getElementById('showStaff').value!=='off';settings.notationMode=document.getElementById('notationMode').value||'chord';settings.arpPattern=document.getElementById('arpPattern').value||'thumbReturn';settings.arpChordLength=document.getElementById('arpChordLength').value||'fullbar';settings.arpSubdivision=document.getElementById('arpSubdivision').value||'eighth';settings.chordsPerRow=Math.max(3,Math.min(6,Number(document.getElementById('chordsPerRow').value)||4));settings.guitarSound=document.getElementById('guitarSound').value==='on';if(!settings.guitarSound){stopGuitarAudio();stopArpeggioAudio();}
+ const oldSig=settings.timeSig;settings.timeSig=document.getElementById('timeSig').value||'4/4';settings.keySig=document.getElementById('keySig').value||'auto';settings.capo=Number(document.getElementById('capo').value)||0;settings.showStaff=document.getElementById('showStaff').value!=='off';settings.notationMode=document.getElementById('notationMode').value||'chord';
+ settings.displayPreset=document.getElementById('displayPreset').value||'auto';
+ if(['full','notes','tabDiagram'].includes(settings.displayPreset))settings.notationMode='arpeggio';
+ else if(['diagramOnly','simple'].includes(settings.displayPreset))settings.notationMode='chord';settings.arpPattern=document.getElementById('arpPattern').value||'thumbReturn';settings.arpChordLength=document.getElementById('arpChordLength').value||'fullbar';settings.arpSubdivision=document.getElementById('arpSubdivision').value||'eighth';settings.chordsPerRow=Math.max(3,Math.min(6,Number(document.getElementById('chordsPerRow').value)||4));settings.guitarSound=document.getElementById('guitarSound').value==='on';if(!settings.guitarSound){stopGuitarAudio();stopArpeggioAudio();}
  if(oldSig!==settings.timeSig){
   const all=[],labels=Object.assign({},state.sectionLabels||{});
   state.measures.forEach(m=>m.forEach(c=>all.push({name:c.name,beats:Number(c.beats)||1})));
@@ -1141,6 +1209,7 @@ function load(){
   if(!settings.keySig)settings.keySig='auto';
   if(typeof settings.showStaff!=='boolean')settings.showStaff=true;
   if(!['chord','arpeggio'].includes(settings.notationMode))settings.notationMode='chord';
+  if(!['auto','full','notes','tabDiagram','diagramOnly','simple'].includes(settings.displayPreset))settings.displayPreset='auto';
   if(!['basic','thumbReturn','ascending','alternating','descending'].includes(settings.arpPattern))settings.arpPattern=(settings.arpOrder==='highlow'?'descending':'thumbReturn');
   const hasArpLength=Object.prototype.hasOwnProperty.call(d.settings||{},'arpChordLength');
   if(!hasArpLength&&settings.notationMode==='arpeggio'&&settings.arpPattern==='basic')settings.arpPattern='thumbReturn';
