@@ -59,6 +59,23 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .arp-fret-row{display:flex;align-items:center;justify-content:center;gap:5px;min-height:17px;font-variant-numeric:tabular-nums;font-family:ui-monospace,monospace}
 .arp-fret-string{color:#858b94;font-size:9px;min-width:16px;text-align:right}
 .arp-fret-number{font-size:12px;font-weight:750;min-width:15px;text-align:center}
+/* UI226: keep the sheet continuous; put reference material after the music. */
+.score-work.arpeggio-score{margin-top:3px}
+.score-work.arpeggio-score .score-measure{padding:3px 5px 2px;border-bottom:1px solid #e3e7ec}
+.score-work.arpeggio-score .measure-head{padding:0 3px;font-size:11px}
+.score-work.arpeggio-score .score-svg{margin:0}
+.arp-compact-row{display:flex;flex-wrap:wrap;gap:4px;padding:0 4px 4px;align-items:start}
+.arp-compact-chord{min-width:0;flex:1 1 80px;display:flex;align-items:center;gap:7px;padding:1px 4px}
+.arp-compact-chord .diagram{width:46px;height:auto;max-width:46px;flex:none}
+.arp-compact-label{min-width:0;display:flex;flex-direction:column;align-items:start;gap:3px}
+.arp-compact-label button{font-size:13px;min-height:0;padding:0;width:auto;text-align:left}
+.arp-compact-lyric{font-size:13px;min-height:16px;color:#30343b;white-space:pre-wrap;overflow-wrap:anywhere}
+.arp-reference{margin:8px 4px 2px;padding:5px 8px;border:1px solid #e1e5eb;border-radius:8px;background:#fafbfc}
+.arp-reference summary{font-size:12px;font-weight:700;cursor:pointer;padding:4px 2px}
+.arp-reference .arp-fret-heading{margin:9px 1px 6px}
+.arp-guide{margin:3px 3px 4px}
+.arp-guide summary{font-weight:700;cursor:pointer}
+@media(max-width:560px){.score-work.arpeggio-score{grid-template-columns:1fr}.score-work.arpeggio-score .score-measure{padding:2px 3px 1px}.arp-compact-row{gap:2px}}
 .chord-label{font-size:18px;font-weight:800;cursor:pointer}
 .beat-label{font-size:9px;fill:#999}
 .muted{font-size:12px;color:#666}
@@ -91,7 +108,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI225</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI226</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -499,24 +516,56 @@ function arpeggioFretFormHtml(measure){
  return out+'</div>';
 }
 
+// Compact chord/lyric strip remains visible while the full fingering reference
+// is moved out of the gaps between consecutive staff systems.
+function arpeggioCompactRowHtml(m,mi){
+ const segs=lyricSegmentsForMeasure(mi,m);
+ let out='<div class="arp-compact-row">';
+ m.forEach((c,ci)=>{
+  const shape=autoShape(c.name);
+  out+='<div class="chord-mini arp-compact-chord" data-measure="'+mi+'" data-chord="'+ci+'">';
+  out+=diagram(shape);
+  out+='<div class="arp-compact-label"><button onclick="showChordDetail('+mi+','+ci+')">'+esc(c.name)+'</button>';
+  out+='<span class="arp-compact-lyric">'+esc(segs?segs[ci]||'':(ci===0?lyricsForMeasure(mi):''))+'</span></div>';
+  out+='</div>';
+ });
+ return out+'</div>';
+}
+function arpeggioAllFretForms(){
+ const seen=new Set(),unique=[];
+ for(const m of state.measures)for(const c of m){
+  if(!seen.has(c.name)){seen.add(c.name);unique.push(c)}
+ }
+ if(!unique.length)return '';
+ let out='<details class="arp-reference"><summary>コード別の押弦フォームを表示（'+unique.length+'種類）</summary>';
+ for(let i=0;i<unique.length;i+=4)out+=arpeggioFretFormHtml(unique.slice(i,i+4));
+ return out+'</details>';
+}
 function render(){
  renderMeta();
- let out=settings.notationMode==='arpeggio'&&settings.showStaff!==false?'<div class="arp-guide"><strong>弾き方：</strong>五線譜とTABは同時に読む。TABの上段は1弦、下段は6弦。数字=フレット（0=開放）。TABの数字を縦に重ねると同時発音の意味になるため、左手フォームの数字はTABとは別枠に表示します。p=親指 / i=人差し指 / m=中指 / a=薬指。弦の順番「5-3-4-3-1-3-2-3」は低音弦をコードに応じて選びます（Dなら4弦、Emなら6弦）。4/4の8分音符は「1 &amp; 2 &amp; 3 &amp; 4 &amp;」。16分音符は「1 e &amp; a」。6/8は3音ずつの2グループです。C:4で1小節のCを練習できます。</div>':'';out+='<div class="score-work">';
+ const arp=settings.notationMode==='arpeggio';
+ let out=arp&&settings.showStaff!==false
+  ?'<details class="arp-guide"><summary>アルペジオ譜の見方</summary><div>五線譜とTABは同じ時間軸です。TAB数字=フレット（0=開放）。p=親指 / i=人差し指 / m=中指 / a=薬指。標準の8分音符は「1 &amp; 2 &amp; 3 &amp; 4 &amp;」。左手の押弦フォームは譜面の下にまとめました。</div></details>'
+  :'';
+ out+='<div class="score-work'+(arp?' arpeggio-score':'')+'">';
  for(let j=0;j<state.measures.length;j++){
   out+='<div class="score-measure" data-measure="'+j+'">';
   const section=(state.sectionLabels&&state.sectionLabels[j])||'';
   if(section)out+='<div class="section-label">'+esc(section)+'</div>';
   out+='<div class="measure-head"><span>小節 '+(j+1)+'</span><span>'+settings.timeSig+'</span></div>';
-  const hasChordLyrics=!!lyricSegmentsForMeasure(j,state.measures[j]);
-  if(!hasChordLyrics)out+=chordRowHtml(state.measures[j],j);
-  if(settings.showStaff!==false){
-   out+=renderMeasureSvg(state.measures[j],j);
-   if(settings.notationMode==='arpeggio')out+=arpeggioFretFormHtml(state.measures[j]);
+  if(arp){
+   if(settings.showStaff!==false)out+=renderMeasureSvg(state.measures[j],j);
+   out+=arpeggioCompactRowHtml(state.measures[j],j);
+  }else{
+   const hasChordLyrics=!!lyricSegmentsForMeasure(j,state.measures[j]);
+   if(!hasChordLyrics)out+=chordRowHtml(state.measures[j],j);
+   if(settings.showStaff!==false)out+=renderMeasureSvg(state.measures[j],j);
+   out+=lyricRowHtml(state.measures[j],j);
   }
-  out+=lyricRowHtml(state.measures[j],j);
   out+='</div>';
  }
  out+='</div>';
+ if(arp&&settings.showStaff!==false)out+=arpeggioAllFretForms();
  document.getElementById('sheet').innerHTML=out;
  if(scrollState.running)updateScrollHighlight();
 }
