@@ -1,6 +1,6 @@
 {
-  "uiVersion": 232,
-  "versionName": "v0.4.2 UI232 アルペジオ・TAB・ダイアグラムの表示組み合わせ",
+  "uiVersion": 233,
+  "versionName": "v0.4.2 UI233 表示組み合わせ・拍数独立",
   "htmlUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/index.html",
-  "sha256": "30d94fd9ca37ed202df10aa8c0d524b4968fbcba0a657f5fbbe602f03fa54c65"
+  "sha256": "b5f20148adc6686fbefd54973571d6055b1b9ad4b308a7528d4a9b10e166a87d"
 }
