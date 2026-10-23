@@ -50,6 +50,15 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .score-svg{display:block;width:100%;height:auto;touch-action:manipulation}
 .arp-guide{font-size:12px;color:#444;margin:6px 4px 8px;padding:7px 10px;background:#f3f6fa;border-radius:8px}
 .arp-guide strong{font-weight:700}
+.arp-fret-heading{font-size:11px;color:#4b5563;margin:3px 4px 5px;font-weight:650}
+.arp-fret-forms{display:flex;gap:0;background:#fafbfc;border:1px solid #e0e4e9;border-radius:9px;margin:4px 3px 9px;overflow:hidden}
+.arp-fret-column{min-width:0;flex-basis:0;padding:5px 1px 7px;text-align:center;border-right:1px solid #e0e4e9}
+.arp-fret-column:last-child{border-right:0}
+.arp-fret-code{font-weight:800;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arp-fret-beats{font-size:9px;color:#737d8a;margin-bottom:3px}
+.arp-fret-row{display:flex;align-items:center;justify-content:center;gap:5px;min-height:17px;font-variant-numeric:tabular-nums;font-family:ui-monospace,monospace}
+.arp-fret-string{color:#858b94;font-size:9px;min-width:16px;text-align:right}
+.arp-fret-number{font-size:12px;font-weight:750;min-width:15px;text-align:center}
 .chord-label{font-size:18px;font-weight:800;cursor:pointer}
 .beat-label{font-size:9px;fill:#999}
 .muted{font-size:12px;color:#666}
@@ -82,7 +91,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI223</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI224</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -301,7 +310,7 @@ function renderMeasureSvg(m,mi){
  for(let k=0;k<5;k++){const y=48+k*10;s+='<line x1="18" y1="'+y+'" x2="350" y2="'+y+'" stroke="#222" stroke-width="1"/>'}
  s+='<line x1="18" y1="48" x2="18" y2="88" stroke="#222" stroke-width="1.5"/>';
  s+='<line x1="350" y1="48" x2="350" y2="88" stroke="#222" stroke-width="2"/>';
- s+='<text x="23" y="87" font-size="48">𝄞</text><text x="38" y="105" font-size="12">8</text>';
+ s+='<text x="23" y="87" font-size="48">𝄞</text><text x="29" y="130" font-size="13" font-weight="700" text-anchor="middle">8</text>';
  if(arp){
   for(let string=1;string<=6;string++){
    const y=166+(string-1)*14;
@@ -331,6 +340,9 @@ function renderMeasureSvg(m,mi){
   if(span<0.001)return;
   const startX=x0+beat*slot,endX=x0+(beat+span)*slot;
   if(arp){
+   const center=(startX+endX)/2;
+   s+='<text x="'+center+'" y="18" text-anchor="middle" font-size="13" font-weight="700" fill="#111">'+esc(c.name)+'</text>';
+   if(beat>0)s+='<line x1="'+startX+'" y1="27" x2="'+startX+'" y2="237" stroke="#8992a0" stroke-width="1.1" stroke-dasharray="4 4"/>';
    for(const e of arpeggioSequence(c.name,span)){
     const nx=x0+(beat+e.beat+e.duration/2)*slot;
     const note=guitarStaffPitch(e.midi,preferFlats),y=note.y;
@@ -462,9 +474,28 @@ function chordRowHtml(m,mi){
  return out;
 }
 
+// This is a chord fingering REFERENCE, not a stacked TAB event.
+// Vertically aligned fret numbers inside a TAB staff would mean simultaneous sound.
+function arpeggioFretFormHtml(measure){
+ let out='<div class="arp-fret-heading">左手の押弦フォーム（縦列の数字は押さえる位置／実際に鳴らす順番は上のTAB）</div><div class="arp-fret-forms" role="group" aria-label="コード別の押弦フレット一覧">';
+ for(const c of measure){
+  const shape=autoShape(c.name);
+  const beats=Math.max(.25,Number(c.beats)||1);
+  out+='<div class="arp-fret-column" style="flex-grow:'+beats+'">';
+  out+='<div class="arp-fret-code">'+esc(c.name)+'</div>';
+  out+='<div class="arp-fret-beats">'+beats+'拍</div>';
+  for(let string=1;string<=6;string++){
+   const fret=shape[6-string];
+   out+='<div class="arp-fret-row"><span class="arp-fret-string">'+string+'弦</span><span class="arp-fret-number">'+(fret==null?'×':fret)+'</span></div>';
+  }
+  out+='</div>';
+ }
+ return out+'</div>';
+}
+
 function render(){
  renderMeta();
- let out=settings.notationMode==='arpeggio'&&settings.showStaff!==false?'<div class="arp-guide"><strong>弾き方：</strong>五線譜とTABは同時に読む。TABの上段は1弦、下段は6弦。数字=フレット（0=開放）。p=親指 / i=人差し指 / m=中指 / a=薬指。4/4の8分音符は「1 &amp; 2 &amp; 3 &amp; 4 &amp;」。16分音符は「1 e &amp; a」。6/8は3音ずつの2グループです。C:4で1小節のCを練習できます。</div>':'';out+='<div class="score-work">';
+ let out=settings.notationMode==='arpeggio'&&settings.showStaff!==false?'<div class="arp-guide"><strong>弾き方：</strong>五線譜とTABは同時に読む。TABの上段は1弦、下段は6弦。数字=フレット（0=開放）。TABの数字を縦に重ねると同時発音の意味になるため、左手フォームの数字はTABとは別枠に表示します。p=親指 / i=人差し指 / m=中指 / a=薬指。4/4の8分音符は「1 &amp; 2 &amp; 3 &amp; 4 &amp;」。16分音符は「1 e &amp; a」。6/8は3音ずつの2グループです。C:4で1小節のCを練習できます。</div>':'';out+='<div class="score-work">';
  for(let j=0;j<state.measures.length;j++){
   out+='<div class="score-measure" data-measure="'+j+'">';
   const section=(state.sectionLabels&&state.sectionLabels[j])||'';
@@ -472,7 +503,10 @@ function render(){
   out+='<div class="measure-head"><span>小節 '+(j+1)+'</span><span>'+settings.timeSig+'</span></div>';
   const hasChordLyrics=!!lyricSegmentsForMeasure(j,state.measures[j]);
   if(!hasChordLyrics)out+=chordRowHtml(state.measures[j],j);
-  if(settings.showStaff!==false)out+=renderMeasureSvg(state.measures[j],j);
+  if(settings.showStaff!==false){
+   out+=renderMeasureSvg(state.measures[j],j);
+   if(settings.notationMode==='arpeggio')out+=arpeggioFretFormHtml(state.measures[j]);
+  }
   out+=lyricRowHtml(state.measures[j],j);
   out+='</div>';
  }
