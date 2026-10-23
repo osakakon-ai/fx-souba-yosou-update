@@ -80,7 +80,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.4.1</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -230,7 +230,24 @@ function playGuitarChord(name){
  }
 }
 
-function noteY(m){return Math.max(53,Math.min(121,105-((m-60)*3.35)))}
+// Guitar notes sound one octave below the treble-clef notation (small 8).
+function guitarStaffPitch(midi,preferFlats){
+ const written=midi+12,pc=((written%12)+12)%12,octave=Math.floor(written/12)-1;
+ const sharpSteps=[0,0,1,1,2,3,3,4,4,5,5,6];
+ const flatSteps=[0,1,1,2,2,3,4,4,5,5,6,6];
+ const step=(preferFlats?flatSteps:sharpSteps)[pc];
+ const accidental=[1,3,6,8,10].includes(pc)?(preferFlats?'♭':'♯'):'';
+ return {y:88-((octave-4)*7+step-2)*5,accidental};
+}
+function guitarLedgerLines(x,y){
+ let s='';
+ for(let line=98;line<=y;line+=10)s+='<line x1="'+(x-8)+'" y1="'+line+'" x2="'+(x+8)+'" y2="'+line+'" stroke="#222" stroke-width="1"/>';
+ for(let line=38;line>=y;line-=10)s+='<line x1="'+(x-8)+'" y1="'+line+'" x2="'+(x+8)+'" y2="'+line+'" stroke="#222" stroke-width="1"/>';
+ return s;
+}
+function guitarAccidental(x,p){
+ return p.accidental?'<text x="'+(x-11)+'" y="'+(p.y+4)+'" font-size="12" text-anchor="middle" fill="#111">'+p.accidental+'</text>':'';
+}
 
 function arpeggioNotesForChord(name){
  const notes=sound(autoShape(name)).slice();
@@ -241,19 +258,20 @@ function arpeggioNotesForChord(name){
 
 function renderMeasureSvg(m,mi){
  const total=beatsPerMeasure(),x0=54,x1=350,slot=(x1-x0)/total;
- let s='<svg class="score-svg" viewBox="0 0 360 132" role="img" aria-label="小節 '+(mi+1)+' の五線譜">';
+ let s='<svg class="score-svg" viewBox="0 0 360 168" role="img" aria-label="小節 '+(mi+1)+' の五線譜">';
  for(let k=0;k<5;k++){const y=48+k*10;s+='<line x1="18" y1="'+y+'" x2="350" y2="'+y+'" stroke="#222" stroke-width="1"/>'}
  s+='<line x1="18" y1="48" x2="18" y2="88" stroke="#222" stroke-width="1.5"/>';
  s+='<line x1="350" y1="48" x2="350" y2="88" stroke="#222" stroke-width="2"/>';
- s+='<text x="23" y="87" font-size="48">𝄞</text>';
+ s+='<text x="23" y="87" font-size="48">𝄞</text><text x="38" y="105" font-size="12">8</text>';
  for(let b=0;b<total;b++){
   const bx=x0+(b+.5)*slot;
   if(b>0){const gx=x0+b*slot;s+='<line x1="'+gx+'" y1="39" x2="'+gx+'" y2="94" stroke="#ddd" stroke-dasharray="2 3"/>'}
-  s+='<text class="beat-label" x="'+bx+'" y="121" text-anchor="middle">'+(b+1)+'</text>';
+  s+='<text class="beat-label" x="'+bx+'" y="154" text-anchor="middle">'+(b+1)+'</text>';
  }
 
  let beat=0;
  m.forEach((c)=>{
+  const preferFlats=/(?:^[A-G]b|\/[A-G]b$)/.test(c.name)||String(effectiveKey()).includes('b');
   let span=Number(c.beats)||1;
   span=Math.max(.25,Math.min(total-beat,span));
   if(span<=0)return;
@@ -268,7 +286,8 @@ function renderMeasureSvg(m,mi){
    notes.forEach((midi,ni)=>{
     const frac=notes.length<=1?.5:ni/(notes.length-1);
     const nx=left+(usable*frac);
-    const y=Math.max(31,Math.min(96,81-((midi-60)*3.35)));
+    const note=guitarStaffPitch(midi,preferFlats),y=note.y;
+    s+=guitarLedgerLines(nx,y)+guitarAccidental(nx,note);
     s+='<ellipse cx="'+nx+'" cy="'+y+'" rx="5.2" ry="3.8" fill="#111"/>';
     s+='<line x1="'+(nx+5)+'" y1="'+y+'" x2="'+(nx+5)+'" y2="'+(y-22)+'" stroke="#111" stroke-width="1"/>';
     s+='<text x="'+nx+'" y="'+Math.max(16,y-27)+'" text-anchor="middle" font-size="8" fill="#666">'+(ni+1)+'</text>';
@@ -277,9 +296,10 @@ function renderMeasureSvg(m,mi){
    const cx=startX+(endX-startX)/2;
    const notes=sound(autoShape(c.name)),seen={};
    notes.forEach((midi)=>{
-    const y=Math.max(31,Math.min(96,81-((midi-60)*3.35)));
+    const note=guitarStaffPitch(midi,preferFlats),y=note.y;
     const key=String(midi),offset=(seen[key]||0)*5;seen[key]=(seen[key]||0)+1;
     const nx=cx-5+offset;
+    s+=guitarLedgerLines(nx,y)+guitarAccidental(nx,note);
     s+='<ellipse cx="'+nx+'" cy="'+y+'" rx="5.2" ry="3.8" fill="#111"/>';
     s+='<line x1="'+(nx+5)+'" y1="'+y+'" x2="'+(nx+5)+'" y2="'+(y-22)+'" stroke="#111" stroke-width="1"/>';
    });
