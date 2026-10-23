@@ -91,7 +91,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI224</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI225</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
@@ -145,10 +145,15 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
     <option value="chord" selected>和音</option><option value="arpeggio">アルペジオ</option>
    </select></div>
    <div class="field"><label for="arpPattern">アルペジオ奏法</label><select id="arpPattern">
-    <option value="basic" selected>基本：低音→3→2→1→2→3</option>
+    <option value="basic">基本：低音→3→2→1→2→3</option>
+    <option value="thumbReturn" selected>指定：低音→3→4→3→1→3→2→3</option>
     <option value="ascending">上行：低音→3→2→1（繰り返し）</option>
     <option value="alternating">交互ベース：低音と高音</option>
     <option value="descending">下降：1→2→3→低音</option>
+   </select></div>
+   <div class="field"><label for="arpChordLength">アルペジオのコードの長さ</label><select id="arpChordLength">
+    <option value="fullbar" selected>各コードを1小節（8音）</option>
+    <option value="onebeat">各コードを1拍（2音）</option>
    </select></div>
    <div class="field"><label for="arpSubdivision">アルペジオの音符</label><select id="arpSubdivision"><option value="eighth" selected>8分音符（標準）</option><option value="sixteenth">16分音符（細かいリズム）</option></select></div>
    <div class="field"><label for="chordsPerRow">横に並べるコード数</label><select id="chordsPerRow">
@@ -158,7 +163,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
     <option value="off" selected>なし</option><option value="on">あり</option>
    </select></div>
   </div>
-  <div class="settings-note">入力例「C:4」はCを4拍、C D Em Am は各1拍。4/4では各拍を8分音符2音に分けるため、C:4なら8音のアルペジオです。五線譜と6線TAB譜は同じ時間軸で表示。TABの数字はフレット（0は開放弦）、p=親指、i=人差し指、m=中指、a=薬指です。選んだコードフォームの弾ける弦のみ使います。ギター音をONにすると、和音表示では従来のFreePats実録音源、アルペジオ表示ではTABどおりの音をBPMに合わせて1音ずつ簡易合成音で試聴できます（実録音源ではありません）。</div>
+  <div class="settings-note">和音では「C D Em Am」を各1拍で表示します。アルペジオでは「各コードを1小節」を選ぶと、同じ入力を4小節に展開します。「各コードを1拍」なら4コードを1小節に配置します。「C:4」などの拍数指定や「|」の小節区切りは優先されます。五線譜と6線TAB譜は同じ時間軸で表示。TABの数字はフレット（0は開放弦）、p=親指、i=人差し指、m=中指、a=薬指です。選んだコードフォームの弾ける弦のみ使います。ギター音をONにすると、和音表示では従来のFreePats実録音源、アルペジオ表示ではTABどおりの音をBPMに合わせて1音ずつ簡易合成音で試聴できます（実録音源ではありません）。</div>
   <div class="row"><button class="primary" onclick="applySettings()">設定を反映</button><button onclick="closeSettings()">閉じる</button></div>
  </div>
 </div>
@@ -184,7 +189,7 @@ const OPEN={C:[null,3,2,0,1,0],D:[null,null,0,2,3,2],E:[0,2,2,1,0,0],F:[1,3,3,2,
 const N=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
 let state={measures:[[{name:'C',beats:1},{name:'D',beats:1},{name:'Em',beats:1},{name:'Am',beats:1}]],root:'C',sectionLabels:{}};
-let settings={bpm:120,timeSig:'4/4',capo:0,keySig:'auto',showStaff:true,notationMode:'chord',arpPattern:'basic',arpSubdivision:'eighth',chordsPerRow:4,guitarSound:false};
+let settings={bpm:120,timeSig:'4/4',capo:0,keySig:'auto',showStaff:true,notationMode:'chord',arpPattern:'thumbReturn',arpChordLength:'fullbar',arpSubdivision:'eighth',chordsPerRow:4,guitarSound:false};
 let selectedChord=null;
 let scrollState={running:false,startTime:0,elapsed:0,raf:0,transitionMeasure:-1,transitionFromY:0,transitionToY:0,lastSoundIndex:-1,arpEvents:[],nextArpEvent:0};
 let codeEditorDirty=false;
@@ -292,6 +297,7 @@ function arpeggioSequence(name,span){
   :['bass',3,2,1,2,3,2,3];
  const patterns={
   basic:basic,
+  thumbReturn:['bass',3,4,3,1,3,2,3],
   ascending:['bass',3,2,1,'bass',3,2,1],
   alternating:['bass',3,2,3,'alt',3,2,3],
   descending:[1,2,3,'bass',1,2,3,'bass']
@@ -495,7 +501,7 @@ function arpeggioFretFormHtml(measure){
 
 function render(){
  renderMeta();
- let out=settings.notationMode==='arpeggio'&&settings.showStaff!==false?'<div class="arp-guide"><strong>弾き方：</strong>五線譜とTABは同時に読む。TABの上段は1弦、下段は6弦。数字=フレット（0=開放）。TABの数字を縦に重ねると同時発音の意味になるため、左手フォームの数字はTABとは別枠に表示します。p=親指 / i=人差し指 / m=中指 / a=薬指。4/4の8分音符は「1 &amp; 2 &amp; 3 &amp; 4 &amp;」。16分音符は「1 e &amp; a」。6/8は3音ずつの2グループです。C:4で1小節のCを練習できます。</div>':'';out+='<div class="score-work">';
+ let out=settings.notationMode==='arpeggio'&&settings.showStaff!==false?'<div class="arp-guide"><strong>弾き方：</strong>五線譜とTABは同時に読む。TABの上段は1弦、下段は6弦。数字=フレット（0=開放）。TABの数字を縦に重ねると同時発音の意味になるため、左手フォームの数字はTABとは別枠に表示します。p=親指 / i=人差し指 / m=中指 / a=薬指。弦の順番「5-3-4-3-1-3-2-3」は低音弦をコードに応じて選びます（Dなら4弦、Emなら6弦）。4/4の8分音符は「1 &amp; 2 &amp; 3 &amp; 4 &amp;」。16分音符は「1 e &amp; a」。6/8は3音ずつの2グループです。C:4で1小節のCを練習できます。</div>':'';out+='<div class="score-work">';
  for(let j=0;j<state.measures.length;j++){
   out+='<div class="score-measure" data-measure="'+j+'">';
   const section=(state.sectionLabels&&state.sectionLabels[j])||'';
@@ -567,7 +573,14 @@ function parseLooseBars(src){
  let text=src.trim(),sectionLabels={};
  const sm=text.match(/^\[([^\]]{1,32})\]\s*/);
  if(sm){sectionLabels[0]=sm[1].trim();text=text.slice(sm[0].length).trim()}
- const tokens=text.split(/\s+/).map(normalizeToken).filter(Boolean);
+ const tokens=text.split(/\s+/).filter(Boolean).map(raw=>{
+  const token=normalizeToken(raw);
+  if(!token)return null;
+  if(settings.notationMode==='arpeggio'&&settings.arpChordLength==='fullbar'&&!raw.includes(':')){
+   return {...token,beats:beatsPerMeasure()};
+  }
+  return token;
+ }).filter(Boolean);
  return {measures:packSequential(tokens),sectionLabels:sectionLabels};
 }
 
@@ -585,7 +598,8 @@ function applyText(){
  state.measures=parsed.measures;
  state.sectionLabels=parsed.sectionLabels;
  if(!state.measures.length)state.measures=[[]];
- syncText();codeEditorDirty=false;render();save();
+ if(settings.notationMode!=='arpeggio')syncText();
+ codeEditorDirty=false;render();save();
 }
 
 function selectRoot(r){
@@ -648,21 +662,29 @@ function closeChordDetail(){document.getElementById('chordDetailOverlay').classL
 function detailOverlayClose(e){if(e.target.id==='chordDetailOverlay')closeChordDetail()}
 
 function openSettings(){
- document.getElementById('bpm').value=settings.bpm;document.getElementById('timeSig').value=settings.timeSig;document.getElementById('keySig').value=settings.keySig||'auto';document.getElementById('capo').value=String(settings.capo||0);document.getElementById('showStaff').value=settings.showStaff===false?'off':'on';document.getElementById('notationMode').value=settings.notationMode||'chord';document.getElementById('arpPattern').value=settings.arpPattern||'basic';document.getElementById('arpSubdivision').value=settings.arpSubdivision||'eighth';document.getElementById('chordsPerRow').value=String(settings.chordsPerRow||4);document.getElementById('guitarSound').value=settings.guitarSound?'on':'off';
+ document.getElementById('bpm').value=settings.bpm;document.getElementById('timeSig').value=settings.timeSig;document.getElementById('keySig').value=settings.keySig||'auto';document.getElementById('capo').value=String(settings.capo||0);document.getElementById('showStaff').value=settings.showStaff===false?'off':'on';document.getElementById('notationMode').value=settings.notationMode||'chord';document.getElementById('arpPattern').value=settings.arpPattern||'thumbReturn';document.getElementById('arpChordLength').value=settings.arpChordLength||'fullbar';document.getElementById('arpSubdivision').value=settings.arpSubdivision||'eighth';document.getElementById('chordsPerRow').value=String(settings.chordsPerRow||4);document.getElementById('guitarSound').value=settings.guitarSound?'on':'off';
  document.getElementById('settingsOverlay').classList.add('open');
 }
 function closeSettings(){document.getElementById('settingsOverlay').classList.remove('open')}
 function overlayClose(e){if(e.target.id==='settingsOverlay')closeSettings()}
 function applySettings(){
  if(scrollState.running)stopAutoScroll(true);
+ const oldArpMode=settings.notationMode,oldArpLength=settings.arpChordLength;
  settings.bpm=Math.round(Math.max(20,Math.min(300,Number(document.getElementById('bpm').value)||120)));
- const oldSig=settings.timeSig;settings.timeSig=document.getElementById('timeSig').value||'4/4';settings.keySig=document.getElementById('keySig').value||'auto';settings.capo=Number(document.getElementById('capo').value)||0;settings.showStaff=document.getElementById('showStaff').value!=='off';settings.notationMode=document.getElementById('notationMode').value||'chord';settings.arpPattern=document.getElementById('arpPattern').value||'basic';settings.arpSubdivision=document.getElementById('arpSubdivision').value||'eighth';settings.chordsPerRow=Math.max(3,Math.min(6,Number(document.getElementById('chordsPerRow').value)||4));settings.guitarSound=document.getElementById('guitarSound').value==='on';if(!settings.guitarSound){stopGuitarAudio();stopArpeggioAudio();}
+ const oldSig=settings.timeSig;settings.timeSig=document.getElementById('timeSig').value||'4/4';settings.keySig=document.getElementById('keySig').value||'auto';settings.capo=Number(document.getElementById('capo').value)||0;settings.showStaff=document.getElementById('showStaff').value!=='off';settings.notationMode=document.getElementById('notationMode').value||'chord';settings.arpPattern=document.getElementById('arpPattern').value||'thumbReturn';settings.arpChordLength=document.getElementById('arpChordLength').value||'fullbar';settings.arpSubdivision=document.getElementById('arpSubdivision').value||'eighth';settings.chordsPerRow=Math.max(3,Math.min(6,Number(document.getElementById('chordsPerRow').value)||4));settings.guitarSound=document.getElementById('guitarSound').value==='on';if(!settings.guitarSound){stopGuitarAudio();stopArpeggioAudio();}
  if(oldSig!==settings.timeSig){
   const all=[],labels=Object.assign({},state.sectionLabels||{});
   state.measures.forEach(m=>m.forEach(c=>all.push({name:c.name,beats:Number(c.beats)||1})));
   state.measures=packSequential(all);state.sectionLabels=labels;syncText();
  }
- closeSettings();render();save();
+ closeSettings();
+ // Reparse the original shorthand only when the user changes the chord duration mode.
+ // Explicit durations and explicit barlines are intentionally untouched.
+ if((oldArpMode!==settings.notationMode||oldArpLength!==settings.arpChordLength)&&
+    document.getElementById('codeText').value.trim()&&!document.getElementById('codeText').value.includes('|')){
+  applyText();return;
+ }
+ render();save();
 }
 
 function beatDurationMs(){
@@ -963,11 +985,22 @@ function load(){
   if(!settings.keySig)settings.keySig='auto';
   if(typeof settings.showStaff!=='boolean')settings.showStaff=true;
   if(!['chord','arpeggio'].includes(settings.notationMode))settings.notationMode='chord';
-  if(!['basic','ascending','alternating','descending'].includes(settings.arpPattern))settings.arpPattern=(settings.arpOrder==='highlow'?'descending':'basic');
+  if(!['basic','thumbReturn','ascending','alternating','descending'].includes(settings.arpPattern))settings.arpPattern=(settings.arpOrder==='highlow'?'descending':'thumbReturn');
+  const hasArpLength=Object.prototype.hasOwnProperty.call(d.settings||{},'arpChordLength');
+  if(!['fullbar','onebeat'].includes(settings.arpChordLength))settings.arpChordLength='fullbar';
   if(!['eighth','sixteenth'].includes(settings.arpSubdivision))settings.arpSubdivision='eighth';
   if(![3,4,5,6].includes(Number(settings.chordsPerRow)))settings.chordsPerRow=4;
   if(typeof settings.guitarSound!=='boolean')settings.guitarSound=false;
-  syncText();
+  if(typeof d.codeText==='string'&&d.codeText.trim())document.getElementById('codeText').value=d.codeText;
+  else syncText();
+  // UI224 and earlier stored 1 beat per code. Recompute once on migration
+  // when the saved input was just a shorthand progression without '|'.
+  if(!hasArpLength&&settings.notationMode==='arpeggio'&&
+    !document.getElementById('codeText').value.includes('|')){
+   const parsed=parseLooseBars(document.getElementById('codeText').value);
+   state.measures=parsed.measures;
+   state.sectionLabels=parsed.sectionLabels;
+  }
  }catch(e){}
 }
 function clearAll(){if(confirm('新しいコード譜を作りますか？')){localStorage.removeItem('gcs');location.reload()}}
