@@ -70,9 +70,9 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .score-line-chords .score-measure{padding:1px 1px 4px;min-width:0;border:0;scroll-margin-top:92px}
 .score-line-chords .score-measure.playing{background:#e7f2ff}
 .score-line-chords .arp-compact-row{display:block;padding:0}
-.score-line-chords .arp-compact-chord{gap:6px;padding:0 2px}
-.score-line-chords .arp-compact-chord .diagram{width:56px;max-width:56px}
-.score-line-chords .arp-compact-label button{font-size:15px}
+.score-line-chords .arp-compact-chord{gap:6px;padding:0 2px;align-items:center}
+.score-line-chords .arp-compact-chord .diagram{width:64px;max-width:64px;flex:0 0 64px}
+.score-line-chords .arp-compact-label button{font-size:16px}
 .score-line-chords .arp-compact-lyric{font-size:14px}
 .score-work.arpeggio-score .score-measure{padding:2px 2px 3px;border:0}
 .score-work.arpeggio-score .score-measure{padding:3px 5px 2px;border-bottom:1px solid #e3e7ec}
@@ -80,7 +80,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 .score-work.arpeggio-score .score-svg{margin:0}
 .arp-compact-row{display:flex;flex-wrap:wrap;gap:4px;padding:0 4px 4px;align-items:start}
 .arp-compact-chord{min-width:0;flex:1 1 80px;display:flex;align-items:center;gap:7px;padding:1px 4px}
-.arp-compact-chord .diagram{width:46px;height:auto;max-width:46px;flex:none}
+.arp-compact-chord .diagram{width:64px;height:auto;max-width:64px;flex:0 0 64px}
 .arp-compact-label{min-width:0;display:flex;flex-direction:column;align-items:start;gap:3px}
 .arp-compact-label button{font-size:13px;min-height:0;padding:0;width:auto;text-align:left}
 .arp-compact-lyric{font-size:13px;min-height:16px;color:#30343b;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -122,7 +122,7 @@ input,textarea,select{width:100%;padding:9px;border:1px solid #c9cdd2;border-rad
 </head>
 <body>
 <div class="app">
- <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI228</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
+ <div class="top"><b>ギターコード譜 <span class="muted">v0.4.2 / UI229</span></b><button id="topFollowStop" class="top-follow-stop" onclick="toggleAutoScroll()" aria-label="自動スクロールを停止">停止</button><button onclick="updateApp()">更新</button></div>
  <div class="panel">
   <input id="title" value="新しいコード譜" placeholder="曲名">
   <div id="meta" class="meta"></div>
