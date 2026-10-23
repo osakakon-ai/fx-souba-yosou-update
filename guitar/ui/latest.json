@@ -1,6 +1,6 @@
 {
-  "uiVersion": 223,
-  "versionName": "v0.4.2 UI223 リズム・試聴改善",
+  "uiVersion": 224,
+  "versionName": "v0.4.2 UI224 コード名・押弦番号の縦表示",
   "htmlUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/index.html",
-  "sha256": "e9da9fa56d14c44398b5406f6e56d33526919149c23e970f0356483f7eaa335b"
+  "sha256": "f529aa853c729456b68ea0a9c75ab87c07a9706431eba225d255bee1ad80326b"
 }
