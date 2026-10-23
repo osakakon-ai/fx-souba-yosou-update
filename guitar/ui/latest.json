@@ -1,6 +1,6 @@
 {
-  "uiVersion": 228,
-  "versionName": "v0.4.2 UI228 タブ譜下のコード表示サイズを復元",
+  "uiVersion": 229,
+  "versionName": "v0.4.2 UI229 コードダイアグラム64px復元",
   "htmlUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/index.html",
-  "sha256": "2d712f09ae018ca213d0534f8ce2f68367610fb4271074b201f59e8671f06e1d"
+  "sha256": "eba458c6b11d76465250391b59a983f6ee848171d008f4449236a4d234b716ff"
 }
