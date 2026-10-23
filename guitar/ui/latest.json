@@ -1,6 +1,6 @@
 {
-  "uiVersion": 227,
-  "versionName": "v0.4.2 UI227 アルペジオ小節を横につなぐ表示",
+  "uiVersion": 228,
+  "versionName": "v0.4.2 UI228 タブ譜下のコード表示サイズを復元",
   "htmlUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/guitar/ui/index.html",
-  "sha256": "fbe546761cca87c0f1e5be8a41ac36fbcc12e1f3739de71a86a75405a7b58895"
+  "sha256": "2d712f09ae018ca213d0534f8ce2f68367610fb4271074b201f59e8671f06e1d"
 }
