@@ -116,6 +116,7 @@ public class MainActivity extends Activity {
     if(n.contains("ランジ")||n.contains("ブルガリアン"))return R.drawable.ex_lunge;
     if(n.contains("プランク"))return R.drawable.ex_plank;
     if(n.contains("クランチ")||n.contains("シットアップ")||n.contains("腹筋"))return R.drawable.ex_crunch;
+    if(n.contains("ベントオーバーラテラルレイズ")||n.contains("リアデルトフライ")||n.contains("リアレイズ")||n.contains("リバースフライ"))return R.drawable.ex_bent_over_lateral_raise;
     if(n.contains("ショルダープレス")||n.contains("オーバーヘッドプレス"))return R.drawable.ex_shoulder_press;
     if(n.contains("サイドレイズ")||n.contains("ラテラルレイズ"))return R.drawable.ex_lateral_raise;
     if(n.contains("ワンハンドロー")||n.contains("ダンベルロー")||n.contains("ワンアームロー"))return R.drawable.ex_one_arm_row;
@@ -136,6 +137,7 @@ public class MainActivity extends Activity {
     if(choice.equals("dumbbell_curl"))return "ダンベルカール";
     if(choice.equals("shoulder_press"))return "ショルダープレス";
     if(choice.equals("lateral_raise"))return "サイドレイズ";
+    if(choice.equals("bent_over_lateral_raise"))return "ベントオーバーラテラルレイズ";
     if(choice.equals("one_arm_row"))return "ワンハンドロー";
     if(choice.equals("goblet_squat"))return "ゴブレットスクワット";
     return "自動";
@@ -150,6 +152,7 @@ public class MainActivity extends Activity {
     if(choice.equals("dumbbell_curl"))return R.drawable.ex_dumbbell_curl;
     if(choice.equals("shoulder_press"))return R.drawable.ex_shoulder_press;
     if(choice.equals("lateral_raise"))return R.drawable.ex_lateral_raise;
+    if(choice.equals("bent_over_lateral_raise"))return R.drawable.ex_bent_over_lateral_raise;
     if(choice.equals("one_arm_row"))return R.drawable.ex_one_arm_row;
     if(choice.equals("goblet_squat"))return R.drawable.ex_goblet_squat;
     return 0;
@@ -191,8 +194,8 @@ public class MainActivity extends Activity {
     return row;
   }
   void choosePhoto(String[] holder,Button target){
-    String[] labels={"自動","腕立て伏せ","スクワット","ランジ","プランク","クランチ","ダンベルカール","ショルダープレス","サイドレイズ","ワンハンドロー","ゴブレットスクワット","スマホから選ぶ","写真なし"};
-    String[] values={"auto","pushup","squat","lunge","plank","crunch","dumbbell_curl","shoulder_press","lateral_raise","one_arm_row","goblet_squat","gallery","none"};
+    String[] labels={"自動","腕立て伏せ","スクワット","ランジ","プランク","クランチ","ダンベルカール","ショルダープレス","サイドレイズ","ワンハンドロー","ゴブレットスクワット","ベントオーバーラテラルレイズ","スマホから選ぶ","写真なし"};
+    String[] values={"auto","pushup","squat","lunge","plank","crunch","dumbbell_curl","shoulder_press","lateral_raise","one_arm_row","goblet_squat","bent_over_lateral_raise","gallery","none"};
     new AlertDialog.Builder(this).setTitle("写真を選ぶ").setItems(labels,(d,which)->{
       if(values[which].equals("gallery")){
         pendingPhotoHolder=holder;pendingPhotoButton=target;
