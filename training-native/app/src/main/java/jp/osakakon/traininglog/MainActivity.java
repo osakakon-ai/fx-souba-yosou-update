@@ -113,10 +113,20 @@ public class MainActivity extends Activity {
     if(n.contains("腕立て")||n.toLowerCase(Locale.ROOT).contains("pushup"))return R.drawable.ex_pushup;
     if(n.contains("ゴブレット"))return R.drawable.ex_goblet_squat;
     if(n.contains("スクワット"))return R.drawable.ex_squat;
+    if(n.contains("ダンベルランジ"))return R.drawable.ex_dumbbell_lunge;
     if(n.contains("ランジ")||n.contains("ブルガリアン"))return R.drawable.ex_lunge;
     if(n.contains("プランク"))return R.drawable.ex_plank;
     if(n.contains("クランチ")||n.contains("シットアップ")||n.contains("腹筋"))return R.drawable.ex_crunch;
     if(n.contains("ベントオーバーラテラルレイズ")||n.contains("リアデルトフライ")||n.contains("リアレイズ")||n.contains("リバースフライ"))return R.drawable.ex_bent_over_lateral_raise;
+    if(n.contains("ハンマーカール"))return R.drawable.ex_dumbbell_hammer_curl;
+    if(n.contains("フロントレイズ"))return R.drawable.ex_dumbbell_front_raise;
+    if(n.contains("ダンベルフライ")||n.equals("フライ"))return R.drawable.ex_dumbbell_fly;
+    if(n.contains("ダンベルベンチプレス")||n.equals("ベンチプレス"))return R.drawable.ex_dumbbell_bench_press;
+    if(n.contains("トライセプスエクステンション")||n.contains("フレンチプレス"))return R.drawable.ex_dumbbell_triceps_extension;
+    if(n.contains("キックバック"))return R.drawable.ex_dumbbell_kickback;
+    if(n.contains("ルーマニアンデッドリフト")||n.contains("RDL"))return R.drawable.ex_dumbbell_romanian_deadlift;
+    if(n.contains("デッドリフト"))return R.drawable.ex_dumbbell_deadlift;
+    if(n.contains("シュラッグ"))return R.drawable.ex_dumbbell_shrug;
     if(n.contains("ショルダープレス")||n.contains("オーバーヘッドプレス"))return R.drawable.ex_shoulder_press;
     if(n.contains("サイドレイズ")||n.contains("ラテラルレイズ"))return R.drawable.ex_lateral_raise;
     if(n.contains("ワンハンドロー")||n.contains("ダンベルロー")||n.contains("ワンアームロー"))return R.drawable.ex_one_arm_row;
@@ -140,6 +150,16 @@ public class MainActivity extends Activity {
     if(choice.equals("bent_over_lateral_raise"))return "ベントオーバーラテラルレイズ";
     if(choice.equals("one_arm_row"))return "ワンハンドロー";
     if(choice.equals("goblet_squat"))return "ゴブレットスクワット";
+    if(choice.equals("dumbbell_hammer_curl"))return "ハンマーカール";
+    if(choice.equals("dumbbell_front_raise"))return "フロントレイズ";
+    if(choice.equals("dumbbell_fly"))return "ダンベルフライ";
+    if(choice.equals("dumbbell_bench_press"))return "ダンベルベンチプレス";
+    if(choice.equals("dumbbell_triceps_extension"))return "トライセプスエクステンション";
+    if(choice.equals("dumbbell_kickback"))return "キックバック";
+    if(choice.equals("dumbbell_deadlift"))return "ダンベルデッドリフト";
+    if(choice.equals("dumbbell_romanian_deadlift"))return "ルーマニアンデッドリフト";
+    if(choice.equals("dumbbell_lunge"))return "ダンベルランジ";
+    if(choice.equals("dumbbell_shrug"))return "シュラッグ";
     return "自動";
   }
   int drawableForChoice(String choice,String name){
@@ -155,6 +175,16 @@ public class MainActivity extends Activity {
     if(choice.equals("bent_over_lateral_raise"))return R.drawable.ex_bent_over_lateral_raise;
     if(choice.equals("one_arm_row"))return R.drawable.ex_one_arm_row;
     if(choice.equals("goblet_squat"))return R.drawable.ex_goblet_squat;
+    if(choice.equals("dumbbell_hammer_curl"))return R.drawable.ex_dumbbell_hammer_curl;
+    if(choice.equals("dumbbell_front_raise"))return R.drawable.ex_dumbbell_front_raise;
+    if(choice.equals("dumbbell_fly"))return R.drawable.ex_dumbbell_fly;
+    if(choice.equals("dumbbell_bench_press"))return R.drawable.ex_dumbbell_bench_press;
+    if(choice.equals("dumbbell_triceps_extension"))return R.drawable.ex_dumbbell_triceps_extension;
+    if(choice.equals("dumbbell_kickback"))return R.drawable.ex_dumbbell_kickback;
+    if(choice.equals("dumbbell_deadlift"))return R.drawable.ex_dumbbell_deadlift;
+    if(choice.equals("dumbbell_romanian_deadlift"))return R.drawable.ex_dumbbell_romanian_deadlift;
+    if(choice.equals("dumbbell_lunge"))return R.drawable.ex_dumbbell_lunge;
+    if(choice.equals("dumbbell_shrug"))return R.drawable.ex_dumbbell_shrug;
     return 0;
   }
   boolean applyExerciseImage(ImageView iv,String name){
@@ -194,8 +224,8 @@ public class MainActivity extends Activity {
     return row;
   }
   void choosePhoto(String[] holder,Button target){
-    String[] labels={"自動","腕立て伏せ","スクワット","ランジ","プランク","クランチ","ダンベルカール","ショルダープレス","サイドレイズ","ワンハンドロー","ゴブレットスクワット","ベントオーバーラテラルレイズ","スマホから選ぶ","写真なし"};
-    String[] values={"auto","pushup","squat","lunge","plank","crunch","dumbbell_curl","shoulder_press","lateral_raise","one_arm_row","goblet_squat","bent_over_lateral_raise","gallery","none"};
+    String[] labels={"自動","腕立て伏せ","スクワット","ランジ","プランク","クランチ","ダンベルカール","ショルダープレス","サイドレイズ","ワンハンドロー","ゴブレットスクワット","ベントオーバーラテラルレイズ","ハンマーカール","フロントレイズ","ダンベルフライ","ダンベルベンチプレス","トライセプスエクステンション","キックバック","ダンベルデッドリフト","ルーマニアンデッドリフト","ダンベルランジ","シュラッグ","スマホから選ぶ","写真なし"};
+    String[] values={"auto","pushup","squat","lunge","plank","crunch","dumbbell_curl","shoulder_press","lateral_raise","one_arm_row","goblet_squat","bent_over_lateral_raise","dumbbell_hammer_curl","dumbbell_front_raise","dumbbell_fly","dumbbell_bench_press","dumbbell_triceps_extension","dumbbell_kickback","dumbbell_deadlift","dumbbell_romanian_deadlift","dumbbell_lunge","dumbbell_shrug","gallery","none"};
     new AlertDialog.Builder(this).setTitle("写真を選ぶ").setItems(labels,(d,which)->{
       if(values[which].equals("gallery")){
         pendingPhotoHolder=holder;pendingPhotoButton=target;
