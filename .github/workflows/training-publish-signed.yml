@@ -30,7 +30,18 @@ jobs:
               print(json.load(f).get('sourceUrl',''))
           PY
           )"
-          if [ -n "$SOURCE_URL" ]; then
+          VERSION_NAME="$(python3 - <<'PY'
+          import json
+          with open('training/release-input/latest.json', encoding='utf-8') as f:
+              print(json.load(f)['versionName'])
+          PY
+          )"
+          VERSION_DIR="training/release-input/parts-v${VERSION_NAME}"
+          if [ -d "$VERSION_DIR" ]; then
+            PARTS="$(find "$VERSION_DIR" -maxdepth 1 -type f -name 'part-*.b64' | sort)"
+            test -n "$PARTS"
+            cat $PARTS | tr -d '\r\n ' | base64 -d > training/Training-App.apk
+          elif [ -n "$SOURCE_URL" ]; then
             curl -fL --retry 3 "$SOURCE_URL" -o training/Training-App.apk
           else
           XOR_PARTS="$(find training/release-input -maxdepth 1 -type f -name 'xor-*.txt' | sort)"
@@ -54,6 +65,15 @@ jobs:
           fi
           fi
           unzip -t training/Training-App.apk >/dev/null
+          EXPECTED_SHA="$(python3 - <<'PY'
+          import json
+          with open('training/release-input/latest.json', encoding='utf-8') as f:
+              print(json.load(f).get('apkSha256',''))
+          PY
+          )"
+          if [ -n "$EXPECTED_SHA" ]; then
+            echo "$EXPECTED_SHA  training/Training-App.apk" | sha256sum -c -
+          fi
           VERSION_NAME="$(python3 - <<'PY'
           import json
           with open('training/release-input/latest.json', encoding='utf-8') as f:
