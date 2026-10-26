@@ -35,6 +35,9 @@ public class MainActivity extends Activity {
   Calendar displayMonth=Calendar.getInstance();
   LinearLayout calendarBox;
   final int CAL_BG=Color.rgb(24,28,33), SAT=Color.rgb(70,150,255), SUN=Color.rgb(255,92,92), ORANGE=Color.rgb(255,152,0);
+  static final int REQ_PICK_EXERCISE_PHOTO=4201;
+  Button pendingPhotoButton;
+  String[] pendingPhotoHolder;
 
   static class Exercise {
     String name; double kg; int reps,sets,rest;
@@ -65,6 +68,16 @@ public class MainActivity extends Activity {
       openDownloadedApk(pending);
     }
   }
+  @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+    super.onActivityResult(requestCode,resultCode,data);
+    if(requestCode!=REQ_PICK_EXERCISE_PHOTO || resultCode!=RESULT_OK || data==null || data.getData()==null)return;
+    Uri uri=data.getData();
+    try{getContentResolver().takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(Exception ignored){}
+    if(pendingPhotoHolder!=null)pendingPhotoHolder[0]="uri:"+uri.toString();
+    if(pendingPhotoButton!=null)pendingPhotoButton.setText("写真：スマホの写真");
+    pendingPhotoHolder=null;pendingPhotoButton=null;
+  }
+
   @Override public void onDestroy(){
     if(timer!=null)timer.cancel();
     try{if(updateReceiver!=null)unregisterReceiver(updateReceiver);}catch(Exception ignored){}
@@ -109,26 +122,86 @@ public class MainActivity extends Activity {
     if(n.contains("ダンベルカール")||n.contains("ハンマーカール")||n.endsWith("カール"))return R.drawable.ex_dumbbell_curl;
     return 0;
   }
+  String photoPrefKey(String name){return "exercise_photo_"+(name==null?"":name);}
+  String photoChoice(String name){return sp.getString(photoPrefKey(name),"auto");}
+  String photoChoiceLabel(String choice){
+    if(choice==null||choice.equals("auto"))return "自動";
+    if(choice.equals("none"))return "写真なし";
+    if(choice.startsWith("uri:"))return "スマホの写真";
+    if(choice.equals("pushup"))return "腕立て伏せ";
+    if(choice.equals("squat"))return "スクワット";
+    if(choice.equals("lunge"))return "ランジ";
+    if(choice.equals("plank"))return "プランク";
+    if(choice.equals("crunch"))return "クランチ";
+    if(choice.equals("dumbbell_curl"))return "ダンベルカール";
+    if(choice.equals("shoulder_press"))return "ショルダープレス";
+    if(choice.equals("lateral_raise"))return "サイドレイズ";
+    if(choice.equals("one_arm_row"))return "ワンハンドロー";
+    if(choice.equals("goblet_squat"))return "ゴブレットスクワット";
+    return "自動";
+  }
+  int drawableForChoice(String choice,String name){
+    if(choice==null||choice.equals("auto"))return exerciseImage(name);
+    if(choice.equals("pushup"))return R.drawable.ex_pushup;
+    if(choice.equals("squat"))return R.drawable.ex_squat;
+    if(choice.equals("lunge"))return R.drawable.ex_lunge;
+    if(choice.equals("plank"))return R.drawable.ex_plank;
+    if(choice.equals("crunch"))return R.drawable.ex_crunch;
+    if(choice.equals("dumbbell_curl"))return R.drawable.ex_dumbbell_curl;
+    if(choice.equals("shoulder_press"))return R.drawable.ex_shoulder_press;
+    if(choice.equals("lateral_raise"))return R.drawable.ex_lateral_raise;
+    if(choice.equals("one_arm_row"))return R.drawable.ex_one_arm_row;
+    if(choice.equals("goblet_squat"))return R.drawable.ex_goblet_squat;
+    return 0;
+  }
+  boolean applyExerciseImage(ImageView iv,String name){
+    String choice=photoChoice(name);
+    if("none".equals(choice))return false;
+    try{
+      if(choice!=null&&choice.startsWith("uri:")){
+        iv.setImageURI(Uri.parse(choice.substring(4)));return true;
+      }
+      int res=drawableForChoice(choice,name);if(res==0)return false;iv.setImageResource(res);return true;
+    }catch(Exception ex){
+      int res=exerciseImage(name);if(res==0)return false;iv.setImageResource(res);return true;
+    }
+  }
   ImageView exercisePhoto(String name,int height){
-    int res=exerciseImage(name);if(res==0)return null;
-    ImageView iv=new ImageView(this);iv.setImageResource(res);iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+    ImageView iv=new ImageView(this);if(!applyExerciseImage(iv,name))return null;
+    iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
     GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(30,34,39));bg.setCornerRadius(dp(12));iv.setBackground(bg);iv.setClipToOutline(true);
     LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(height));p.setMargins(0,dp(6),0,dp(8));iv.setLayoutParams(p);
     iv.setContentDescription(name+" の筋トレ写真");
     return iv;
   }
+  ImageView exerciseThumb(String name,int size,int radius){
+    ImageView iv=new ImageView(this);if(!applyExerciseImage(iv,name))return null;
+    iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+    GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(30,34,39));bg.setCornerRadius(dp(radius));iv.setBackground(bg);iv.setClipToOutline(true);
+    iv.setContentDescription(name+" の筋トレ写真");
+    return iv;
+  }
   LinearLayout exerciseRow(Exercise e,int photoWidth){
     LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);
-    int res=exerciseImage(e.name);
-    if(res!=0){
-      ImageView iv=new ImageView(this);iv.setImageResource(res);iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
-      GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(30,34,39));bg.setCornerRadius(dp(10));iv.setBackground(bg);iv.setClipToOutline(true);
-      LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(photoWidth),dp(photoWidth));ip.setMargins(0,dp(3),dp(10),dp(3));row.addView(iv,ip);
-    }
+    ImageView iv=exerciseThumb(e.name,photoWidth,10);
+    if(iv!=null){LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(photoWidth),dp(photoWidth));ip.setMargins(0,dp(3),dp(10),dp(3));row.addView(iv,ip);}
     LinearLayout texts=new LinearLayout(this);texts.setOrientation(LinearLayout.VERTICAL);
     texts.addView(tv(e.name,17,TEXT));texts.addView(tv((e.kg>0?Exercise.trim(e.kg)+"kg × ":"")+e.reps+"回 × "+e.sets+"セット",15,SUB));
     row.addView(texts,new LinearLayout.LayoutParams(0,-2,1));
     return row;
+  }
+  void choosePhoto(String[] holder,Button target){
+    String[] labels={"自動","腕立て伏せ","スクワット","ランジ","プランク","クランチ","ダンベルカール","ショルダープレス","サイドレイズ","ワンハンドロー","ゴブレットスクワット","スマホから選ぶ","写真なし"};
+    String[] values={"auto","pushup","squat","lunge","plank","crunch","dumbbell_curl","shoulder_press","lateral_raise","one_arm_row","goblet_squat","gallery","none"};
+    new AlertDialog.Builder(this).setTitle("写真を選ぶ").setItems(labels,(d,which)->{
+      if(values[which].equals("gallery")){
+        pendingPhotoHolder=holder;pendingPhotoButton=target;
+        Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT);pick.addCategory(Intent.CATEGORY_OPENABLE);pick.setType("image/*");
+        pick.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        startActivityForResult(pick,REQ_PICK_EXERCISE_PHOTO);return;
+      }
+      holder[0]=values[which];target.setText("写真："+photoChoiceLabel(holder[0]));
+    }).show();
   }
 
   GradientDrawable roundBg(int fill){
@@ -357,8 +430,8 @@ public class MainActivity extends Activity {
     Button add=btn("＋ 新しい種目を登録");add.setOnClickListener(v->{if(holder[0]!=null)holder[0].dismiss();addExercise();});list.addView(add);
     for(int i=0;i<a.size();i++){
       final int idx=i;Exercise e=a.get(i);LinearLayout row=card();row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);
-      int res=exerciseImage(e.name);
-      if(res!=0){ImageView iv=new ImageView(this);iv.setImageResource(res);iv.setScaleType(ImageView.ScaleType.CENTER_CROP);GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(30,34,39));bg.setCornerRadius(dp(10));iv.setBackground(bg);iv.setClipToOutline(true);LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(78),dp(78));ip.setMargins(0,0,dp(10),0);row.addView(iv,ip);}
+      ImageView iv=exerciseThumb(e.name,78,10);
+      if(iv!=null){LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(78),dp(78));ip.setMargins(0,0,dp(10),0);row.addView(iv,ip);}
       LinearLayout txt=new LinearLayout(this);txt.setOrientation(LinearLayout.VERTICAL);txt.addView(tv(e.name,18,TEXT));txt.addView(tv((e.kg>0?Exercise.trim(e.kg)+"kg × ":"")+e.reps+"回 × "+e.sets+"セット ・ 休憩"+e.rest+"秒",15,SUB));row.addView(txt,new LinearLayout.LayoutParams(0,-2,1));
       row.setOnClickListener(v->{if(holder[0]!=null)holder[0].dismiss();editExercise(idx);});list.addView(row);
     }
@@ -370,10 +443,21 @@ public class MainActivity extends Activity {
     LinearLayout f=new LinearLayout(this);f.setOrientation(LinearLayout.VERTICAL);f.setPadding(22,4,22,0);
     EditText n=field("種目名",old==null?"":old.name,false),kg=field("重量 kg",old==null?"0":Exercise.trim(old.kg),true),r=field("回数",old==null?"10":""+old.reps,true),s=field("セット数",old==null?"3":""+old.sets,true),t=field("休憩 秒",old==null?"60":""+old.rest,true);
     f.addView(labeledRow("種目名",n));f.addView(labeledRow("重量（kg）",kg));f.addView(labeledRow("回数",r));f.addView(labeledRow("セット数",s));f.addView(labeledRow("休憩（秒）",t));
+    final String originalName=old==null?"":old.name;
+    final String[] photo={old==null?"auto":photoChoice(old.name)};
+    Button photoBtn=btn("写真："+photoChoiceLabel(photo[0]));photoBtn.setOnClickListener(v->choosePhoto(photo,photoBtn));f.addView(photoBtn);
     AlertDialog.Builder b=new AlertDialog.Builder(this).setTitle(idx<0?"メニュー登録":"メニュー編集").setView(f).setPositiveButton("保存",(d,w)->{
-      try{if(n.getText().toString().trim().isEmpty())return;ArrayList<Exercise>a=load();Exercise e=new Exercise(n.getText().toString().trim(),Double.parseDouble(kg.getText().toString()),Integer.parseInt(r.getText().toString()),Integer.parseInt(s.getText().toString()),Integer.parseInt(t.getText().toString()));if(idx<0)a.add(e);else a.set(idx,e);save(a);}catch(Exception ex){Toast.makeText(this,"入力値を確認してください",Toast.LENGTH_SHORT).show();}
+      try{
+        String newName=n.getText().toString().trim();if(newName.isEmpty())return;
+        ArrayList<Exercise>a=load();Exercise ex=new Exercise(newName,Double.parseDouble(kg.getText().toString()),Integer.parseInt(r.getText().toString()),Integer.parseInt(s.getText().toString()),Integer.parseInt(t.getText().toString()));
+        if(idx<0)a.add(ex);else a.set(idx,ex);save(a);
+        SharedPreferences.Editor ed=sp.edit();
+        if(!originalName.isEmpty()&&!originalName.equals(newName))ed.remove(photoPrefKey(originalName));
+        if("auto".equals(photo[0]))ed.remove(photoPrefKey(newName));else ed.putString(photoPrefKey(newName),photo[0]);
+        ed.apply();
+      }catch(Exception ex){Toast.makeText(this,"入力値を確認してください",Toast.LENGTH_SHORT).show();}
     }).setNegativeButton("キャンセル",null);
-    if(idx>=0)b.setNeutralButton("削除",(d,w)->{ArrayList<Exercise>a=load();a.remove(idx);save(a);});b.show();
+    if(idx>=0)b.setNeutralButton("削除",(d,w)->{ArrayList<Exercise>a=load();a.remove(idx);save(a);sp.edit().remove(photoPrefKey(originalName)).apply();});b.show();
   }
 
   void chooseExercises(){
@@ -382,8 +466,8 @@ public class MainActivity extends Activity {
     ArrayList<CheckBox> boxes=new ArrayList<>();
     for(Exercise e:a){
       LinearLayout row=card();row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);
-      int res=exerciseImage(e.name);
-      if(res!=0){ImageView iv=new ImageView(this);iv.setImageResource(res);iv.setScaleType(ImageView.ScaleType.CENTER_CROP);GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(30,34,39));bg.setCornerRadius(dp(10));iv.setBackground(bg);iv.setClipToOutline(true);LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(82),dp(82));ip.setMargins(0,0,dp(8),0);row.addView(iv,ip);}
+      ImageView iv=exerciseThumb(e.name,82,10);
+      if(iv!=null){LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(82),dp(82));ip.setMargins(0,0,dp(8),0);row.addView(iv,ip);}
       CheckBox cb=new CheckBox(this);cb.setText(e.detail()+" ・ 休憩"+e.rest+"秒");cb.setTextColor(TEXT);cb.setTextSize(16);boxes.add(cb);row.addView(cb,new LinearLayout.LayoutParams(0,-2,1));
       row.setOnClickListener(v->cb.setChecked(!cb.isChecked()));list.addView(row);
     }
@@ -396,7 +480,7 @@ public class MainActivity extends Activity {
   void showOrder(){
     base("順番を変更");body.addView(tv("↑ ↓ で自由に並べ替えできます",15,SUB));
     for(int i=0;i<workout.size();i++){final int x=i;Exercise e=workout.get(i);LinearLayout row=card();row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);
-      int res=exerciseImage(e.name);if(res!=0){ImageView iv=new ImageView(this);iv.setImageResource(res);iv.setScaleType(ImageView.ScaleType.CENTER_CROP);GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(30,34,39));bg.setCornerRadius(dp(8));iv.setBackground(bg);iv.setClipToOutline(true);LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(64),dp(64));ip.setMargins(0,0,dp(8),0);row.addView(iv,ip);}
+      ImageView iv=exerciseThumb(e.name,64,8);if(iv!=null){LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(64),dp(64));ip.setMargins(0,0,dp(8),0);row.addView(iv,ip);}
       row.addView(tv((i+1)+". "+e.detail(),15,TEXT),new LinearLayout.LayoutParams(0,-2,1));Button u=btn("↑"),d=btn("↓");u.setOnClickListener(v->{if(x>0){Collections.swap(workout,x,x-1);showOrder();}});d.setOnClickListener(v->{if(x<workout.size()-1){Collections.swap(workout,x,x+1);showOrder();}});row.addView(u);row.addView(d);body.addView(row);}
     Button go=btn("筋トレ開始");go.setOnClickListener(v->{exIndex=0;setIndex=1;showWorkout();});body.addView(go);
   }
@@ -405,7 +489,7 @@ public class MainActivity extends Activity {
     ImageView photo=exercisePhoto(e.name,230);if(photo!=null)c.addView(photo);
     c.addView(tv(e.name,22,TEXT));c.addView(tv((e.kg>0?Exercise.trim(e.kg)+"kg　":"")+e.reps+"回",30,ACC));c.addView(tv(setIndex+" / "+e.sets+" セット",19,TEXT));body.addView(c);
     Button done=btn("このセット完了");done.setOnClickListener(v->completeSet());body.addView(done);body.addView(tv("今日のメニュー",18,TEXT));
-    for(int i=0;i<workout.size();i++){int col=i==exIndex?ACC:TEXT;String m=i<exIndex?"✓ ":i==exIndex?"▶ ":"";Exercise x=workout.get(i);LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);int res=exerciseImage(x.name);if(res!=0){ImageView iv=new ImageView(this);iv.setImageResource(res);iv.setScaleType(ImageView.ScaleType.CENTER_CROP);LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(46),dp(46));ip.setMargins(0,dp(3),dp(8),dp(3));row.addView(iv,ip);}row.addView(tv(m+(i+1)+". "+x.detail(),15,col),new LinearLayout.LayoutParams(0,-2,1));body.addView(row);}
+    for(int i=0;i<workout.size();i++){int col=i==exIndex?ACC:TEXT;String m=i<exIndex?"✓ ":i==exIndex?"▶ ":"";Exercise x=workout.get(i);LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);ImageView iv=exerciseThumb(x.name,46,6);if(iv!=null){LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(46),dp(46));ip.setMargins(0,dp(3),dp(8),dp(3));row.addView(iv,ip);}row.addView(tv(m+(i+1)+". "+x.detail(),15,col),new LinearLayout.LayoutParams(0,-2,1));body.addView(row);}
   }
   void completeSet(){Exercise e=workout.get(exIndex);if(setIndex<e.sets)rest(e.rest,()->{setIndex++;showWorkout();});else if(exIndex<workout.size()-1)rest(e.rest,()->{exIndex++;setIndex=1;showWorkout();});else finishWorkout();}
   String[] intervalSoundNames(){
