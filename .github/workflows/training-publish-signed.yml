@@ -24,6 +24,15 @@ jobs:
         run: |
           set -euo pipefail
           test -f training/release-input/latest.json
+          SOURCE_URL="$(python3 - <<'PY'
+          import json
+          with open('training/release-input/latest.json', encoding='utf-8') as f:
+              print(json.load(f).get('sourceUrl',''))
+          PY
+          )"
+          if [ -n "$SOURCE_URL" ]; then
+            curl -fL --retry 3 "$SOURCE_URL" -o training/Training-App.apk
+          else
           XOR_PARTS="$(find training/release-input -maxdepth 1 -type f -name 'xor-*.txt' | sort)"
           ENC_PARTS="$(find training/release-input -maxdepth 1 -type f -name 'enc-*.txt' | sort)"
           HEX_PARTS="$(find training/release-input -maxdepth 1 -type f -name 'hex-*.txt' | sort)"
@@ -42,6 +51,7 @@ jobs:
             PARTS="$(find training/release-input -maxdepth 1 -type f -name 'part-*.b64' | sort)"
             test -n "$PARTS"
             cat $PARTS | tr -d '\r\n ' | base64 -d > training/Training-App.apk
+          fi
           fi
           unzip -t training/Training-App.apk >/dev/null
           VERSION_NAME="$(python3 - <<'PY'
