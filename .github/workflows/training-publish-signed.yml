@@ -24,9 +24,14 @@ jobs:
         run: |
           set -euo pipefail
           test -f training/release-input/latest.json
-          PARTS="$(find training/release-input -maxdepth 1 -type f -name 'part-*.b64' | sort)"
-          test -n "$PARTS"
-          cat $PARTS | tr -d '\r\n ' | base64 -d > training/Training-App.apk
+          HEX_PARTS="$(find training/release-input -maxdepth 1 -type f -name 'hex-*.txt' | sort)"
+          if [ -n "$HEX_PARTS" ]; then
+            cat $HEX_PARTS | tr -d '\r\n ' | xxd -r -p > training/Training-App.apk
+          else
+            PARTS="$(find training/release-input -maxdepth 1 -type f -name 'part-*.b64' | sort)"
+            test -n "$PARTS"
+            cat $PARTS | tr -d '\r\n ' | base64 -d > training/Training-App.apk
+          fi
           unzip -t training/Training-App.apk >/dev/null
           VERSION_NAME="$(python3 - <<'PY'
           import json
