@@ -1,6 +1,6 @@
 {
-  "versionCode": 19,
-  "versionName": "0.9.1",
+  "versionCode": 21,
+  "versionName": "0.9.3",
   "apkUrl": "https://raw.githubusercontent.com/osakakon-ai/fx-souba-yosou-update/main/training/Training-App.apk",
-  "apkSha256": "a9e10bc9def6779a54197e75eefc51fe99594058b53df945daff1ff03d434572"
+  "apkSha256": "f5cc96dd30dc3f6a4d9ac276ecb6466904cfcc9e9a4068e66141efb2ea69a9c3"
 }
