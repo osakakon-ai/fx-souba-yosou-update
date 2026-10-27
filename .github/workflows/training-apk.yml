@@ -27,6 +27,29 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Restore approved dumbbell photos from signed v0.9.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="training/Training-App-v0.9.3.apk"
+          echo "f5cc96dd30dc3f6a4d9ac276ecb6466904cfcc9e9a4068e66141efb2ea69a9c3  $APK" | sha256sum -c -
+          OUT="training-native/app/src/main/res/drawable"
+          while read -r NAME PACKED HASH; do
+            unzip -p "$APK" "res/$PACKED" > "$OUT/$NAME"
+            echo "$HASH  $OUT/$NAME" | sha256sum -c -
+          done <<'PHOTOS'
+          ex_dumbbell_kickback.jpg -i.jpg 681bdcca0445e6c447070fa44240fa2351faef13fdfd544de16a9b166bcc0c85
+          ex_dumbbell_shrug.jpg 0H.jpg dc2ffee615bec0956701d8d960ed41b1c61b28ee7ead29054bb452a4dc142374
+          ex_dumbbell_triceps_extension.jpg 1D.jpg d4d2868ada433c55dfcfa63d069c5193165e4b705e78d976b399a79ec7ff6bee
+          ex_dumbbell_hammer_curl.jpg A6.jpg 196eaa07d33357248b376940456d9af31babf6aa8b07eeb589d18bfabde05a14
+          ex_dumbbell_front_raise.jpg Ob.jpg 6489fce608b350a497b7d72b86f63c129af64c16eef537723c3e5fba548550b9
+          ex_dumbbell_bench_press.jpg Oj.jpg 7691d37977222d6db8924a0529d0a506b851a5a0f471107b7c9d4f5f69aff26f
+          ex_dumbbell_lunge.jpg TF.jpg 5b1882db6f5f3cdd4cdd4905af6f0eb14099c54b5c6186daabab8f90a3e9f46e
+          ex_dumbbell_romanian_deadlift.jpg XD.jpg d6465827fce1cca27bb323e86b6fce6f9145ed447a1f71e42796cc343ba9263e
+          ex_dumbbell_fly.jpg XS.jpg 148c6e989256046ea85b152492f7518bbc9dc2ecbd27df69f46f9bc67ce1e082
+          ex_dumbbell_deadlift.jpg wN.jpg 91a6a4cf20a6bbb5e94d350b3ea29f3574128503f29e863dd4ba6cf7a43016d6
+          PHOTOS
+
       - name: Build unsigned release APK
         run: gradle -p training-native --no-daemon assembleRelease
 
