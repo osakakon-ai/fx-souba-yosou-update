@@ -35,6 +35,10 @@ public class MainActivity extends Activity {
   Calendar displayMonth=Calendar.getInstance();
   LinearLayout calendarBox;
   final int CAL_BG=Color.rgb(24,28,33), SAT=Color.rgb(70,150,255), SUN=Color.rgb(255,92,92), ORANGE=Color.rgb(255,152,0);
+  static final int REQ_PICK_EXERCISE_PHOTO=4201;
+  Button pendingPhotoButton;
+  String[] pendingPhotoHolder;
+
   static class Exercise {
     String name; double kg; int reps,sets,rest;
     Exercise(String n,double k,int r,int s,int t){name=n;kg=k;reps=r;sets=s;rest=t;}
@@ -64,6 +68,16 @@ public class MainActivity extends Activity {
       openDownloadedApk(pending);
     }
   }
+  @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+    super.onActivityResult(requestCode,resultCode,data);
+    if(requestCode!=REQ_PICK_EXERCISE_PHOTO || resultCode!=RESULT_OK || data==null || data.getData()==null)return;
+    Uri uri=data.getData();
+    try{getContentResolver().takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(Exception ignored){}
+    if(pendingPhotoHolder!=null)pendingPhotoHolder[0]="uri:"+uri.toString();
+    if(pendingPhotoButton!=null)pendingPhotoButton.setText("写真：スマホの写真");
+    pendingPhotoHolder=null;pendingPhotoButton=null;
+  }
+
   @Override public void onDestroy(){
     if(timer!=null)timer.cancel();
     try{if(updateReceiver!=null)unregisterReceiver(updateReceiver);}catch(Exception ignored){}
@@ -119,8 +133,74 @@ public class MainActivity extends Activity {
     if(n.contains("ダンベルカール")||n.contains("ハンマーカール")||n.endsWith("カール"))return R.drawable.ex_dumbbell_curl;
     return 0;
   }
+  String photoPrefKey(String name){return "exercise_photo_"+(name==null?"":name);}
+  String photoChoice(String name){return sp.getString(photoPrefKey(name),"auto");}
+  String photoChoiceLabel(String choice){
+    if(choice==null||choice.equals("auto"))return "自動";
+    if(choice.equals("none"))return "写真なし";
+    if(choice.startsWith("uri:"))return "スマホの写真";
+    if(choice.equals("pushup"))return "腕立て伏せ";
+    if(choice.equals("squat"))return "スクワット";
+    if(choice.equals("lunge"))return "ランジ";
+    if(choice.equals("plank"))return "プランク";
+    if(choice.equals("crunch"))return "クランチ";
+    if(choice.equals("dumbbell_curl"))return "ダンベルカール";
+    if(choice.equals("shoulder_press"))return "ショルダープレス";
+    if(choice.equals("lateral_raise"))return "サイドレイズ";
+    if(choice.equals("bent_over_lateral_raise"))return "ベントオーバーラテラルレイズ";
+    if(choice.equals("one_arm_row"))return "ワンハンドロー";
+    if(choice.equals("goblet_squat"))return "ゴブレットスクワット";
+    if(choice.equals("dumbbell_hammer_curl"))return "ハンマーカール";
+    if(choice.equals("dumbbell_front_raise"))return "フロントレイズ";
+    if(choice.equals("dumbbell_fly"))return "ダンベルフライ";
+    if(choice.equals("dumbbell_bench_press"))return "ダンベルベンチプレス";
+    if(choice.equals("dumbbell_triceps_extension"))return "トライセプスエクステンション";
+    if(choice.equals("dumbbell_kickback"))return "キックバック";
+    if(choice.equals("dumbbell_deadlift"))return "ダンベルデッドリフト";
+    if(choice.equals("dumbbell_romanian_deadlift"))return "ルーマニアンデッドリフト";
+    if(choice.equals("dumbbell_lunge"))return "ダンベルランジ";
+    if(choice.equals("dumbbell_shrug"))return "シュラッグ";
+    return "自動";
+  }
+  int drawableForChoice(String choice,String name){
+    if(choice==null||choice.equals("auto"))return exerciseImage(name);
+    if(choice.equals("pushup"))return R.drawable.ex_pushup;
+    if(choice.equals("squat"))return R.drawable.ex_squat;
+    if(choice.equals("lunge"))return R.drawable.ex_lunge;
+    if(choice.equals("plank"))return R.drawable.ex_plank;
+    if(choice.equals("crunch"))return R.drawable.ex_crunch;
+    if(choice.equals("dumbbell_curl"))return R.drawable.ex_dumbbell_curl;
+    if(choice.equals("shoulder_press"))return R.drawable.ex_shoulder_press;
+    if(choice.equals("lateral_raise"))return R.drawable.ex_lateral_raise;
+    if(choice.equals("bent_over_lateral_raise"))return R.drawable.ex_bent_over_lateral_raise;
+    if(choice.equals("one_arm_row"))return R.drawable.ex_one_arm_row;
+    if(choice.equals("goblet_squat"))return R.drawable.ex_goblet_squat;
+    if(choice.equals("dumbbell_hammer_curl"))return R.drawable.ex_dumbbell_hammer_curl;
+    if(choice.equals("dumbbell_front_raise"))return R.drawable.ex_dumbbell_front_raise;
+    if(choice.equals("dumbbell_fly"))return R.drawable.ex_dumbbell_fly;
+    if(choice.equals("dumbbell_bench_press"))return R.drawable.ex_dumbbell_bench_press;
+    if(choice.equals("dumbbell_triceps_extension"))return R.drawable.ex_dumbbell_triceps_extension;
+    if(choice.equals("dumbbell_kickback"))return R.drawable.ex_dumbbell_kickback;
+    if(choice.equals("dumbbell_deadlift"))return R.drawable.ex_dumbbell_deadlift;
+    if(choice.equals("dumbbell_romanian_deadlift"))return R.drawable.ex_dumbbell_romanian_deadlift;
+    if(choice.equals("dumbbell_lunge"))return R.drawable.ex_dumbbell_lunge;
+    if(choice.equals("dumbbell_shrug"))return R.drawable.ex_dumbbell_shrug;
+    return 0;
+  }
+  boolean applyExerciseImage(ImageView iv,String name){
+    String choice=photoChoice(name);
+    if("none".equals(choice))return false;
+    try{
+      if(choice!=null&&choice.startsWith("uri:")){
+        iv.setImageURI(Uri.parse(choice.substring(4)));return true;
+      }
+      int res=drawableForChoice(choice,name);if(res==0)return false;iv.setImageResource(res);return true;
+    }catch(Exception ex){
+      int res=exerciseImage(name);if(res==0)return false;iv.setImageResource(res);return true;
+    }
+  }
   ImageView exercisePhoto(String name,int height){
-    ImageView iv=new ImageView(this);int img=exerciseImage(name);if(img==0)return null;iv.setImageResource(img);
+    ImageView iv=new ImageView(this);if(!applyExerciseImage(iv,name))return null;
     iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
     GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(30,34,39));bg.setCornerRadius(dp(12));iv.setBackground(bg);iv.setClipToOutline(true);
     LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(height));p.setMargins(0,dp(6),0,dp(8));iv.setLayoutParams(p);
@@ -128,7 +208,7 @@ public class MainActivity extends Activity {
     return iv;
   }
   ImageView exerciseThumb(String name,int size,int radius){
-    ImageView iv=new ImageView(this);int img=exerciseImage(name);if(img==0)return null;iv.setImageResource(img);
+    ImageView iv=new ImageView(this);if(!applyExerciseImage(iv,name))return null;
     iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
     GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(30,34,39));bg.setCornerRadius(dp(radius));iv.setBackground(bg);iv.setClipToOutline(true);
     iv.setContentDescription(name+" の筋トレ写真");
@@ -142,6 +222,50 @@ public class MainActivity extends Activity {
     texts.addView(tv(e.name,17,TEXT));texts.addView(tv((e.kg>0?Exercise.trim(e.kg)+"kg × ":"")+e.reps+"回 × "+e.sets+"セット",15,SUB));
     row.addView(texts,new LinearLayout.LayoutParams(0,-2,1));
     return row;
+  }
+
+  void choosePhoto(String[] holder,Button target,String exerciseName){
+    final String[] labels={"自動","腕立て伏せ","スクワット","ランジ","プランク","クランチ","ダンベルカール","ショルダープレス","サイドレイズ","ワンハンドロー","ゴブレットスクワット","ベントオーバーラテラルレイズ","ハンマーカール","フロントレイズ","ダンベルフライ","ダンベルベンチプレス","トライセプスエクステンション","キックバック","ダンベルデッドリフト","ルーマニアンデッドリフト","ダンベルランジ","シュラッグ","スマホから選ぶ","写真なし"};
+    final String[] values={"auto","pushup","squat","lunge","plank","crunch","dumbbell_curl","shoulder_press","lateral_raise","one_arm_row","goblet_squat","bent_over_lateral_raise","dumbbell_hammer_curl","dumbbell_front_raise","dumbbell_fly","dumbbell_bench_press","dumbbell_triceps_extension","dumbbell_kickback","dumbbell_deadlift","dumbbell_romanian_deadlift","dumbbell_lunge","dumbbell_shrug","gallery","none"};
+    LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(dp(8),dp(4),dp(8),dp(4));
+    ScrollView scroll=new ScrollView(this);scroll.addView(list);
+    final AlertDialog dialog=new AlertDialog.Builder(this).setTitle("写真を選ぶ").setView(scroll).setNegativeButton("キャンセル",null).create();
+    for(int i=0;i<labels.length;i++){
+      final String choice=values[i];
+      LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.setOrientation(LinearLayout.HORIZONTAL);
+      row.setPadding(dp(8),dp(5),dp(8),dp(5));
+      ImageView preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
+      GradientDrawable frame=new GradientDrawable();frame.setColor(Color.rgb(34,39,47));frame.setCornerRadius(dp(8));
+      preview.setBackground(frame);preview.setClipToOutline(true);
+      int res=choice.equals("auto")?exerciseImage(exerciseName):drawableForChoice(choice,exerciseName);
+      if(res!=0)preview.setImageResource(res);
+      else if(choice.equals("gallery")&&holder[0]!=null&&holder[0].startsWith("uri:")){
+        try{preview.setImageURI(Uri.parse(holder[0].substring(4)));}catch(Exception ignored){preview.setImageResource(android.R.drawable.ic_menu_gallery);}
+      }else preview.setImageResource(choice.equals("none")?android.R.drawable.ic_menu_close_clear_cancel:android.R.drawable.ic_menu_gallery);
+      LinearLayout.LayoutParams imageParams=new LinearLayout.LayoutParams(dp(56),dp(56));
+      imageParams.setMargins(0,0,dp(12),0);row.addView(preview,imageParams);
+      String title=labels[i];
+      if(holder[0]!=null&&holder[0].equals(choice))title+="  （選択中）";
+      TextView label=tv(title,16,TEXT);
+      row.addView(label,new LinearLayout.LayoutParams(0,-2,1));
+      row.setOnClickListener(v->{
+        dialog.dismiss();
+        if(choice.equals("gallery")){
+          pendingPhotoHolder=holder;pendingPhotoButton=target;
+          Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT);pick.addCategory(Intent.CATEGORY_OPENABLE);pick.setType("image/*");
+          pick.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+          startActivityForResult(pick,REQ_PICK_EXERCISE_PHOTO);
+          return;
+        }
+        holder[0]=choice;target.setText("写真："+photoChoiceLabel(choice));
+      });
+      list.addView(row,new LinearLayout.LayoutParams(-1,dp(66)));
+    }
+    dialog.setOnShowListener(d->{
+      int maxHeight=Math.min(dp(570),(int)(getResources().getDisplayMetrics().heightPixels*0.68));
+      scroll.getLayoutParams().height=maxHeight;scroll.requestLayout();
+    });
+    dialog.show();
   }
 
   GradientDrawable roundBg(int fill){
@@ -383,14 +507,21 @@ public class MainActivity extends Activity {
     LinearLayout f=new LinearLayout(this);f.setOrientation(LinearLayout.VERTICAL);f.setPadding(22,4,22,0);
     EditText n=field("種目名",old==null?"":old.name,false),kg=field("重量 kg",old==null?"0":Exercise.trim(old.kg),true),r=field("回数",old==null?"10":""+old.reps,true),s=field("セット数",old==null?"3":""+old.sets,true),t=field("休憩 秒",old==null?"60":""+old.rest,true);
     f.addView(labeledRow("種目名",n));f.addView(labeledRow("重量（kg）",kg));f.addView(labeledRow("回数",r));f.addView(labeledRow("セット数",s));f.addView(labeledRow("休憩（秒）",t));
+    final String originalName=old==null?"":old.name;
+    final String[] photo={old==null?"auto":photoChoice(old.name)};
+    Button photoBtn=btn("写真："+photoChoiceLabel(photo[0]));photoBtn.setOnClickListener(v->choosePhoto(photo,photoBtn,n.getText().toString().trim()));f.addView(photoBtn);
     AlertDialog.Builder b=new AlertDialog.Builder(this).setTitle(idx<0?"メニュー登録":"メニュー編集").setView(f).setPositiveButton("保存",(d,w)->{
       try{
         String newName=n.getText().toString().trim();if(newName.isEmpty())return;
         ArrayList<Exercise>a=load();Exercise ex=new Exercise(newName,Double.parseDouble(kg.getText().toString()),Integer.parseInt(r.getText().toString()),Integer.parseInt(s.getText().toString()),Integer.parseInt(t.getText().toString()));
         if(idx<0)a.add(ex);else a.set(idx,ex);save(a);
+        SharedPreferences.Editor ed=sp.edit();
+        if(!originalName.isEmpty()&&!originalName.equals(newName))ed.remove(photoPrefKey(originalName));
+        if("auto".equals(photo[0]))ed.remove(photoPrefKey(newName));else ed.putString(photoPrefKey(newName),photo[0]);
+        ed.apply();
       }catch(Exception ex){Toast.makeText(this,"入力値を確認してください",Toast.LENGTH_SHORT).show();}
     }).setNegativeButton("キャンセル",null);
-    if(idx>=0)b.setNeutralButton("削除",(d,w)->{ArrayList<Exercise>a=load();a.remove(idx);save(a);});b.show();
+    if(idx>=0)b.setNeutralButton("削除",(d,w)->{ArrayList<Exercise>a=load();a.remove(idx);save(a);sp.edit().remove(photoPrefKey(originalName)).apply();});b.show();
   }
 
   void chooseExercises(){
