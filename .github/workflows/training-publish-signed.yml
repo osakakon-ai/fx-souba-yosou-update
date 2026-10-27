@@ -37,8 +37,10 @@ jobs:
           PY
           )"
           VERSION_DIR="training/release-input/parts-v${VERSION_NAME}"
-          # Verified v0.9.3 APK staged as base64; restore exact signed bytes.
-          if [ "$VERSION_NAME" = "0.9.3" ] && [ -f "staging-training093/Training-App-v0.9.3.apk.b64" ]; then
+          # Restore pre-signed APKs exactly, validating SHA-256 before publication.
+          if [ "$VERSION_NAME" = "0.9.4" ] && [ -f "staging-training094/Training-App-v0.9.4.apk.b64" ]; then
+            base64 -d staging-training094/Training-App-v0.9.4.apk.b64 > training/Training-App.apk
+          elif [ "$VERSION_NAME" = "0.9.3" ] && [ -f "staging-training093/Training-App-v0.9.3.apk.b64" ]; then
             base64 -d staging-training093/Training-App-v0.9.3.apk.b64 > training/Training-App.apk
           elif [ -d "$VERSION_DIR" ]; then
             PARTS="$(find "$VERSION_DIR" -maxdepth 1 -type f -name 'part-*.b64' | sort)"
