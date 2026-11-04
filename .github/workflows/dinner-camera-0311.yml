@@ -1,0 +1,42 @@
+name: Build dinner camera update
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/dinner-camera-0311.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build and validate
+        run: |
+          set -euo pipefail
+          base64 -d dinner-build/v0311/source.b64 > /tmp/source.zip
+          echo '512157309a5bcb74c6c9ac9d189f8548c055a2bcd745b56c96ca0e8b2ccfb4ed  /tmp/source.zip' | sha256sum -c -
+          mkdir /tmp/dinner
+          unzip -q /tmp/source.zip -d /tmp/dinner
+          cd /tmp/dinner
+          gradle :app:assembleRelease --no-daemon
+          APK=app/build/outputs/apk/release/app-release-unsigned.apk
+          unzip -t "$APK" >/dev/null
+          node --check app/src/main/assets/app.js
+          mkdir -p "$GITHUB_WORKSPACE/camera-result"
+          cp "$APK" "$GITHUB_WORKSPACE/camera-result/unsigned.apk"
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" "$GITHUB_WORKSPACE/camera-result/"
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" "$GITHUB_WORKSPACE/camera-result/"
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib64/libc++.so" "$GITHUB_WORKSPACE/camera-result/" || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dinner-camera-0311-unsigned
+          path: camera-result/
+          if-no-files-found: error
