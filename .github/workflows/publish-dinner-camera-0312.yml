@@ -33,3 +33,11 @@ jobs:
           git add dinner/Dinner-Photo-Log-v0.3.12.apk dinner/Dinner-Photo-Log.apk
           git commit -m 'Publish dinner camera update v0.3.12'
           git push origin HEAD:main
+      - name: Record publication failure
+        if: failure()
+        run: |
+          echo "Run ${GITHUB_RUN_ID}" > dinner-build/v0312-release/failure.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dinner-build/v0312-release/failure.txt
+          git commit -m 'Record dinner camera publication failure' && git push origin HEAD:main || true
