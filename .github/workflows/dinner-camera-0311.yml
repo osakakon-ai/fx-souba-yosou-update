@@ -5,7 +5,7 @@ on:
     paths:
       - '.github/workflows/dinner-camera-0311.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -40,3 +40,25 @@ jobs:
           name: dinner-camera-0311-unsigned
           path: camera-result/
           if-no-files-found: error
+      - name: Stage build for private signing
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          tar czf /tmp/camera-result.tar.gz -C camera-result .
+          mkdir -p dinner-build/v0311/result
+          base64 -w0 /tmp/camera-result.tar.gz | split -b 450000 -d -a 3 - dinner-build/v0311/result/part-
+          sha256sum /tmp/camera-result.tar.gz > dinner-build/v0311/result/sha256.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dinner-build/v0311/result
+          git commit -m 'Stage unsigned dinner camera build'
+          git push origin HEAD:main
+      - name: Record build failure
+        if: failure()
+        run: |
+          mkdir -p dinner-build/v0311
+          echo "Build failed run ${GITHUB_RUN_ID}" > dinner-build/v0311/failure.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dinner-build/v0311/failure.txt
+          git commit -m 'Record dinner camera build failure' && git push origin HEAD:main || true
