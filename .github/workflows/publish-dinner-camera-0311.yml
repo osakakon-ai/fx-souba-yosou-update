@@ -1,0 +1,35 @@
+name: Publish dinner camera 0311
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-dinner-camera-0311.yml']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          set -euo pipefail
+          echo '50d148cc2234c8661fe7ff0b418a59cae87b7830ac6d252a42920b41100c11a0  dinner/Dinner-Photo-Log.apk' | sha256sum -c -
+          cat dinner-build/v0311-release/part-* | base64 -d > /tmp/dinner.patch
+          echo 'a7be3ef52cebdb32d493aaf0336a62401bca92e486486fcfd771cfabaca4058f  /tmp/dinner.patch' | sha256sum -c -
+          zstd -d --patch-from=dinner/Dinner-Photo-Log.apk /tmp/dinner.patch -o /tmp/dinner-camera.apk
+          echo '2ce8a86793ff5dd86fb0e9e1856619b4dbdc7aac06a1eb1be82f4f87a0e5fe76  /tmp/dinner-camera.apk' | sha256sum -c -
+          unzip -t /tmp/dinner-camera.apk >/dev/null
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c 4 /tmp/dinner-camera.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/dinner-camera.apk | grep -F "versionCode='24' versionName='0.3.11'"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs dinner/Dinner-Photo-Log.apk | grep -i 'Signer #1 certificate SHA-256 digest:' > /tmp/old-cert
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs /tmp/dinner-camera.apk | grep -i 'Signer #1 certificate SHA-256 digest:' > /tmp/new-cert
+          diff /tmp/old-cert /tmp/new-cert
+          unzip -p /tmp/dinner-camera.apk assets/app.js > /tmp/app.js
+          node --check /tmp/app.js
+          unzip -p /tmp/dinner-camera.apk assets/index.html | grep -F 'id="openCameraBtn"'
+          cp /tmp/dinner-camera.apk dinner/Dinner-Photo-Log-v0.3.11.apk
+          cp /tmp/dinner-camera.apk dinner/Dinner-Photo-Log.apk
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dinner/Dinner-Photo-Log-v0.3.11.apk dinner/Dinner-Photo-Log.apk
+          git commit -m 'Publish dinner camera update v0.3.11'
+          git push origin HEAD:main
