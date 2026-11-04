@@ -22,7 +22,7 @@ jobs:
         run: |
           set -euo pipefail
           base64 -d dinner-build/v0311/source.b64 > /tmp/source.zip
-          echo '512157309a5bcb74c6c9ac9d189f8548c055a2bcd745b56c96ca0e8b2ccfb4ed  /tmp/source.zip' | sha256sum -c -
+          echo 'a43e5bbbe279a268e704bdd48c083b1b781330d9a4f5caf50986318af0a27a8d  /tmp/source.zip' | sha256sum -c -
           mkdir /tmp/dinner
           unzip -q /tmp/source.zip -d /tmp/dinner
           cd /tmp/dinner
