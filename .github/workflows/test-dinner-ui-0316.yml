@@ -1,0 +1,35 @@
+name: Test dinner registration and sharing
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/test-dinner-ui-0316.yml']
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Test registration and share interactions
+        run: |
+          set -euo pipefail
+          npm install --no-save playwright@1.52.0
+          base64 -d dinner-build/v0316/source.b64 > /tmp/dinner.zip
+          mkdir -p /tmp/dinner16
+          unzip -q /tmp/dinner.zip -d /tmp/dinner16
+          echo 'iVBORw0KGgoAAAANSUhEUgAAAEAAAAAwCAIAAAAuKetIAAAAUUlEQVR4nO3PMQ0AIADAMMC/DXSCCI6GZFWwzbPH15YOeNWA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oB2AU2FAgTlwVAQAAAAAElFTkSuQmCC' | base64 -d > /tmp/dinner16-test.png
+          python3 -m http.server 8674 --directory /tmp/dinner16/app/src/main/assets > /tmp/server.log 2>&1 &
+          CHROME_BIN=/usr/bin/google-chrome node dinner-build/v0316/ui-test.cjs
+      - name: Record test outcome
+        if: always()
+        env:
+          TEST_RESULT: ${{ job.status }}
+        run: |
+          echo "run=${GITHUB_RUN_ID} result=${TEST_RESULT}" > dinner-build/v0316/ui-test-status.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dinner-build/v0316/ui-test-status.txt
+          git commit -m 'Record dinner UI test outcome' && git push origin HEAD:main || true
