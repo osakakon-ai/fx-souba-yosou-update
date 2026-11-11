@@ -1,0 +1,52 @@
+name: Build dinner camera confirmation 0316
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/build-dinner-camera-0316.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build and validate
+        run: |
+          set -euo pipefail
+          base64 -d dinner-build/v0316/source.b64 > /tmp/source.zip
+          echo '2264e05b34f34e7ce07fa194334174d1ce5e1d731d3949104077f2e3d80501ef  /tmp/source.zip' | sha256sum -c -
+          mkdir /tmp/dinner
+          unzip -q /tmp/source.zip -d /tmp/dinner
+          cd /tmp/dinner
+          node --check app/src/main/assets/app.js
+          gradle :app:assembleRelease --no-daemon
+          APK=app/build/outputs/apk/release/app-release-unsigned.apk
+          unzip -t "$APK" >/dev/null
+          mkdir -p "$GITHUB_WORKSPACE/camera-result"
+          cp "$APK" "$GITHUB_WORKSPACE/camera-result/unsigned.apk"
+          cd "$GITHUB_WORKSPACE"
+          tar czf /tmp/camera0316.tar.gz -C camera-result .
+          mkdir -p dinner-build/v0316/result
+          base64 -w0 /tmp/camera0316.tar.gz | split -b 450000 -d -a 3 - dinner-build/v0316/result/part-
+          sha256sum /tmp/camera0316.tar.gz > dinner-build/v0316/result/sha256.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dinner-build/v0316/result
+          git commit -m 'Stage unsigned dinner camera confirmation 0316'
+          git push origin HEAD:main
+      - name: Record build failure
+        if: failure()
+        run: |
+          mkdir -p dinner-build/v0316
+          echo "Build failed run ${GITHUB_RUN_ID}" > dinner-build/v0316/failure.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dinner-build/v0316/failure.txt
+          git commit -m 'Record failed dinner camera confirmation build' && git push origin HEAD:main || true
